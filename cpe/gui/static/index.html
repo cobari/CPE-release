@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="app.title"></title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 data-i18n="app.title"></h1>
+    <button type="button" class="open settings-open" id="settings-open" data-i18n="settings.open"></button>
+  </header>
+  <!-- One line on the main screen; the choices themselves live in the settings dialog. -->
+  <p class="summary"><button type="button" class="link-button" id="summary"></button></p>
+
+  <form class="search is-compound" id="search">
+    <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
+      <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
+      <label data-i18n-title="search.hint.compound"><input type="radio" name="mode" value="pair" checked> <span data-i18n="search.compound"></span></label>
+    </div>
+    <div class="inputs">
+      <div class="boxes words">
+        <span class="field"><input id="query" autocomplete="off" data-i18n-aria="search.word.label" data-i18n-placeholder="search.word.placeholder" data-i18n-title="search.hint.single"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span>
+      </div>
+      <div class="boxes pair">
+        <span class="field"><input id="first" autocomplete="off" data-i18n-aria="search.first.label" data-i18n-placeholder="search.first.placeholder" data-i18n-title="search.hint.compound"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span>
+        <button type="button" class="swap" id="swap" data-i18n-aria="search.swap" data-i18n-title="search.swap">⇄</button>
+        <span class="field"><input id="second" autocomplete="off" data-i18n-aria="search.second.label" data-i18n-placeholder="search.second.placeholder" data-i18n-title="search.hint.compound"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span>
+      </div>
+    </div>
+    <button class="go" type="submit" data-i18n="search.submit"></button>
+  </form>
+
+  <div class="results-bar">
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <label class="sort"><span data-i18n="sort.label"></span>
+      <select id="sort">
+        <option value="source" data-i18n="sort.source"></option>
+        <option value="era" data-i18n="sort.era"></option>
+      </select>
+    </label>
+  </div>
+  <!-- One panel per searched source: two side by side, three in a row, four as 田. -->
+  <div class="panels" id="panels"></div>
+
+</div>
+<!-- Bottom of the window: a running import on the left (the window stays usable), one
+     link per online source on the right; on a narrow window the two stack. -->
+<div class="dock">
+<p class="task is-hidden" id="task" role="status"><span id="task-text"></span><span class="spinner small" aria-hidden="true"></span></p>
+<footer class="app-footer" id="source-links"><span data-i18n="source.notes"></span></footer>
+</div>
+<dialog class="source-dialog ctp-dialog" id="ctp-dialog">
+  <h2 class="dialog-title" data-i18n="ctp.title"></h2>
+  <p class="dialog-body" data-i18n="ctp.help"></p>
+  <label class="ctp-field"><span data-i18n="ctp.key"></span>
+    <input type="password" id="ctp-key" autocomplete="off" data-i18n-placeholder="ctp.key.placeholder">
+    <button type="button" class="open" id="ctp-key-save" data-i18n="ctp.key.save"></button>
+  </label>
+  <p class="ctp-key-state" id="ctp-key-state"></p>
+  <label class="ctp-field"><span data-i18n="ctp.url"></span>
+    <input type="url" id="ctp-url" autocomplete="off" placeholder="https://ctext.org/analects">
+    <button type="button" class="go ctp-import" id="ctp-import" data-i18n="ctp.import"></button>
+  </label>
+  <p class="ctp-status" id="ctp-status" role="status" aria-live="polite"></p>
+  <form method="dialog"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+</dialog>
+<!-- Settings: language, which sources are searched, and the local text folder. -->
+<dialog class="source-dialog settings-dialog" id="settings-dialog">
+  <h2 class="dialog-title" data-i18n="settings.title"></h2>
+  <section class="settings-part">
+    <h3 class="step-title"><label for="language" data-i18n="language.label"></label></h3>
+    <select id="language" class="lang-select"></select>
+  </section>
+  <section class="settings-part">
+    <!-- The source chips are built from SOURCES in app.js, so adding a source is one line. -->
+    <fieldset class="source-row" id="sources">
+      <legend class="step-title"><span data-i18n="source.label"></span> <span class="source-hint" data-i18n="source.pick"></span></legend>
+      <div class="source-chips" id="source-chips"></div>
+    </fieldset>
+  </section>
+  <section class="settings-part" id="local-library">
+    <h3 class="step-title" data-i18n="source.local"></h3>
+    <p class="library-line" id="library"></p>
+    <p class="library-actions"><button type="button" class="open" id="open" data-i18n="library.open"></button> <button type="button" class="open" id="ctp-open" data-i18n="ctp.open"></button> <button type="button" class="open" id="release-open" data-i18n="release.open"></button></p>
+    <p class="step-hint" id="library-help" data-i18n="library.help"></p>
+    <p class="library-skipped is-hidden" id="skipped"></p>
+  </section>
+  <form method="dialog" class="settings-close"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+</dialog>
+<!-- Institute releases: pick the institute, then the release, then the folder; the
+     choices are built from the window's dataset list (cpe.local.portal DATASETS). -->
+<dialog class="source-dialog release-dialog" id="release-dialog">
+  <h2 class="dialog-title" data-i18n="release.title"></h2>
+  <p class="dialog-body" data-i18n="release.intro"></p>
+  <ol class="steps">
+    <li><h3 class="step-title" data-i18n="release.step.institute"></h3>
+      <div class="choices" id="release-institutes" role="radiogroup" data-i18n-aria="release.step.institute"></div></li>
+    <li><h3 class="step-title" data-i18n="release.step.dataset"></h3>
+      <p class="step-hint" id="release-dataset-hint" data-i18n="release.dataset.first"></p>
+      <div class="choices" id="release-datasets" role="radiogroup" data-i18n-aria="release.step.dataset"></div></li>
+    <li><h3 class="step-title" data-i18n="release.step.folder"></h3>
+      <p class="folder-line"><span id="release-folder"></span> <button type="button" class="open" id="release-folder-pick" data-i18n="release.folder.choose"></button></p>
+      <p class="step-hint" data-i18n="release.folder.note"></p></li>
+  </ol>
+  <div class="dialog-actions">
+    <button type="button" class="link-button" id="release-file" data-i18n="release.file"></button>
+    <span class="dialog-actions-end">
+      <button type="button" class="go release-start" id="release-start" data-i18n="release.start" disabled></button>
+      <form method="dialog"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+    </span>
+  </div>
+</dialog>
+<dialog class="source-dialog" id="source-dialog">
+  <h2 class="dialog-title"></h2>
+  <p class="dialog-body"></p>
+  <form method="dialog"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+</dialog>
+<template id="panel">
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title"></h2><p class="panel-status" role="status"></p></header>
+    <!-- Shown while this source is searching; the status line above says so in words. -->
+    <div class="panel-loading" aria-hidden="true"><span class="spinner"></span></div>
+    <section class="group likely is-hidden">
+      <h3><span class="label"></span> <span class="n"></span><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span><span class="chev" aria-hidden="true">▼</span></h3>
+      <div class="list"></div>
+    </section>
+    <section class="group less is-closed is-hidden">
+      <h3><span class="label"></span> <span class="n"></span><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span><span class="chev" aria-hidden="true">▼</span></h3>
+      <div class="list"></div>
+    </section>
+  </section>
+</template>
+<template id="card">
+  <article class="card">
+    <header><span class="num"></span><a class="src" href="#"></a><span class="era"></span><span class="reasons"></span></header>
+    <p class="text"><span class="ctx before"></span><span class="seg"></span><span class="ctx after"></span></p>
+    <footer><span class="slot a"><b>A</b><span class="v"></span></span><span class="slot b"><b>B</b><span class="v"></span></span></footer>
+  </article>
+</template>
+<script src="app.js"></script>
+</body>
+</html>

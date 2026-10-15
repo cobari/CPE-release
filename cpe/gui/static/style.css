@@ -1,0 +1,221 @@
+/* Search window. Sizes are proportional to the window (docs/decisions.md "The GUI is
+   built before gate 1-A is complete"); one breakpoint at 720px uses range syntax so no
+   width falls between two rules. Muted text stays at or above 4.5:1 on its surface. */
+:root {
+  --bg: #f6f4ef;
+  --panel: #ffffff;
+  --ink: #1f1d1a;
+  --muted: #6b665d;      /* 5.7:1 on --panel, 5.2:1 on --bg */
+  --line: #e2ddd3;
+  --accent: #9c3d2e;     /* 6.6:1 on --panel */
+  --accent-soft: #f3e3df;
+  --accent-strong: #7f3124; /* hover on filled buttons; 8.6:1 with white */
+  --weak: #a8977a;
+  --field: #fbfaf7;
+  /* Divider between result cards: visible against both card backgrounds (researcher). */
+  --divider: #cdc5b5;
+  --card-alt: #faf8f3;
+  /* One spacing between neighbours on the search row (researcher: equal gaps). */
+  --row-gap: 14px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.6 "Pretendard", "Noto Sans KR", "Noto Sans JP", "Noto Sans SC", system-ui, sans-serif;
+}
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.app { max-width: 1440px; margin: clamp(12px, 4vh, 32px) auto; padding: 0 clamp(12px, 3vw, 24px) 56px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.top h1 { font-size: 20px; margin: 0; }
+.source-row { margin: 4px 0 10px; padding: 0; border: 0; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.source-row legend { float: left; margin-right: 4px; padding: 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.chip input { accent-color: var(--accent); margin: 0; }
+.chip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.source-hint { font-size: 12px; }
+/* Source explanations: links in a footer fixed at the bottom right, each opening a dialog. */
+.dock { position: fixed; left: clamp(8px, 2vw, 20px); right: clamp(8px, 2vw, 20px); bottom: clamp(8px, 2vh, 16px); z-index: 10; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 6px; pointer-events: none; }
+.dock > * { pointer-events: auto; }
+.app-footer { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 10px; max-width: 100%; padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 1px 6px rgba(31, 29, 26, .08); color: var(--muted); font-size: 12.5px; }
+.source-link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.source-dialog { max-width: min(560px, calc(100% - 32px)); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px 16px; color: var(--ink); background: var(--panel); }
+.source-dialog::backdrop { background: rgba(31, 29, 26, .35); }
+.dialog-title { margin: 0 0 8px; font-size: 16px; }
+.dialog-body { margin: 0 0 14px; line-height: 1.7; font-size: 14px; }
+.source-dialog form { text-align: right; }
+.ctp-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 8px 0; font-size: 13.5px; }
+.ctp-field > span { min-width: 6em; color: var(--muted); }
+.ctp-field input { flex: 1 1 14em; min-width: 0; font: inherit; font-size: 16px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--field); color: var(--ink); }
+.ctp-import { padding: 8px 16px; }
+.ctp-key-state { margin: 0 0 4px; color: var(--muted); font-size: 12.5px; }
+.ctp-status { min-height: 1.4em; margin: 6px 0 10px; font-size: 13.5px; color: var(--muted); }
+.ctp-status.is-error { color: var(--accent); }
+/* The steps carry their numbers in their titles; the dialog scrolls as a whole when the
+   window is short, and the release list scrolls on its own on wide windows. */
+.release-dialog { max-width: min(680px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.steps { margin: 0 0 12px; padding: 0; list-style: none; }
+.steps > li { margin: 0 0 14px; }
+.step-title { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; }
+.step-hint { margin: 2px 0 6px; color: var(--muted); font-size: 13px; }
+.step-hint.is-hidden { display: none; }
+.choices { display: grid; gap: 6px; }
+#release-datasets { max-height: 30dvh; overflow-y: auto; }
+.choice { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
+.choice input { accent-color: var(--accent); margin: 4px 0 0; }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.choice-text { display: grid; gap: 2px; min-width: 0; font-size: 13.5px; }
+.choice-detail, .choice-meta { color: var(--muted); font-size: 12.5px; }
+.choice-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.folder-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; font-size: 13.5px; overflow-wrap: anywhere; }
+.link-button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.dialog-actions-end { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+/* Buttons on one row share one height (researcher). */
+.dialog-actions-end :is(.release-start, .dialog-close) { box-sizing: border-box; height: 36px; padding: 0 18px; border: 0; border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1; }
+.release-start:disabled { opacity: .5; cursor: not-allowed; }
+.settings-open { font-size: 14px; padding: 4px 14px; }
+.summary { margin: 4px 0 12px; font-size: 13.5px; }
+.summary .link-button { color: var(--muted); text-decoration-color: var(--line); text-align: left; }
+.summary .link-button:hover { color: var(--accent); }
+.settings-dialog { max-width: min(640px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.settings-part { margin: 0 0 16px; }
+.settings-part.is-hidden { display: none; }
+.settings-part .source-row { margin: 0; padding: 0; border: 0; }
+/* Same look as the other section titles of the dialog; the note sits beside the title,
+   and the chips line up in equal columns. */
+.settings-part .source-row { display: block; }
+.settings-part .source-row legend { float: none; display: block; width: 100%; padding: 0; margin: 0 0 8px; color: var(--ink); font-weight: 600; font-size: 14.5px; }
+.settings-part .source-hint { margin-left: 8px; color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.source-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.source-chips .chip { border-radius: 8px; padding: 7px 12px; }
+.lang-select { font: inherit; font-size: 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--panel); }
+.library-line { margin: 0 0 6px; font-size: 13.5px; overflow-wrap: anywhere; }
+.library-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 8px; }
+.library-actions .open { padding: 6px 10px; border-radius: 8px; }
+.settings-close { text-align: right; }
+.dialog-close { font: inherit; padding: 6px 16px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; }
+a.src { color: var(--muted); text-decoration: none; }
+a.src[data-link]:hover { color: var(--accent); text-decoration: underline; cursor: pointer; }
+.library-skipped { margin: -8px 0 14px; color: var(--accent); font-size: 12.5px; }
+.library-skipped.is-hidden { display: none; }
+.open { font: inherit; font-size: 13px; color: var(--accent); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+.open:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+.search { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: auto 1fr auto; column-gap: var(--row-gap); row-gap: 16px; align-items: center; }
+.search > .inputs { min-width: 0; }
+.modes { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.modes label { display: flex; gap: 8px; align-items: center; cursor: pointer; white-space: nowrap; }
+.modes input { accent-color: var(--accent); }
+.boxes { display: flex; gap: var(--row-gap); align-items: center; }
+.pair { display: none; }
+.is-compound .words { display: none; }
+.is-compound .pair { display: flex; }
+.field { position: relative; display: flex; flex: 1; min-width: 0; }
+/* The two boxes share the row equally, so every gap on the row is --row-gap: no empty
+   stretch before the search button. Widths stay proportional to the window. */
+.pair .field { flex: 1 1 0; }
+.field input { flex: 1; width: 100%; min-width: 0; font: 22px/1.3 "Noto Serif TC", "Noto Serif KR", "Noto Serif JP", serif; padding: 10px 40px 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); color: var(--ink); }
+.field input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: 0; border-radius: 50%; background: #ece8df; color: var(--muted); font-size: 14px; line-height: 26px; cursor: pointer; padding: 0; }
+.clear:hover { background: var(--accent-soft); color: var(--accent); }
+.field input:placeholder-shown + .clear { display: none; }
+.swap { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--accent); font-size: 18px; cursor: pointer; padding: 0; flex: 0 0 auto; }
+.swap:hover { background: var(--accent-soft); border-color: var(--accent); }
+.go { font: 600 15px/1 inherit; padding: 14px 26px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+.go:disabled { opacity: .6; cursor: progress; }
+/* Every button answers the pointer the same way (researcher): colours ease over .15 s,
+   filled buttons darken and rise slightly. Under reduced motion the change is instant. */
+button, .chip, .choice { transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s, transform .15s; }
+.go:hover:not(:disabled), .dialog-close:hover, .release-start:hover:not(:disabled) { background: var(--accent-strong); transform: translateY(-1px); box-shadow: 0 3px 8px rgba(127, 49, 36, .25); }
+.go:active:not(:disabled), .dialog-close:active, .release-start:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+.swap:hover { transform: rotate(180deg); }
+.source-link:hover, .link-button:hover { color: var(--accent-strong); text-decoration-thickness: 2px; }
+.more:hover { background: var(--accent-soft); }
+.chip:hover, .choice:hover { border-color: var(--accent); }
+
+.status { min-height: 1.6em; margin: 14px 2px 0; color: var(--muted); }
+.status.is-error { color: var(--accent); }
+
+.results-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 14px; margin-top: 14px; }
+.results-bar .status { margin: 0; }
+.sort { font-size: 13px; color: var(--muted); }
+.sort select { font: inherit; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; margin-left: 6px; background: var(--panel); }
+/* Panels share the width equally: n2 side by side, n3 in a row, n4 as a 2 × 2 grid. */
+.panels { display: grid; gap: var(--row-gap); margin-top: 10px; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); }
+.panels.n2, .panels.n4 { --cols: 2; }
+.panels.n3 { --cols: 3; }
+.panel { position: relative; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+/* A searching panel: its body is dimmed slightly and a spinner turns (researcher). */
+.panel-loading { display: none; }
+.panel.is-loading .panel-loading { display: flex; align-items: center; justify-content: center; min-height: clamp(96px, 18vh, 180px); background: rgba(31, 29, 26, .06); }
+.spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
+.spinner.small { width: 14px; height: 14px; border-width: 2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.task { display: flex; align-items: center; gap: 8px; margin: 0; max-width: 100%; padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 1px 6px rgba(31, 29, 26, .08); color: var(--ink); font-size: 12.5px; }
+.task.is-hidden { display: none; }
+.panel-head { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.panel-title { margin: 0; font-size: 15px; }
+.panel-status { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; min-height: 1.2em; }
+.panel-status.is-error { color: var(--accent); }
+.panel .group { margin-top: 0; border: 0; border-radius: 0; }
+.panel .group + .group { border-top: 1px solid var(--line); }
+.panels.n3 .text, .panels.n4 .text { font-size: 17px; }
+.panels.n4 .list { max-height: 38vh; }
+.era { color: var(--muted); }
+.num { min-width: 2.2em; padding: 0 6px; border-radius: 4px; background: var(--line); color: var(--ink); font-variant-numeric: tabular-nums; text-align: center; }
+.jump { margin-left: auto; }
+.jump[hidden] { display: none; }
+.jump-to { width: 6.5em; font: inherit; font-size: 13px; font-weight: 400; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; background: var(--panel); }
+.jump-to:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.group > h3 .jump:not([hidden]) + .chev { margin-left: 10px; }
+.era:not(:empty)::before { content: "· "; }
+.group { margin-top: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.group.is-hidden { display: none; }
+.group > h2, .group > h3 { margin: 0; font-size: 15px; padding: 14px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); }
+.group > h2 .n, .group > h3 .n { color: var(--muted); font-weight: 400; white-space: nowrap; }
+.group > h2 .chev, .group > h3 .chev { margin-left: auto; color: var(--muted); transition: transform .15s; }
+.group.is-closed > h2, .group.is-closed > h3 { border-bottom: 0; }
+.group.is-closed > h2 .chev, .group.is-closed > h3 .chev { transform: rotate(-90deg); }
+.group.is-closed .list { display: none; }
+.list { max-height: 70vh; overflow: auto; }
+.card { padding: 14px 20px 12px; border-bottom: 1px solid var(--divider); }
+/* Every other card on a faint warm ground, so neighbours read as separate items. */
+.list > .card:nth-of-type(even) { background: var(--card-alt); }
+.card:last-child { border-bottom: 0; }
+.card header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 4px; }
+.src { color: var(--muted); }
+.reason { color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 0 6px; }
+.text { margin: 0; font: 19px/1.75 "Noto Serif TC", "Noto Serif KR", "Noto Serif JP", serif; }
+.ctx { color: var(--muted); }
+mark.term { background: none; color: var(--accent); font-weight: 700; border-bottom: 2px solid var(--accent); }
+.weak { border-bottom: 1px dotted var(--weak); }
+.card footer { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 6px; font-size: 13.5px; color: #4a463f; }
+.card footer.is-hidden { display: none; }
+.slot b { display: inline-block; min-width: 18px; color: var(--muted); font-weight: 600; margin-right: 4px; }
+.none { color: var(--muted); }
+/* `hidden` must win over display: block, or a finished group shows "0 more". */
+.more[hidden] { display: none; }
+.more { display: block; width: 100%; padding: 12px; border: 0; border-top: 1px solid var(--line); background: var(--field); color: var(--accent); font: inherit; cursor: pointer; }
+
+@media (width < 900px) {
+  .panels { grid-template-columns: minmax(0, 1fr); }
+}
+@media (width < 720px) {
+  .search { grid-template-columns: 1fr; }
+  .modes { flex-direction: row; gap: 18px; }
+  .go { width: 100%; }
+  .text { font-size: 17px; }
+  /* The bottom dock can take three lines here (task line, two lines of source links);
+     room below the last result keeps it from being hidden under the dock. */
+  .app { padding-bottom: 136px; }
+  #release-datasets { max-height: none; }
+  .source-chips, .library-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  /* The spinner stands still; the status words still say the work is running. */
+  .spinner { animation: none; }
+}

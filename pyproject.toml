@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "classic-pattern-explorer"
+version = "1.0.0"
+description = "Pattern search and verification for Literary Sinitic source text."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+# The GUI window (cpe gui): a native web view with an in-process bridge. Windows uses
+# Edge WebView2 and macOS WebKit; Linux gets Qt's web view from wheels, so no system
+# GTK/WebKit packages are needed.
+dependencies = [
+    "pywebview>=5; sys_platform != 'linux'",
+    "pywebview[qt]>=5; sys_platform == 'linux'",
+]
+
+[project.scripts]
+cpe = "cpe.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cpe"]

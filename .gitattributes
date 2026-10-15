@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# cmd.exe misparses LF-only batch files.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.docx binary

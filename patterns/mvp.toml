@@ -1,0 +1,22 @@
+# The three MVP evaluation patterns (plan section 3). The slot maximum 20 is
+# provisional, not based on classical usage: G2 measures the lengths of A and B
+# and replaces it (docs/decisions.md "Slot length limits are provisional").
+schema = 1
+
+[[pattern]]
+id = "yi-wei"
+expr = "以 {A:1..20} 爲 {B:1..20} @sentence"
+
+[[pattern.diagnostics]]
+type = "adjacent_fixed"
+between_slot = "A"
+gap = 0
+require_tail = false
+
+[[pattern]]
+id = "sui-er"
+expr = "雖 {A:1..20} 而 {B:1..20} @sentence"
+
+[[pattern]]
+id = "fei-bu"
+expr = "非 {A:1..20} 不 {B:1..20} @sentence"
