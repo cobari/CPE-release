@@ -1,0 +1,82 @@
+/* Project pages of Classic Pattern Explorer: one stylesheet for the five language
+   pages. System fonts only (no font or script is fetched from another host); the
+   palette follows the application window (cpe/gui/static/style.css). Contrast on
+   --bg: --ink 15.3:1, --muted 5.2:1, --accent 6.1:1; white on --accent 6.7:1;
+   --accent-strong on --accent-soft 7.1:1. */
+:root {
+  --bg: #f6f4ef;
+  --panel: #ffffff;
+  --ink: #1f1d1a;
+  --muted: #6b665d;
+  --line: #e2ddd3;
+  --accent: #9c3d2e;
+  --accent-strong: #7f3124;
+  --accent-soft: #f3e3df;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+:lang(ko) body, body:lang(ko) { font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif; word-break: keep-all; }
+:lang(ja) body, body:lang(ja) { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", "Noto Sans JP", "Noto Sans CJK JP", system-ui, sans-serif; }
+:lang(zh-Hans) body, body:lang(zh-Hans) { font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", system-ui, sans-serif; }
+:lang(zh-Hant) body, body:lang(zh-Hant) { font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Noto Sans CJK TC", system-ui, sans-serif; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { color: var(--accent-strong); text-decoration-thickness: 2px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.skip { position: absolute; left: 12px; top: -48px; padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.skip:focus { top: 12px; }
+
+.site-head, main, .site-foot { width: min(1040px, calc(100% - 40px)); margin: 0 auto; }
+.site-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding: 18px 0; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 17px; }
+.brand:hover { color: var(--ink); }
+.brand img { display: block; }
+.languages ul { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
+.languages a { display: inline-block; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); text-decoration: none; font-size: 14px; }
+.languages a:hover { border-color: var(--accent); color: var(--accent); }
+.languages a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.hero { padding: 40px 0 28px; }
+h1 { margin: 0 0 14px; font-size: clamp(28px, 4.2vw, 44px); line-height: 1.25; letter-spacing: -0.01em; max-width: 22em; }
+h2 { margin: 0 0 16px; font-size: 24px; line-height: 1.35; }
+h3 { margin: 0 0 6px; font-size: 17px; line-height: 1.4; }
+p { margin: 0 0 10px; }
+.lead { max-width: 44em; font-size: 18px; color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.button { display: inline-flex; flex-direction: column; justify-content: center; min-height: 46px; padding: 8px 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font-weight: 600; text-decoration: none; line-height: 1.3; }
+.button:hover { border-color: var(--accent); color: var(--accent); }
+.button small { font-weight: 400; font-size: 13px; opacity: .9; }
+.button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.button.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+
+main > section { padding: 26px 0; border-top: 1px solid var(--line); }
+main > section.hero { border-top: 0; }
+.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.features li, .source, .steps > div { padding: 18px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.features p, .steps p { margin: 0; color: var(--muted); }
+.sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.source ul { margin: 8px 0 0; padding-left: 1.2em; }
+.source li { margin: 0 0 6px; }
+.pattern { white-space: nowrap; }
+.tag { display: inline-block; margin: 0 0 10px; padding: 1px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: 13px; font-weight: 600; }
+.limits ul { margin: 0; padding-left: 1.2em; max-width: 52em; }
+.limits li { margin: 0 0 6px; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+
+.site-foot { padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+
+@media (max-width: 860px) {
+  .features, .steps { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .sources { grid-template-columns: 1fr; }
+  .hero { padding-top: 24px; }
+  .lead { font-size: 17px; }
+}

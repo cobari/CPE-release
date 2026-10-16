@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classic Pattern Explorer：漢文原文の文型候補検索</title>
+  <meta name="description" content="漢文の原文から「以…爲」のような文型の候補を探し、文脈とともに示す無料のデスクトップアプリ（Windows・macOS・Linux）。自分のテキストファイルと、ITKC・NDL・CBETA のオンライン抜粋検索に対応。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/ja/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="Classic Pattern Explorer：漢文原文の文型候補検索">
+  <meta property="og:description" content="漢文の原文から「以…爲」のような文型の候補を探し、文脈とともに示す無料のデスクトップアプリ（Windows・macOS・Linux）。自分のテキストファイルと、ITKC・NDL・CBETA のオンライン抜粋検索に対応。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/ja/">
+  <meta property="og:locale" content="ja_JP">
+  <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">本文へ移動</a>
+  <header class="site-head">
+    <a class="brand" href="../ja/"><img src="../assets/icon-192.png" alt="" width="40" height="40"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="言語">
+      <ul>
+      <li><a href="../" hreflang="en" lang="en">English</a></li>
+      <li><a href="../ko/" hreflang="ko" lang="ko">한국어</a></li>
+      <li><a href="../ja/" hreflang="ja" lang="ja" aria-current="page">日本語</a></li>
+      <li><a href="../zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+      <li><a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <h1>漢文の原文から文型の候補を探す</h1>
+      <p class="lead">Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「<span class="pattern">以…爲</span>」「<span class="pattern">雖…而</span>」のような文型を探す、人文情報学（デジタル・ヒューマニティーズ）のためのツールです。候補ごとに、そのテキストや資料源の抜粋が含む文脈を示します。読んで判断するのは研究者自身です。</p>
+      <p class="actions">
+        <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v1.0/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64ビット</small></a>
+        <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v1.0">v1.0 のすべてのダウンロード</a>
+        <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">使い方を読む</a>
+      </p>
+    </section>
+    <section>
+      <h2>できること</h2>
+      <ul class="features">
+        <li><h3>文脈の中の候補</h3><p>結果ごとに、文型が現れる一節をテキストや資料源の抜粋が含む範囲で示し、出典にリンクがあればそれも添えます。</p></li>
+        <li><h3>五つの画面言語</h3><p>韓国語・日本語・簡体字中国語・繁体字中国語・英語。画面の言語を変えても、原文が変換・改変されることはありません。</p></li>
+        <li><h3>構文解析器ではなく研究支援ツール</h3><p>複合検索では、候補を構造的な手がかりで二つのグループに分けます。この分け方は文法の判定ではなく、判断は研究者に委ねられます。</p></li>
+      </ul>
+    </section>
+    <section>
+      <h2>検索の対象</h2>
+      <div class="sources">
+        <article class="source">
+          <h3>自分のテキスト</h3>
+          <p class="tag">パソコン上の全文</p>
+          <p>自分で選んだフォルダーにある UTF-8 の .txt・.md ファイルと、機関の原文を変換して保存した .texts.jsonl のまとめファイル。各ファイルのテキスト全体を検索します。</p>
+          <ul>
+          <li>プログラムが韓国の公共データポータルからダウンロードし、.texts.jsonl のまとめファイルとして保存する公的機関の原文：国史編纂委員会と韓国古典翻訳院の資料。</li>
+          <li>自分の API キーで Chinese Text Project（CTP/CText、ctext.org）から章ごとに取り込み、.txt で保存した作品。</li>
+          <li>自分で用意したプレーンテキストのファイル。</li>
+          </ul>
+        </article>
+        <article class="source">
+          <h3>オンライン抜粋検索</h3>
+          <p class="tag">抜粋、インターネット接続が必要</p>
+          <p>検索語を資料源に送り、返ってきた一節で文型を照合します。</p>
+          <ul>
+          <li>韓国古典総合DB（ITKC）：原文コレクションの古典原文と韓国文集叢刊、約150字の抜粋。朝鮮王朝実録などの翻訳コレクションは検索しません。</li>
+          <li>国立国会図書館（NDL）：古典籍の OCR テキスト。検索要素の少なくとも一つは2字以上が必要です。</li>
+          <li>CBETA 漢文仏典：ヒットの前後約40字ずつの抜粋。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+    <section class="limits">
+      <h2>知っておきたい限界</h2>
+      <ul>
+        <li>オンラインの結果は資料源が返す一節で、両端が切れていることが多く、資料源・コレクションごとに最初の50〜100件（レコード・資料・巻）までしか見ません。</li>
+        <li>結果がないことは、その文型が使われていないことの証明にはなりません。</li>
+        <li>NDL の OCR テキストには認識誤りがあるので、引用する前に画像を確認してください。</li>
+        <li>用例を引用する前に、出典を開いて全文を読んでください。</li>
+        <li>資料源のサーバーへの配慮から、一つのセッションで各オンライン資料源に送る要求は最大200回です。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>はじめに</h2>
+      <div class="steps">
+        <div><h3>Windows</h3><p>v1.0 のリリースから cpe-gui.exe をダウンロードしてダブルクリックします。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動くため、画面が開かないときはランタイムをインストールしてください。</p></div>
+        <div><h3>macOS と Linux</h3><p>v1.0 のリリースからソースパッケージをダウンロードして展開し、cpe-gui.command（macOS）または cpe-gui.sh（Linux）を実行します。初回は同意すれば uv をインストールし、Python 環境をダウンロードするので、インターネット接続が必要です。</p></div>
+        <div><h3>コマンドライン</h3><p>ソースパッケージには、CSV・JSONL と実行記録を書き出す cpe コマンドも含まれます。詳しくは<a href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">使い方</a>をご覧ください。</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-foot">
+    <p>バージョン 1.0（タグ v1.0）。MIT ライセンス。接続先の機関やデータベースとは関係のない個人プロジェクトです。データベースの本文データ、現代語訳、API の生の応答は含まれていません。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub のソースとリリース</a></p>
+  </footer>
+</body>
+</html>

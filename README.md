@@ -2,9 +2,18 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-Classic Pattern Explorer searches Literary Sinitic source texts for pattern candidates (such as 以…爲 or 雖…而) and displays each candidate sentence alongside its surrounding context in a desktop graphical window or from the command line. The interface supports Korean, Japanese, Simplified Chinese, Traditional Chinese, and English. Changing the interface language never modifies or converts source text.
+Classic Pattern Explorer is a desktop application and command-line tool for finding sentence-pattern candidates, such as 以…爲 or 雖…而, in Literary Sinitic source texts (漢文, often called Classical Chinese). Each candidate is shown with the context its text or the source's excerpt provides and, where the source gives one, a link back to it, so you can read and judge it yourself. The window is available in Korean, Japanese, Simplified Chinese, Traditional Chinese and English; changing the interface language never converts or alters the source text.
 
-This application is not an automated grammar oracle or syntactic parser. It is a research aid designed to extract candidate sentences from large corpora and organize them using structural cues so scholars can directly read and evaluate the primary context.
+It is a digital humanities research aid, not a grammar oracle or syntactic parser. It collects candidates, and in compound search it sorts them by structural cues into likely and less likely results; the reading stays with the researcher.
+
+## What It Searches
+
+| | Where the text is | What you get |
+|---|---|---|
+| **Your own texts** | A folder on your computer: UTF-8 `.txt` and `.md` files, works imported from the Chinese Text Project (CTP/CText, ctext.org) with your own API key (saved as `.txt`), and the `.texts.jsonl` bundles the program writes when it converts institute originals downloaded from Korea's public data portal (National Institute of Korean History, Institute for the Translation of Korean Classics) | The text of each file is searched in full; the search covers what the files contain |
+| **Online excerpt search** | Korean Classics DB (ITKC: its original-text collections Classical Texts and Korean Literary Collections; translated collections such as the Annals of the Joseon Dynasty, the Seungjeongwon ilgi and the Ilseongnok are not searched), National Diet Library of Japan (NDL, OCR text) and the CBETA Chinese Buddhist Canon; an Internet connection is needed | Passages each source returns around a hit, often cut at both ends: the first 50 to 100 records, books or juan per source or collection |
+
+Online results are passages the sources return, with limits per source and collection, so an empty result does not show that a pattern never occurs. Before citing an example, open its source link and check the full passage.
 
 ## Getting Started
 
@@ -160,6 +169,7 @@ A. The distributed `cpe-gui.exe` is built for 64-bit Windows (x64). If double-cl
 ## Distribution and License
 
 - This repository contains the runtime package, translation catalogs, web assets, launchers, runtime dependency lock, and license.
+- The `docs/` folder holds the project's web pages, one for each interface language, and `discoverability.md` records how the repository and its pages are described.
 - Package version: `1.0.0`; Git tag: `v1.0`. Exact source snapshot recorded in `release.json`.
 - Released under the MIT License (`LICENSE`).
 - An independent personal project unaffiliated with ITKC. To respect copyright and terms of use, no proprietary database corpus, modern translation, or raw API response is bundled.

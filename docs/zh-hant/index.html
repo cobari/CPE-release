@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classic Pattern Explorer：文言文（漢文）原文句式候選檢索</title>
+  <meta name="description" content="免費桌面程式（Windows、macOS、Linux），在文言文（漢文）原文中查找「以…爲」等句式的候選用例並連同前後文顯示；支援本機文字檔以及 ITKC、NDL、CBETA 線上摘錄檢索。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="Classic Pattern Explorer：文言文（漢文）原文句式候選檢索">
+  <meta property="og:description" content="免費桌面程式（Windows、macOS、Linux），在文言文（漢文）原文中查找「以…爲」等句式的候選用例並連同前後文顯示；支援本機文字檔以及 ITKC、NDL、CBETA 線上摘錄檢索。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/zh-hant/">
+  <meta property="og:locale" content="zh_TW">
+  <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="site-head">
+    <a class="brand" href="../zh-hant/"><img src="../assets/icon-192.png" alt="" width="40" height="40"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="語言">
+      <ul>
+      <li><a href="../" hreflang="en" lang="en">English</a></li>
+      <li><a href="../ko/" hreflang="ko" lang="ko">한국어</a></li>
+      <li><a href="../ja/" hreflang="ja" lang="ja">日本語</a></li>
+      <li><a href="../zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+      <li><a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant" aria-current="page">繁體中文</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <h1>在文言文原文中查找句式候選</h1>
+      <p class="lead">Classic Pattern Explorer 是一款數位人文工具，在文言文（漢文，Literary Sinitic）原文中查找「<span class="pattern">以…爲</span>」「<span class="pattern">雖…而</span>」等句式，並為每個候選顯示該文本或資料來源摘錄所含的前後文，由研究者親自閱讀與判斷。</p>
+      <p class="actions">
+        <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v1.0/cpe-gui.exe">下載 Windows 版<small>cpe-gui.exe，64 位元</small></a>
+        <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v1.0">v1.0 全部下載</a>
+        <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.zh-TW.md">閱讀使用說明</a>
+      </p>
+    </section>
+    <section>
+      <h2>功能</h2>
+      <ul class="features">
+        <li><h3>前後文中的候選</h3><p>每筆結果在文本或資料來源摘錄所及的範圍內顯示句式所在的段落，出處有連結時也附上連結。</p></li>
+        <li><h3>五種介面語言</h3><p>韓語、日語、簡體中文、繁體中文與英語。切換介面語言不會轉換或改動原文。</p></li>
+        <li><h3>研究輔助工具，而非句法分析器</h3><p>在組合檢索中，候選依結構線索分為兩組。這種分組不是語法判定，判斷仍由研究者完成。</p></li>
+      </ul>
+    </section>
+    <section>
+      <h2>檢索對象</h2>
+      <div class="sources">
+        <article class="source">
+          <h3>自己的文本</h3>
+          <p class="tag">本機上的全文</p>
+          <p>所選資料夾中的 UTF-8 .txt、.md 檔案，以及轉換機構原文後儲存的 .texts.jsonl 合集檔案；每個檔案都檢索全部文字。</p>
+          <ul>
+          <li>程式從韓國公共資料入口網下載並儲存為 .texts.jsonl 合集檔案的機構原文：國史編纂委員會與韓國古典翻譯院的資料。</li>
+          <li>用本人 API 金鑰從中國哲學書電子化計劃（Chinese Text Project，CTP/CText，ctext.org）按章匯入並儲存為 .txt 的作品。</li>
+          <li>自己準備的純文字檔案。</li>
+          </ul>
+        </article>
+        <article class="source">
+          <h3>線上摘錄檢索</h3>
+          <p class="tag">摘錄，需要連網</p>
+          <p>程式把檢索詞傳送給資料來源，並在傳回的段落中比對句式。</p>
+          <ul>
+          <li>韓國古典綜合資料庫（ITKC）：原文集合「古典原文」與「韓國文集叢刊」，約 150 字的摘錄；不檢索朝鮮王朝實錄等譯文集合。</li>
+          <li>日本國立國會圖書館（NDL）：古籍的 OCR 文字；檢索要素中至少有一個須為兩字以上。</li>
+          <li>CBETA 電子佛典：命中處前後各約 40 字的摘錄。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+    <section class="limits">
+      <h2>需要注意的限制</h2>
+      <ul>
+        <li>線上結果是資料來源傳回的段落，常在兩端截斷；每個資料來源或集合只查看前 50–100 筆（紀錄、書或卷）。</li>
+        <li>沒有結果並不能證明該句式從未出現。</li>
+        <li>NDL 的 OCR 文字含有辨識錯誤，引用前請核對書頁影像。</li>
+        <li>引用任何用例前，請開啟出處閱讀完整原文。</li>
+        <li>為顧及資料來源的伺服器，每次工作階段向每個線上資料來源最多傳送 200 次請求。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>開始使用</h2>
+      <div class="steps">
+        <div><h3>Windows</h3><p>從 v1.0 發布頁下載 cpe-gui.exe 並按兩下執行，無需 Python。程式依靠 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 執行階段</a>；如果視窗無法開啟，請安裝該執行階段。</p></div>
+        <div><h3>macOS 與 Linux</h3><p>從 v1.0 發布頁下載原始碼套件並解壓縮，執行 cpe-gui.command（macOS）或 cpe-gui.sh（Linux）。首次執行時如經同意會安裝 uv 並下載 Python 環境，因此需要連網。</p></div>
+        <div><h3>命令列</h3><p>原始碼套件也包含 cpe 指令，可輸出 CSV、JSONL 與執行紀錄。詳情請見<a href="https://github.com/cobari/CPE-release/blob/main/README.zh-TW.md">使用說明</a>。</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-foot">
+    <p>版本 1.0（標籤 v1.0）。MIT 授權。這是與所連接的機構及資料庫均無關聯的個人專案，不附帶任何資料庫的正文資料、現代譯文或 API 原始回應。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub 上的原始碼與發布</a></p>
+  </footer>
+</body>
+</html>

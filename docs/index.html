@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classic Pattern Explorer: sentence-pattern search for Literary Sinitic texts</title>
+  <meta name="description" content="Free desktop app for Windows, macOS and Linux that finds sentence-pattern candidates such as 以…爲 in Literary Sinitic (Classical Chinese) texts and shows each in context, from your own files or online excerpt search of ITKC, NDL and CBETA.">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="Classic Pattern Explorer: sentence-pattern search for Literary Sinitic texts">
+  <meta property="og:description" content="Free desktop app for Windows, macOS and Linux that finds sentence-pattern candidates such as 以…爲 in Literary Sinitic (Classical Chinese) texts and shows each in context, from your own files or online excerpt search of ITKC, NDL and CBETA.">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/">
+  <meta property="og:locale" content="en_US">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-head">
+    <a class="brand" href="./"><img src="assets/icon-192.png" alt="" width="40" height="40"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="Language">
+      <ul>
+      <li><a href="./" hreflang="en" lang="en" aria-current="page">English</a></li>
+      <li><a href="ko/" hreflang="ko" lang="ko">한국어</a></li>
+      <li><a href="ja/" hreflang="ja" lang="ja">日本語</a></li>
+      <li><a href="zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+      <li><a href="zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <h1>Find sentence-pattern candidates in Literary Sinitic texts</h1>
+      <p class="lead">Classic Pattern Explorer is a digital humanities tool that looks for patterns such as <span class="pattern">以…爲</span> or <span class="pattern">雖…而</span> in Literary Sinitic source texts (漢文, often called Classical Chinese) and shows each candidate with the context its text or the source&#x27;s excerpt provides, so that you read and judge it yourself.</p>
+      <p class="actions">
+        <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v1.0/cpe-gui.exe">Download for Windows<small>cpe-gui.exe, 64-bit</small></a>
+        <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v1.0">All downloads for v1.0</a>
+        <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.md">Read the guide</a>
+      </p>
+    </section>
+    <section>
+      <h2>What it does</h2>
+      <ul class="features">
+        <li><h3>Candidates in context</h3><p>Each result shows the passage where the pattern occurs, as far as the text or the source&#x27;s excerpt goes, and, where the source gives one, a link back to it.</p></li>
+        <li><h3>Five interface languages</h3><p>Korean, Japanese, Simplified Chinese, Traditional Chinese and English. Changing the language never converts or alters the source text.</p></li>
+        <li><h3>A research aid, not a parser</h3><p>In compound search, candidates are sorted by structural cues into likely and less likely results. That grouping is not a grammatical verdict; the reading stays with you.</p></li>
+      </ul>
+    </section>
+    <section>
+      <h2>Where it searches</h2>
+      <div class="sources">
+        <article class="source">
+          <h3>Your own texts</h3>
+          <p class="tag">Full text on your computer</p>
+          <p>A folder you choose: UTF-8 .txt and .md files, and the .texts.jsonl bundles the window writes for institute originals. The text of each file is searched in full.</p>
+          <ul>
+          <li>Originals the window downloads from Korea&#x27;s public data portal and saves as .texts.jsonl bundles: releases of the National Institute of Korean History and the Institute for the Translation of Korean Classics.</li>
+          <li>Works imported chapter by chapter from the Chinese Text Project (CTP/CText, ctext.org) with your own API key, saved as .txt files.</li>
+          <li>Any plain-text files you prepare yourself.</li>
+          </ul>
+        </article>
+        <article class="source">
+          <h3>Online excerpt search</h3>
+          <p class="tag">Excerpts, Internet needed</p>
+          <p>The window sends your search to the source and matches the passages it returns.</p>
+          <ul>
+          <li>Korean Classics DB (ITKC): the original-text collections Classical Texts and Korean Literary Collections, excerpts of about 150 characters. Its translated collections, such as the Annals of the Joseon Dynasty, are not searched.</li>
+          <li>National Diet Library of Japan (NDL): OCR text of classical books; at least one search element must be two or more characters long.</li>
+          <li>CBETA Chinese Buddhist Canon: excerpts of about 40 characters on each side of a hit.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+    <section class="limits">
+      <h2>Limits to keep in mind</h2>
+      <ul>
+        <li>Online results are the passages each source returns, often cut at both ends, from the first 50 to 100 records, books or juan per source or collection.</li>
+        <li>An empty result does not show that a pattern never occurs.</li>
+        <li>NDL&#x27;s OCR text contains recognition errors; check the page image before citing.</li>
+        <li>Before citing any example, open its source and read the full passage.</li>
+        <li>To spare the sources&#x27; servers, the window sends at most 200 requests to each online source in a session.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Get started</h2>
+      <div class="steps">
+        <div><h3>Windows</h3><p>Download cpe-gui.exe from the v1.0 release and double-click it; Python is not needed. It runs on the <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; if the window does not open, install the runtime.</p></div>
+        <div><h3>macOS and Linux</h3><p>Download the source package from the v1.0 release, unpack it and run cpe-gui.command (macOS) or cpe-gui.sh (Linux). On the first run it offers to install uv and downloads the Python environment, so it needs an Internet connection.</p></div>
+        <div><h3>Command line</h3><p>The source package also has the cpe command, which writes CSV, JSONL and run records. See the <a href="https://github.com/cobari/CPE-release/blob/main/README.md">guide</a> for details.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-foot">
+    <p>Version 1.0 (tag v1.0). MIT License. An independent personal project, not affiliated with any of the institutions or databases it connects to. No database corpus, modern translation or raw API response is bundled.</p>
+    <p><a href="https://github.com/cobari/CPE-release">Source and releases on GitHub</a></p>
+  </footer>
+</body>
+</html>
