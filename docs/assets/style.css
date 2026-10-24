@@ -59,7 +59,7 @@ p { margin: 0 0 10px; }
 main > section { padding: 26px 0; border-top: 1px solid var(--line); }
 main > section.hero { border-top: 0; }
 .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
-.features li, .source, .steps > div { padding: 18px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.features li, .source, .steps > div { min-width: 0; overflow-wrap: anywhere; padding: 18px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
 .features p, .steps p { margin: 0; color: var(--muted); }
 .sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .source ul { margin: 8px 0 0; padding-left: 1.2em; }

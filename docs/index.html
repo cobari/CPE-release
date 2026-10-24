@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Classic Pattern Explorer: sentence-pattern search for Literary Sinitic texts</title>
-  <meta name="description" content="Free desktop app for Windows, macOS and Linux that finds sentence-pattern candidates such as 以…爲 in Literary Sinitic (Classical Chinese) texts and shows each in context, from your own files or online excerpt search of ITKC, NDL and CBETA.">
+  <meta name="description" content="Find sentence-pattern candidates in Literary Sinitic (Classical Chinese) texts, read their context and follow source links. A free desktop research tool for local texts and selected online databases.">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/">
   <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
@@ -16,7 +16,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
   <meta property="og:title" content="Classic Pattern Explorer: sentence-pattern search for Literary Sinitic texts">
-  <meta property="og:description" content="Free desktop app for Windows, macOS and Linux that finds sentence-pattern candidates such as 以…爲 in Literary Sinitic (Classical Chinese) texts and shows each in context, from your own files or online excerpt search of ITKC, NDL and CBETA.">
+  <meta property="og:description" content="Find sentence-pattern candidates in Literary Sinitic (Classical Chinese) texts, read their context and follow source links. A free desktop research tool for local texts and selected online databases.">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/">
   <meta property="og:locale" content="en_US">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -39,7 +39,7 @@
   <main id="main">
     <section class="hero">
       <h1>Find sentence-pattern candidates in Literary Sinitic texts</h1>
-      <p class="lead">Classic Pattern Explorer is a digital humanities tool that looks for patterns such as <span class="pattern">以…爲</span> or <span class="pattern">雖…而</span> in Literary Sinitic source texts (漢文, often called Classical Chinese) and shows each candidate with the context its text or the source&#x27;s excerpt provides, so that you read and judge it yourself.</p>
+      <p class="lead">Classic Pattern Explorer is a digital humanities research aid for finding sentence-pattern candidates, such as <span class="pattern">以…爲</span> or <span class="pattern">雖…而</span>, in Literary Sinitic source texts (漢文, often called Classical Chinese). Each candidate is shown with the context its text or the source&#x27;s excerpt provides, alongside a source link where available, so you can read and judge it yourself.</p>
       <p class="actions">
         <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Download for Windows<small>cpe-gui.exe, 64-bit</small></a>
         <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">All downloads for v2.0</a>
@@ -49,7 +49,7 @@
     <section>
       <h2>What it does</h2>
       <ul class="features">
-        <li><h3>Candidates in context</h3><p>Each result shows the passage where the pattern occurs, as far as the text or the source&#x27;s excerpt goes, and, where the source gives one, a link back to it.</p></li>
+        <li><h3>Candidates in context</h3><p>Read candidates in the context supplied by the text or provider, with source links where available. Records that cannot be checked against the returned text are marked as unverified.</p></li>
         <li><h3>Five interface languages</h3><p>Korean, Japanese, Simplified Chinese, Traditional Chinese and English. Changing the language never converts or alters the source text.</p></li>
         <li><h3>A research aid, not a parser</h3><p>In compound search, candidates are sorted by structural cues into likely and less likely results. That grouping is not a grammatical verdict; the reading stays with you.</p></li>
       </ul>
@@ -60,21 +60,24 @@
         <article class="source">
           <h3>Your own texts</h3>
           <p class="tag">Full text on your computer</p>
-          <p>A folder you choose: UTF-8 .txt and .md files, and the .texts.jsonl bundles the window writes for institute originals. The text of each file is searched in full.</p>
+          <p>A folder you choose: UTF-8 .txt and .md files, and .texts.jsonl bundles the window writes for institute originals. The text of each file is searched in full.</p>
           <ul>
-          <li>Originals the window downloads from Korea&#x27;s public data portal and saves as .texts.jsonl bundles: releases of the National Institute of Korean History and the Institute for the Translation of Korean Classics.</li>
-          <li>Works imported chapter by chapter from the Chinese Text Project (CTP/CText, ctext.org) with your own API key, saved as .txt files.</li>
+          <li>Supported original-text releases from Korea's public data portal, including the National Institute of Korean History, the Institute for the Translation of Korean Classics and the Academy of Korean Studies, saved as searchable text bundles.</li>
+          <li>Chinese Text Project (CTP/CText, ctext.org): try a single chapter without a key where CTP permits it. A work's full chapter list requires your own CTP API key.</li>
+          <li>Selected portions of MPIWG rare local gazetteers; supported Project Gutenberg and NDL texts; CBETA and NIKH XML files.</li>
           <li>Any plain-text files you prepare yourself.</li>
           </ul>
         </article>
         <article class="source">
-          <h3>Online excerpt search</h3>
-          <p class="tag">Excerpts, Internet needed</p>
-          <p>The window sends your search to the source and matches the passages it returns.</p>
+          <h3>Online source search</h3>
+          <p class="tag">Returned passages and records; Internet needed</p>
+          <p>The app sends your search to a supported source and checks the text it returns.</p>
           <ul>
-          <li>Korean Classics DB (ITKC): the original-text collections Classical Texts and Korean Literary Collections, excerpts of about 150 characters. Its translated collections, such as the Annals of the Joseon Dynasty, are not searched.</li>
-          <li>National Diet Library of Japan (NDL): OCR text of classical books; at least one search element must be two or more characters long.</li>
+          <li>Korean Classics DB (ITKC): original-text collections Classical Texts and Korean Literary Collections (~150-character excerpts). Translated collections such as the Annals of the Joseon Dynasty are not searched.</li>
+          <li>National Diet Library of Japan (NDL): OCR text of classical books; at least one search element must contain two or more characters.</li>
           <li>CBETA Chinese Buddhist Canon: excerpts of about 40 characters on each side of a hit.</li>
+          <li>Cyber Seodang (Dongyang Classics DB): returned passages or record information with source links. Candidates that cannot be verified in the returned text are marked as unverified.</li>
+          <li>DocuSky: limited to 普陀洛迦新志靈應故事 and 清涼山志靈應故事 in the 佛寺志靈應故事 database.</li>
           </ul>
         </article>
       </div>
@@ -82,11 +85,12 @@
     <section class="limits">
       <h2>Limits to keep in mind</h2>
       <ul>
-        <li>Online results are the passages each source returns, often cut at both ends, from the first 50 to 100 records, books or juan per source or collection.</li>
+        <li>Online coverage depends on the passages and records returned by each provider, within its result limits.</li>
         <li>An empty result does not show that a pattern never occurs.</li>
-        <li>NDL&#x27;s OCR text contains recognition errors; check the page image before citing.</li>
-        <li>Before citing any example, open its source and read the full passage.</li>
-        <li>To spare the sources&#x27; servers, the window sends at most 200 requests to each online source in a session.</li>
+        <li>NDL's OCR text may contain recognition errors; check the page image before citing.</li>
+        <li>MPIWG imports supported portions from up to 50 source units in a selected section at a time, for local searching. These units do not correspond to printed page numbers; whole-corpus online search is not provided.</li>
+        <li>Before citing a candidate, open its source where a link is available and check the full passage.</li>
+        <li>Request intervals and limits protect provider servers. Downloaded material remains subject to the provider's terms.</li>
       </ul>
     </section>
     <section>
