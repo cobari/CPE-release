@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 1.1
+# Classic Pattern Explorer 2.0
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer 是一款桌面程序兼命令行工具，用于在文�
 
 ## 可以检索什么
 
-1.1除ITKC、NDL和CBETA外，还支持东洋古典综合DB及DocuSky的佛寺志靈應故事。东洋古典综合DB未返回正文的候选会标为未确认候选并保留原文链接。MPIWG地方志通过选择章节局部导入后在本地检索，不提供整库在线检索。
+2.0除ITKC、NDL和CBETA外，还支持东洋古典综合DB及DocuSky的佛寺志靈應故事。东洋古典综合DB未返回正文的候选会标为未确认候选并保留原文链接。MPIWG地方志通过选择章节局部导入后在本地检索，不提供整库在线检索。
 
 | | 文本所在 | 结果 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer 是一款桌面程序兼命令行工具，用于在文�
 
 ### Windows（可执行文件）
 
-1. 访问 [v1.1 发布页面](https://github.com/cobari/CPE-release/releases/tag/v1.1) 并下载 Windows x64 专用可执行文件 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v1.1/cpe-gui.exe)。
+1. 访问 [v2.0 发布页面](https://github.com/cobari/CPE-release/releases/tag/v2.0) 并下载 Windows x64 专用可执行文件 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe)。
 2. 双击 `cpe-gui.exe` 即可打开检索窗口，无需安装 Python 或 uv。
 3. Windows 可执行文件依赖 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。若无法启动，请通过链接安装 WebView2 运行时。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer 是一款桌面程序兼命令行工具，用于在文�
 
 Windows 可执行文件无法在 macOS 或 Linux 上直接运行。请使用完整发行包：
 
-1. 从 [v1.1 发布页面](https://github.com/cobari/CPE-release/releases/tag/v1.1) 下载源码压缩包（`Source code .zip` 或 `.tar.gz`）并解压。
+1. 从 [v2.0 发布页面](https://github.com/cobari/CPE-release/releases/tag/v2.0) 下载源码压缩包（`Source code .zip` 或 `.tar.gz`）并解压。
 2. 保持解压后的完整文件夹结构，运行对应的启动脚本：
    - **macOS**：双击 `cpe-gui.command`。（将在终端窗口中启动。首次运行若弹出安全提示，请右键点击并选择“打开”。）
    - **Linux**：运行 `cpe-gui.sh`。（在文件管理器中选择“运行”或在终端中执行。）
@@ -152,6 +152,6 @@ A. 发布的 `cpe-gui.exe` 适用于 64 位 Windows (x64)。若双击无反应�
 
 - 本仓库包含运行时程序包、翻译目录、网页静态资源、启动脚本、依赖锁定文件及许可证。
 - `docs/` 文件夹存放项目网页，每种界面语言一页；`discoverability.md` 记录本仓库及网页的介绍方式。
-- 程序包版本为 `1.1.0`，对应 Git 标签为 `v1.1`。精确的源码快照记录于 `release.json`。
+- 程序包版本为 `2.0.0`，对应 Git 标签为 `v2.0`。精确的源码快照记录于 `release.json`。
 - 基于 MIT 许可证（`LICENSE`）发布。
 - 本项目为独立个人研究工具，与韩国古典翻译院（ITKC）无隶属关系。为恪守版权与使用条款，本仓库未捆绑任何专有数据库语料、现代译文或原始 API 响应数据。

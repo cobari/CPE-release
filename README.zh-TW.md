@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 1.1
+# Classic Pattern Explorer 2.0
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 ## 可以檢索什麼
 
-1.1除ITKC、NDL和CBETA外，亦支援東洋古典綜合DB與DocuSky的佛寺志靈應故事。東洋古典綜合DB未回傳正文的候選會標示為未確認候選並保留出處連結。MPIWG地方志採選擇章節局部匯入後在本機檢索，不提供整庫線上檢索。
+2.0除ITKC、NDL和CBETA外，亦支援東洋古典綜合DB與DocuSky的佛寺志靈應故事。東洋古典綜合DB未回傳正文的候選會標示為未確認候選並保留出處連結。MPIWG地方志採選擇章節局部匯入後在本機檢索，不提供整庫線上檢索。
 
 | | 文本所在 | 結果 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 ### Windows（執行檔）
 
-1. 造訪 [v1.1 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v1.1) 並下載 Windows x64 專用執行檔 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v1.1/cpe-gui.exe)。
+1. 造訪 [v2.0 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v2.0) 並下載 Windows x64 專用執行檔 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe)。
 2. 按兩下 `cpe-gui.exe` 即可開啟檢索視窗，不需安裝 Python 或 uv。
 3. Windows 執行檔依賴 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。若無法啟動，請透過連結安裝 WebView2 執行階段。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 Windows 執行檔無法在 macOS 或 Linux 上直接執行。請使用完整發行套件：
 
-1. 從 [v1.1 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v1.1) 下載原始碼壓縮檔（`Source code .zip` 或 `.tar.gz`）並解壓縮。
+1. 從 [v2.0 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v2.0) 下載原始碼壓縮檔（`Source code .zip` 或 `.tar.gz`）並解壓縮。
 2. 保持解壓縮後的完整資料夾結構，執行對應的啟動腳本：
    - **macOS**：按兩下 `cpe-gui.command`。（將在終端機視窗中啟動。首次執行若彈出安全提示，請按一下滑鼠右鍵並選擇「開啟」。）
    - **Linux**：執行 `cpe-gui.sh`。（在檔案管理器中選擇「執行」或在終端機中執行。）
@@ -152,6 +152,6 @@ A. 發布的 `cpe-gui.exe` 適用於 64 位元 Windows (x64)。若按兩下無�
 
 - 本儲存庫包含執行階段套件、翻譯目錄、網頁靜態資源、啟動腳本、相依性鎖定檔及授權條款。
 - `docs/` 資料夾存放專案網頁，每種介面語言一頁；`discoverability.md` 記錄本儲存庫及網頁的介紹方式。
-- 套件版本為 `1.1.0`，對應 Git 標籤為 `v1.1`。精確的原始碼快照記錄於 `release.json`。
+- 套件版本為 `2.0.0`，對應 Git 標籤為 `v2.0`。精確的原始碼快照記錄於 `release.json`。
 - 依 MIT 授權條款（`LICENSE`）釋出。
 - 本專案為獨立個人研究工具，與韓國古典翻譯院（ITKC）無隸屬關係。為恪守著作權與使用條款，本儲存庫未隨附任何專有資料庫語料、現代譯文或原始 API 回應資料。

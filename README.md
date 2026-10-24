@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 1.1
+# Classic Pattern Explorer 2.0
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
@@ -8,7 +8,7 @@ It is a digital humanities research aid, not a grammar oracle or syntactic parse
 
 ## What It Searches
 
-Version 1.1 adds Cyber Seodang and the selected DocuSky temple-story database alongside ITKC, NDL and CBETA. Cyber Seodang also returns source-linked candidates whose body text is unverified. MPIWG gazetteers use selected-section local import, not online full-collection search.
+Version 2.0 adds Cyber Seodang and the selected DocuSky temple-story database alongside ITKC, NDL and CBETA. Cyber Seodang also returns source-linked candidates whose body text is unverified. MPIWG gazetteers use selected-section local import, not online full-collection search.
 
 | | Where the text is | What you get |
 |---|---|---|
@@ -21,7 +21,7 @@ Online results are passages the sources return, with limits per source and colle
 
 ### Windows (Executable)
 
-1. Go to the [v1.1 Release Page](https://github.com/cobari/CPE-release/releases/tag/v1.1) and download the Windows x64 executable [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v1.1/cpe-gui.exe).
+1. Go to the [v2.0 Release Page](https://github.com/cobari/CPE-release/releases/tag/v2.0) and download the Windows x64 executable [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe).
 2. Double-click `cpe-gui.exe` to open the search window. Neither Python nor uv is required.
 3. The executable uses the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If the application does not start, install the WebView2 Runtime from the link.
 
@@ -31,7 +31,7 @@ Online results are passages the sources return, with limits per source and colle
 
 The Windows executable does not run on macOS or Linux. Please use the full distribution package:
 
-1. Download the source package (`Source code .zip` or `.tar.gz`) from the [v1.1 Release Page](https://github.com/cobari/CPE-release/releases/tag/v1.1) and unpack it.
+1. Download the source package (`Source code .zip` or `.tar.gz`) from the [v2.0 Release Page](https://github.com/cobari/CPE-release/releases/tag/v2.0) and unpack it.
 2. Keep the entire unzipped folder intact and run the appropriate launcher:
    - **macOS**: Double-click `cpe-gui.command`. (Finder opens it in a Terminal window. On the first launch, if prompted with a security warning, right-click the file and choose "Open".)
    - **Linux**: Run `cpe-gui.sh`. (Select "Run in terminal" in your file manager or run it from a shell.)
@@ -152,6 +152,6 @@ A. The distributed `cpe-gui.exe` is built for 64-bit Windows (x64). If double-cl
 
 - This repository contains the runtime package, translation catalogs, web assets, launchers, runtime dependency lock, and license.
 - The `docs/` folder holds the project's web pages, one for each interface language, and `discoverability.md` records how the repository and its pages are described.
-- Package version: `1.1.0`; Git tag: `v1.1`. Exact source snapshot recorded in `release.json`.
+- Package version: `2.0.0`; Git tag: `v2.0`. Exact source snapshot recorded in `release.json`.
 - Released under the MIT License (`LICENSE`).
 - An independent personal project unaffiliated with ITKC. To respect copyright and terms of use, no proprietary database corpus, modern translation, or raw API response is bundled.

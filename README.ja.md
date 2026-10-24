@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 1.1
+# Classic Pattern Explorer 2.0
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「以
 
 ## 検索できるもの
 
-1.1ではITKC・NDL・CBETAに加え、東洋古典総合DBとDocuSkyの佛寺志靈應故事も検索します。本文が返らない東洋古典総合DBの候補は出典リンク付きの未確認候補として区別します。MPIWG地方志は全体のオンライン検索ではなく、選んだ章の一部をローカルに取り込む方式です。
+2.0ではITKC・NDL・CBETAに加え、東洋古典総合DBとDocuSkyの佛寺志靈應故事も検索します。本文が返らない東洋古典総合DBの候補は出典リンク付きの未確認候補として区別します。MPIWG地方志は全体のオンライン検索ではなく、選んだ章の一部をローカルに取り込む方式です。
 
 | | テキストのある場所 | 得られるもの |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「以
 
 ### Windows（実行ファイル）
 
-1. [v1.1 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v1.1) から Windows x64 用の実行ファイル [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v1.1/cpe-gui.exe) をダウンロードします。
+1. [v2.0 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v2.0) から Windows x64 用の実行ファイル [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe) をダウンロードします。
 2. ダウンロードした `cpe-gui.exe` をダブルクリックすると検索ウィンドウが開きます。Python や uv をインストールする必要はありません。
 3. Windows 実行ファイルは [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) を使用します。起動しない場合はリンク先から WebView2 ランタイムをインストールしてください。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「以
 
 Windows 実行ファイルは macOS や Linux では動作しません。配布パッケージ全体をご利用ください：
 
-1. [v1.1 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v1.1) からソースコード（Source code .zip または .tar.gz）をダウンロードし、展開します。
+1. [v2.0 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v2.0) からソースコード（Source code .zip または .tar.gz）をダウンロードし、展開します。
 2. 展開したフォルダー全体を保持したまま、以下のファイルを実行します：
    - **macOS**: `cpe-gui.command` をダブルクリックします。（ターミナル画面が開いて実行されます。初回起動時にセキュリティ警告が表示された場合は、右クリックして「開く」を選択してください。）
    - **Linux**: `cpe-gui.sh` を実行します。（ファイルマネージャーで「実行」またはターミナルから実行。）
@@ -152,6 +152,6 @@ A. 配布されている `cpe-gui.exe` は 64 ビット Windows（x64）専用�
 
 - 本リポジトリには、ランタイムパッケージ、翻訳カタログ、ページリソース、ランチャー、依存関係ロックファイル、ライセンスファイルが含まれています。
 - `docs/` フォルダーには画面言語ごとに1ページずつプロジェクトのウェブページがあり、`discoverability.md` にはリポジトリとページの紹介方法を記録しています。
-- パッケージバージョン: `1.1.0`、Git タグ: `v1.1`。`release.json` に正確なソーススナップショット情報が記録されています。
+- パッケージバージョン: `2.0.0`、Git タグ: `v2.0`。`release.json` に正確なソーススナップショット情報が記録されています。
 - MIT ライセンス（`LICENSE`）の下で公開されています。
 - 本ツールは韓国古典翻訳院（ITKC）とは無関係の個人プロジェクトです。著作権および利用条件を遵守するため、原文コーパス、現代語訳、データベースの生レスポンスデータは同梱されていません。
