@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from cpe.export import csv_out, jsonl, run_file
-from cpe.local.txt import InputError, LocalText, read, text_options
+from cpe.export.safe import check_outputs, staged
+from cpe.local.txt import InputError, LocalText, read_inputs, text_options
 from cpe.match.engine import (
     Settings,
     TextInput,
@@ -43,11 +44,20 @@ def match_files(
     prefix: Path,
     run_id: str,
     settings: Settings | None = None,
+    *,
+    force: bool = False,
 ) -> tuple[list[Result], Outputs]:
     pattern_bytes = pattern_file.read_bytes()
     specs = loads(pattern_bytes, str(pattern_file))
     return match_specs(
-        specs, pattern_file, pattern_bytes, inputs, prefix, run_id, settings
+        specs,
+        pattern_file,
+        pattern_bytes,
+        inputs,
+        prefix,
+        run_id,
+        settings,
+        force=force,
     )
 
 
@@ -59,10 +69,14 @@ def match_specs(
     prefix: Path,
     run_id: str,
     settings: Settings | None = None,
+    *,
+    force: bool = False,
 ) -> tuple[list[Result], Outputs]:
     """Match already built pattern specs; `pattern_bytes` is what the run records."""
     settings = settings or Settings()
-    texts = [read(path) for path in inputs]
+    outputs = outputs_for(prefix)
+    check_outputs([outputs.csv, outputs.jsonl, outputs.run], force=force)
+    texts = read_inputs(inputs)
     _check(texts)
     options = settings.normalization
     inputs_ = [
@@ -78,7 +92,13 @@ def match_specs(
         )
         for text in texts
     ]
-    check_variants(settings, [text.punctuation for text in texts])
+    check_variants(
+        settings,
+        [
+            (text.punctuation, text.full_stop, text.halfwidth_punctuation)
+            for text in texts
+        ],
+    )
     found = [
         (text_index, pattern_index, result)
         for text_index, text_input in enumerate(inputs_)
@@ -86,29 +106,6 @@ def match_specs(
         for result in match_text(spec, text_input, settings)
     ]
     results = assign_ids(found)
-    outputs = outputs_for(prefix)
-    # Matching is finished before any output is opened, and each writer builds its
-    # whole content before opening its file: opening for writing empties the file.
-    jsonl.write(outputs.jsonl, results)
-    csv_out.write(
-        outputs.csv,
-        results,
-        {
-            text.text_id: csv_out.text_view(
-                text.reference,
-                text_input.normalized,
-                sentence_delimiters(
-                    settings, text.full_stop, text.halfwidth_punctuation
-                ),
-                text.boundary_start,
-                text.boundary_end,
-            )
-            for text, text_input in zip(texts, inputs_, strict=True)
-        },
-        {text.text_id: text.title for text in texts},
-        run_id,
-        options.name,
-    )
     warnings = [
         (text_input.text_id, spec.id)
         for text_input in inputs_
@@ -132,7 +129,36 @@ def match_specs(
         options.name,
         warnings,
     )
-    run_file.write(outputs.run, info, results)
+    views = {
+        text.text_id: csv_out.text_view(
+            text.reference,
+            text_input.normalized,
+            sentence_delimiters(settings, text.full_stop, text.halfwidth_punctuation),
+            text.boundary_start,
+            text.boundary_end,
+        )
+        for text, text_input in zip(texts, inputs_, strict=True)
+    }
+    titles = {text.text_id: text.title for text in texts}
+    normalizations = {text.text_id: text_options(text, options).name for text in texts}
+    # Matching is finished before any output is opened, and each target is
+    # replaced only after its writer returns.
+    with staged([outputs.jsonl, outputs.csv, outputs.run]) as (
+        jsonl_path,
+        csv_path,
+        run_path,
+    ):
+        jsonl.write(jsonl_path, results)
+        csv_out.write(
+            csv_path,
+            results,
+            views,
+            titles,
+            run_id,
+            options.name,
+            normalizations,
+        )
+        run_file.write(run_path, info, results)
     return results, outputs
 
 

@@ -30,12 +30,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import re
 import sys
 from collections.abc import Callable, Sequence
 from datetime import date
 from pathlib import Path
 
+from cpe.export.safe import check_outputs, staged
 from cpe.itkc.client import (
     FIELD_ARTICLE,
     FIELD_AUTHOR,
@@ -112,6 +114,9 @@ def _log(message: str) -> None:
 def main(
     argv: Sequence[str] | None = None, client_factory: ClientFactory = _client
 ) -> int:
+    import multiprocessing
+
+    multiprocessing.freeze_support()
     parser = argparse.ArgumentParser(
         description="Sentence search over ITKC Open API results",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -134,13 +139,21 @@ def main(
         "--delay", type=float, default=1.0, help="seconds between requests (>= 1)"
     )
     parser.add_argument("-o", "--output", default="itkc_result.csv", type=Path)
+    parser.add_argument(
+        "-f", "--force", action="store_true", help="replace existing output file"
+    )
     parser.add_argument("--log", type=Path, help="JSONL request log")
     parser.add_argument(
         "--dry-run", action="store_true", help="show the plan and counts only"
     )
     args = parser.parse_args(argv)
-    if args.delay < 1.0:
+    if not math.isfinite(args.delay) or args.delay < 1.0:
         parser.error("--delay must be at least 1 second (probe safeguard)")
+    if not args.dry_run:
+        try:
+            check_outputs([args.output], force=args.force)
+        except FileExistsError as error:
+            parser.error(str(error))
 
     try:
         tree = parse(args.query)
@@ -212,12 +225,13 @@ def _run(
                             make_link(doc),
                         ]
                     )
-    # All rows are collected before the file is opened: opening for writing
-    # empties it, and a failed run must not leave a half-written CSV.
-    with args.output.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.writer(stream, lineterminator="\n")
-        writer.writerow(HEADER)
-        writer.writerows(rows)
+    # All rows are collected before the file is opened; staged() replaces the
+    # target atomically so a failed write never destroys an existing CSV.
+    with staged([args.output]) as (staged_output,):
+        with staged_output.open("w", encoding="utf-8-sig", newline="") as stream:
+            writer = csv.writer(stream, lineterminator="\n")
+            writer.writerow(HEADER)
+            writer.writerows(rows)
     _log(
         f"done: {checked:,} candidates checked, {len(rows):,} matches in "
         f"{len(hit_docs):,} documents -> {args.output}"

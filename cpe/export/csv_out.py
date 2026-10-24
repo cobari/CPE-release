@@ -92,6 +92,9 @@ class TextView:
     # full-stop role, 3.8), whatever the run's scope: context is read by sentence.
     sentences: tuple[seg.Segment, ...]
     hidden: tuple[tuple[int, int], ...]
+    # Sentence starts, kept beside `sentences` so each result's context lookup
+    # does not rebuild the list.
+    starts: tuple[int, ...]
 
 
 def text_view(
@@ -101,8 +104,16 @@ def text_view(
     text_start: seg.TextEdge,
     text_end: seg.TextEdge,
 ) -> TextView:
-    sentences = seg.split(normalized.text, sentence_delimiters, text_start, text_end)
-    return TextView(reference, normalized, tuple(sentences), hidden_spans(normalized))
+    sentences = tuple(
+        seg.split(normalized.text, sentence_delimiters, text_start, text_end)
+    )
+    return TextView(
+        reference,
+        normalized,
+        sentences,
+        hidden_spans(normalized),
+        tuple(sentence.start for sentence in sentences),
+    )
 
 
 def context(
@@ -121,7 +132,7 @@ def context(
     if not sentences:
         return "", ""
     norm = view.normalized
-    starts = [sentence.start for sentence in sentences]
+    starts = view.starts
     first = max(bisect.bisect_right(starts, norm_start) - 1, 0)
     last = max(bisect.bisect_right(starts, max(norm_start, norm_end - 1)) - 1, 0)
     opening = sentences[max(first - 1, 0)]
@@ -295,6 +306,7 @@ def write(
     titles: Mapping[str, str],
     run_id: str,
     normalization: str,
+    normalizations: Mapping[str, str] | None = None,
 ) -> None:
     results = list(results)
     # Fixed spans of every placement per pattern and segment, so each row can
@@ -316,7 +328,7 @@ def write(
             views[result.text_id].reference,
             run_id,
             titles.get(result.text_id, ""),
-            normalization,
+            (normalizations or {}).get(result.text_id, normalization),
             frozenset(
                 paired[
                     (

@@ -1,6 +1,7 @@
 """Provide command-line entry points for matching, probing, and evaluation."""
 
 import argparse
+import multiprocessing
 import sys
 from collections.abc import Callable, Sequence
 from datetime import datetime
@@ -12,6 +13,7 @@ OUTPUT_HELP = "output prefix; writes PREFIX.csv, PREFIX.jsonl and PREFIX.run.jso
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Parse a command and return its exit status."""
+    multiprocessing.freeze_support()
     parser = argparse.ArgumentParser(prog="cpe", description="Classic Pattern Explorer")
     subcommands = parser.add_subparsers(dest="command", required=True)
     match = subcommands.add_parser(
@@ -93,6 +95,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     evaluation.add_argument("--out", type=Path, required=True, help="output prefix")
     evaluation.add_argument(
+        "--force", action="store_true", help="replace existing output files"
+    )
+    evaluation.add_argument(
         "--confirmed-only",
         action="store_true",
         help="count only entries the researcher has confirmed (gate 1-A)",
@@ -159,6 +164,9 @@ def _gui(args: argparse.Namespace) -> int:
 def _add_inputs(command: argparse.ArgumentParser) -> None:
     command.add_argument("inputs", type=Path, nargs="+", help="UTF-8 text files")
     command.add_argument("--out", type=Path, required=True, help=OUTPUT_HELP)
+    command.add_argument(
+        "--force", action="store_true", help="replace existing output files"
+    )
     command.add_argument("--run-id", help="run identifier (default: local time)")
     normalization = command.add_argument_group("normalization (default: identity)")
     normalization.add_argument("--variants", type=Path, help="variant table (TOML)")
@@ -197,7 +205,7 @@ def _evaluate(args: argparse.Namespace) -> int:
 
     try:
         data = build(args.gold, args.patterns, args.confirmed_only)
-        json_path, md_path = write(args.out, data)
+        json_path, md_path = write(args.out, data, force=args.force)
     except (OSError, KeyError, ValueError, json.JSONDecodeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
@@ -264,7 +272,7 @@ def _match(args: argparse.Namespace, run_id: str, settings: Any) -> tuple[int, A
     from cpe.match.run import match_files
 
     results, outputs = match_files(
-        args.patterns, args.inputs, args.out, run_id, settings
+        args.patterns, args.inputs, args.out, run_id, settings, force=args.force
     )
     return len(results), outputs
 
@@ -295,6 +303,7 @@ def _pair(args: argparse.Namespace, run_id: str, settings: Any) -> tuple[int, An
         args.out,
         run_id,
         settings,
+        force=args.force,
     )
     return len(results), outputs
 
@@ -303,7 +312,13 @@ def _search(args: argparse.Namespace, run_id: str, settings: Any) -> tuple[int, 
     from cpe.local.search import search_files
 
     records, outputs = search_files(
-        args.query, args.inputs, args.out, run_id, settings, args.scope
+        args.query,
+        args.inputs,
+        args.out,
+        run_id,
+        settings,
+        args.scope,
+        force=args.force,
     )
     return len(records), outputs
 

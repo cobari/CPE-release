@@ -32,17 +32,16 @@ from cpe.match.engine import (
     Settings,
     TextInput,
     assign_ids,
+    check_variants,
+    clause_delimiters,
     match_text,
     sentence_delimiters,
 )
 from cpe.match.pair import pair_spec
 from cpe.match.result import Result
-from cpe.normalize.options import normalize
+from cpe.normalize.options import NormalizationError, normalize
 from cpe.normalize.text import NormalizedText
 
-CLAUSE_MARKS = frozenset("，；：")
-# The same marks in halfwidth form, for a text that declares them (spec 3.9).
-HALFWIDTH_CLAUSE_MARKS = frozenset(",;:")
 # Text files a folder contributes, searched in all its subfolders (Excel and other
 # formats are not read: researcher decision).
 TEXT_SUFFIXES = (".txt", ".md")
@@ -86,7 +85,7 @@ class Text:
 
 
 class Library:
-    """The texts one GUI session searches, read once at start."""
+    """One independently searched local folder or explicit set of text inputs."""
 
     def __init__(
         self,
@@ -96,7 +95,21 @@ class Library:
     ) -> None:
         self.texts = list(texts)
         self.settings = settings
-        # Files of an opened folder that could not be read (not UTF-8, bad manifest).
+        # A variant table must not touch a delimiter of any loaded text, whatever
+        # the path that built this library.
+        check_variants(
+            settings,
+            [
+                (
+                    text.local.punctuation,
+                    text.local.full_stop,
+                    text.local.halfwidth_punctuation,
+                )
+                for text in self.texts
+            ],
+        )
+        # Files and subfolders of an opened folder that could not be read (not UTF-8,
+        # bad manifest, permission).
         self.skipped = list(skipped)
 
     @classmethod
@@ -109,9 +122,12 @@ class Library:
             if not path.is_dir():
                 texts.extend(text_from(local, settings) for local in _read_file(path))
                 continue
-            # One unreadable file in a folder is reported and skipped instead of
-            # keeping the whole folder closed.
-            for file in _folder_files(path):
+            # One unreadable or unparsable file, or one unlistable subfolder, in a
+            # folder is reported and skipped instead of keeping the whole folder
+            # closed.
+            files, unreadable = _folder_files(path)
+            skipped.extend(unreadable)
+            for file in files:
                 relative = file.relative_to(path).as_posix()
                 try:
                     found: list[Text] = []
@@ -123,7 +139,7 @@ class Library:
                             local = replace(local, text_id=relative)
                         found.append(text_from(local, settings))
                     texts.extend(found)
-                except InputError:
+                except (InputError, NormalizationError, OSError):
                     skipped.append(relative)
         ids = [text.local.text_id for text in texts]
         duplicates = sorted(text_id for text_id, n in Counter(ids).items() if n > 1)
@@ -132,12 +148,29 @@ class Library:
         return cls(texts, settings, skipped)
 
     def describe(self) -> dict[str, Any]:
+        """The full text list, for callers that need titles or ids.
+
+        The window asks for `summary()` instead: sending every title over the
+        bridge costs milliseconds per thousand texts and the page only needs counts.
+        """
         return {
             "texts": [
                 {"text_id": text.local.text_id, "title": text.title}
                 for text in self.texts
             ],
             "skipped": self.skipped,
+        }
+
+    def summary(self) -> dict[str, Any]:
+        """Counts and only the skipped paths the window can show.
+
+        The page prints at most five skipped names; sending the whole list would
+        make a folder with many unreadable files as expensive as the old describe().
+        """
+        return {
+            "text_count": len(self.texts),
+            "skipped": self.skipped[:5],
+            "skipped_count": len(self.skipped),
         }
 
 
@@ -148,19 +181,44 @@ def _read_file(path: Path) -> list[LocalText]:
     return [read(path)]
 
 
-def _folder_files(folder: Path) -> list[Path]:
-    """The .txt and .md files and text bundles under a folder in path order; hidden
-    folders left out."""
-    return sorted(
-        file
-        for file in folder.rglob("*")
-        if file.is_file()
-        and (
-            file.suffix.lower() in TEXT_SUFFIXES
-            or file.name.lower().endswith(BUNDLE_SUFFIX)
-        )
-        and not any(part.startswith(".") for part in file.relative_to(folder).parts)
-    )
+def _folder_files(folder: Path) -> tuple[list[Path], list[str]]:
+    """The .txt and .md files and text bundles under a folder in path order, plus the
+    relative paths of subfolders that could not be listed.
+
+    Hidden components are left out. Directory symlinks are not followed, as before:
+    a loop through one would scan until it failed rather than finish, and a link
+    pointing outside the folder would load texts the researcher did not open.
+    A subfolder that cannot be listed, or an entry that disappears while the scan
+    runs, is reported instead of aborting the whole folder; `Library.load` records
+    its path in `skipped`.
+    """
+    files: list[Path] = []
+    unreadable: list[str] = []
+    pending = [folder]
+    while pending:
+        directory = pending.pop()
+        try:
+            entries = list(directory.iterdir())
+        except OSError:
+            unreadable.append(directory.relative_to(folder).as_posix())
+            continue
+        for entry in entries:
+            if entry.name.startswith("."):
+                continue
+            try:
+                entry.stat()
+            except OSError:
+                unreadable.append(entry.relative_to(folder).as_posix())
+                continue
+            if entry.is_dir():
+                if not entry.is_symlink():
+                    pending.append(entry)
+            elif entry.is_file() and (
+                entry.suffix.lower() in TEXT_SUFFIXES
+                or entry.name.lower().endswith(BUNDLE_SUFFIX)
+            ):
+                files.append(entry)
+    return sorted(files), sorted(unreadable)
 
 
 def text_from(
@@ -219,7 +277,7 @@ def search_pair(library: Library, first: str, second: str) -> dict[str, Any]:
     for result in results:
         text = by_id[result.text_id]
         key = (result.text_id, result.segment.start, result.segment.end)
-        row = _pair_row(result, text, frozenset(paired[key]), seconds)
+        row = _pair_row(result, text, frozenset(paired[key]), seconds, library.settings)
         (less if row["reasons"] else likely).append(row)
     return {"mode": "pair", "likely": likely, "less": less}
 
@@ -229,6 +287,7 @@ def _pair_row(
     text: Text,
     paired: frozenset[tuple[int, int]],
     seconds: set[str],
+    settings: Settings,
 ) -> dict[str, Any]:
     view = text.view
     before, after = csv_out.context(
@@ -252,8 +311,8 @@ def _pair_row(
         a_norm = text.normalized.text[slot.start : slot.end]
         if any(literal in a_norm for literal in seconds):
             reasons.append(SKIPS_NEARER)
-        marks = CLAUSE_MARKS | (
-            HALFWIDTH_CLAUSE_MARKS if text.local.halfwidth_punctuation else frozenset()
+        marks = clause_delimiters(
+            settings, text.local.punctuation, text.local.halfwidth_punctuation
         )
         if any(mark in a_norm for mark in marks):
             reasons.append(CROSSES_CLAUSE)
@@ -289,13 +348,16 @@ def search_words(library: Library, query: str) -> dict[str, Any]:
         tree = normalize_query(parse_query(query), library.settings.normalization)
     except QueryError:
         return {"error": "bad_query"}
-    records = [
-        record
-        for text in library.texts
-        for record in search_text(
-            tree, query, text.local, text.normalized, library.settings, "sentence"
-        )
-    ]
+    try:
+        records = [
+            record
+            for text in library.texts
+            for record in search_text(
+                tree, query, text.local, text.normalized, library.settings, "sentence"
+            )
+        ]
+    except QueryError:
+        return {"error": "query_limit"}
     views = {text.local.text_id: text.view for text in library.texts}
     links = {text.local.text_id: text.link for text in library.texts}
     eras = {text.local.text_id: text.era for text in library.texts}

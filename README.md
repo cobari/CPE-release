@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 1.0
+# Classic Pattern Explorer 1.1
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
@@ -7,6 +7,8 @@ Classic Pattern Explorer is a desktop application and command-line tool for find
 It is a digital humanities research aid, not a grammar oracle or syntactic parser. It collects candidates, and in compound search it sorts them by structural cues into likely and less likely results; the reading stays with the researcher.
 
 ## What It Searches
+
+Version 1.1 adds Cyber Seodang and the selected DocuSky temple-story database alongside ITKC, NDL and CBETA. Cyber Seodang also returns source-linked candidates whose body text is unverified. MPIWG gazetteers use selected-section local import, not online full-collection search.
 
 | | Where the text is | What you get |
 |---|---|---|
@@ -19,7 +21,7 @@ Online results are passages the sources return, with limits per source and colle
 
 ### Windows (Executable)
 
-1. Go to the [v1.0 Release Page](https://github.com/cobari/CPE-release/releases/tag/v1.0) and download the Windows x64 executable [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v1.0/cpe-gui.exe).
+1. Go to the [v1.1 Release Page](https://github.com/cobari/CPE-release/releases/tag/v1.1) and download the Windows x64 executable [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v1.1/cpe-gui.exe).
 2. Double-click `cpe-gui.exe` to open the search window. Neither Python nor uv is required.
 3. The executable uses the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If the application does not start, install the WebView2 Runtime from the link.
 
@@ -29,7 +31,7 @@ Online results are passages the sources return, with limits per source and colle
 
 The Windows executable does not run on macOS or Linux. Please use the full distribution package:
 
-1. Download the source package (`Source code .zip` or `.tar.gz`) from the [v1.0 Release Page](https://github.com/cobari/CPE-release/releases/tag/v1.0) and unpack it.
+1. Download the source package (`Source code .zip` or `.tar.gz`) from the [v1.1 Release Page](https://github.com/cobari/CPE-release/releases/tag/v1.1) and unpack it.
 2. Keep the entire unzipped folder intact and run the appropriate launcher:
    - **macOS**: Double-click `cpe-gui.command`. (Finder opens it in a Terminal window. On the first launch, if prompted with a security warning, right-click the file and choose "Open".)
    - **Linux**: Run `cpe-gui.sh`. (Select "Run in terminal" in your file manager or run it from a shell.)
@@ -41,41 +43,21 @@ The Windows executable does not run on macOS or Linux. Please use the full distr
 
 ## Quick First Search (Online Database)
 
-Even if you do not have local text files ready, you can immediately test the application using an online database if an Internet connection is available:
-
-1. Start the program and click the **Settings** button in the upper-right corner.
-2. Under **Search in**, check **Korean Classics DB (ITKC)** first, then uncheck **My text folder**, and click the **Close** button at the bottom of the Settings dialog.
-3. In the default **Compound search** mode on the main screen:
-   - **First element**: enter `以`
-   - **Second element**: enter `爲`
-4. Click **Search**. Returned candidate sentences from the online database will appear on screen. (Click the ⇄ button to swap the first and second elements.)
+1. Open **Sources** and check the folders or online sources to search. You may choose up to four in total.
+2. Click the book icon and application title to return to the search screen.
+3. Enter your search terms and click Search. Online sources need an Internet connection; results cover only what the provider returns.
 
 ---
 
 ## Preparing Texts (Local Folder)
 
-To search your own corpus, open Settings and ensure **My text folder** is checked under **Search in**.
+- In **Sources**, add a folder of UTF-8 `.txt`, `.md` or imported `.texts.jsonl` texts. Four separate folder slots are available; removing a slot does not delete its files.
 
-### 1. Opening Local Text Files
+- Open **Import**, choose the folder to receive new texts, then **Import original texts**. The import destination is separate from the folders checked for searching. If needed, the program asks for a destination when you save.
 
-- Click **Open text folder…** to select a folder containing `.txt` or `.md` files. Only UTF-8 plain text is read. Subfolders are scanned recursively. Non-text formats such as Excel are skipped.
-- The window remembers the chosen folder for your next session.
+- Choose an institute release, CTP, Project Gutenberg, NDL, CBETA/NIKH XML or MPIWG gazetteer. Address-entry forms link to the source website. CTP permits trying a chapter without a key; a whole work's chapter list requires your CTP key, and access remains the provider's decision.
 
-### 2. Downloading Institute Public Releases
-
-If you do not have Literary Sinitic files prepared, you can download public open-access classical texts directly from within the program:
-
-1. In Settings, click **Download institute originals…**.
-2. **1. Institute**: Select the National Institute of Korean History (NIKH; Samguk sagi, Goryeosa, Bibyeonsa deungrok, etc.) or the Institute for the Translation of Korean Classics (ITKC; literary collections, miscellaneous records).
-3. **2. Release**: Select a dataset, choose a destination in **3. Folder to save in**, and click **Download**.
-4. The download and text conversion run in the background. Once finished, the destination folder opens automatically as your active text library.
-
-If a government portal connection fails or presents a CAPTCHA, click **View on the portal** to download the ZIP file manually, then click **Import a ZIP I already downloaded…**.
-
-### 3. Importing from CTP (Chinese Text Project)
-
-- In Settings, click **Import from CTP…** and enter the address of a work or chapter on `ctext.org`. Each chapter will be saved as a `.txt` file for searching.
-- You must open a local text folder first. Because CTP restricts most full texts to accounts with an API key, obtain your personal API key from `ctext.org` and save it in the dialog.
+- Where available, click **Preview**, inspect the source text, choose the parts to keep, record the edition and check the review box. **Download** saves online material; **Import** brings in a file already on your computer. Unsupported units are excluded with reasons. The header × closes the dialog and remains visible while its body scrolls.
 
 ---
 
@@ -84,7 +66,7 @@ If a government portal connection fails or presents a CAPTCHA, click **View on t
 ### Search Modes
 
 - **Compound search (default)**: Finds sentences where the first element appears before the second element, with optional text between them. Use ⇄ to swap elements.
-- **Single search**: Finds sentences containing specified terms. Supports Boolean `AND`, `OR`, `NOT`, exact `"phrase"`, and character distance limit `NEAR/n`. (Note: online searches do not support the `OR` operator.)
+- **Single search**: Finds sentences containing specified terms. Supports Boolean `AND`, `OR`, `NOT`, exact `"phrase"`, and character distance limit `NEAR/n`.
 
 ### Search Sources (Up to 4 Concurrently)
 
@@ -154,11 +136,11 @@ A. This program reads only plain text files (`.txt`, `.md`) encoded in UTF-8. Re
 
 **Q2. No results are returned from my search.**
 
-A. Ensure that the intended source (My text folder or an online database) is selected in Settings and that your text folder is loaded. When querying NDL, at least one element must be two or more characters long. Try simplifying your query. A lack of results does not prove that the pattern never occurs in the corpus.
+A. Check the chosen sources and folder loading in **Sources**. NDL needs at least one term of two or more characters. Try a simpler query; no results do not prove historical absence.
 
 **Q3. An error occurs during online searches.**
 
-A. Check your Internet connection. The limit of 200 requests for online sources (ITKC, NDL, CBETA) is not the policy of the remote sources themselves, but a session safeguard limit enforced by this program; if reached, restarting the window resets the counter. Note also that online sources do not support the `OR` operator.
+A. Check your connection and the source's error message. The application's per-session request limits protect providers; they are not statements of the provider's own policy. Complex online queries also depend on which required search terms can be sent to that provider. You can download permitted originals and search them locally.
 
 **Q4. The Windows executable (cpe-gui.exe) fails to open.**
 
@@ -170,6 +152,6 @@ A. The distributed `cpe-gui.exe` is built for 64-bit Windows (x64). If double-cl
 
 - This repository contains the runtime package, translation catalogs, web assets, launchers, runtime dependency lock, and license.
 - The `docs/` folder holds the project's web pages, one for each interface language, and `discoverability.md` records how the repository and its pages are described.
-- Package version: `1.0.0`; Git tag: `v1.0`. Exact source snapshot recorded in `release.json`.
+- Package version: `1.1.0`; Git tag: `v1.1`. Exact source snapshot recorded in `release.json`.
 - Released under the MIT License (`LICENSE`).
 - An independent personal project unaffiliated with ITKC. To respect copyright and terms of use, no proprietary database corpus, modern translation, or raw API response is bundled.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tomllib
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TypeVar
@@ -80,6 +81,24 @@ def read(path: Path) -> LocalText:
     )
 
 
+def read_inputs(paths: Iterable[Path]) -> list[LocalText]:
+    """CLI inputs: each bundle expands to its texts; anything else reads as one.
+
+    A directory is rejected instead of read: folder input stays a GUI feature,
+    where one unreadable file is skipped instead of aborting the run, while the
+    CLI reads its inputs strictly.
+    """
+    texts = []
+    for path in paths:
+        if path.is_dir():
+            raise InputError(f"{path}: inputs must be files, not folders")
+        if path.name.lower().endswith(BUNDLE_SUFFIX):
+            texts.extend(read_bundle(path))
+        else:
+            texts.append(read(path))
+    return texts
+
+
 def read_bundle(path: Path) -> list[LocalText]:
     """The texts of a bundle: each line is one text's manifest keys plus `text`.
 
@@ -87,7 +106,7 @@ def read_bundle(path: Path) -> list[LocalText]:
     bundle is never half read.
     """
     try:
-        lines = path.read_bytes().decode("utf-8", errors="strict").splitlines()
+        lines = path.read_bytes().decode("utf-8", errors="strict").split("\n")
     except UnicodeDecodeError as error:
         raise InputError(f"{path}: not valid UTF-8 ({error})") from None
     texts = []
@@ -101,6 +120,10 @@ def read_bundle(path: Path) -> list[LocalText]:
             raise InputError(f"{where}: not a JSON object ({error})") from None
         if not isinstance(entry, dict):
             raise InputError(f"{where}: not a JSON object")
+        try:
+            json.dumps(entry, ensure_ascii=False).encode("utf-8")
+        except UnicodeEncodeError:
+            raise InputError(f"{where}: unpaired Unicode surrogate") from None
         reference = entry.pop("text", None)
         if not isinstance(reference, str):
             raise InputError(f"{where}: text must be a string")
@@ -229,5 +252,5 @@ def _manifest(path: Path) -> dict[str, object]:
     try:
         with sidecar.open("rb") as stream:
             return tomllib.load(stream)
-    except tomllib.TOMLDecodeError as error:
+    except (tomllib.TOMLDecodeError, UnicodeDecodeError) as error:
         raise InputError(f"{sidecar}: not a valid TOML manifest ({error})") from None

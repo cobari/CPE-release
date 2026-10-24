@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import chain
 from typing import Literal
 
 Provenance = Literal["verified", "editorial", "inferred", "truncated"]
@@ -51,7 +52,7 @@ def split(
     """
     segments: list[Segment] = []
     start = 0
-    for index, char in enumerate([*text, None]):
+    for index, char in enumerate(chain(text, (None,))):
         if char is not None and char in CLOSING_QUOTES and index == start and index > 0:
             if text[index - 1] in delimiters or text[index - 1] in CLOSING_QUOTES:
                 start = index + 1

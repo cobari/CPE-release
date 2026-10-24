@@ -18,6 +18,8 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from cpe.itkc import regex_worker
+
 
 class QueryError(ValueError):
     pass
@@ -110,6 +112,13 @@ def tokenize(text: str) -> list[tuple[str, str]]:
         position = match.end()
 
 
+# Each nested parenthesized expression or unary operator traverses 5 call frames
+# (parse_or -> parse_and -> parse_unary -> parse_near -> parse_primary).
+# Setting MAX_DEPTH = 100 consumes at most ~500 frames, well below Python's default
+# recursion limit of 1000, while accommodating any realistic search query.
+MAX_DEPTH = 100
+
+
 def parse(text: str) -> Node:
     return _Parser(text).parse()
 
@@ -118,6 +127,7 @@ class _Parser:
     def __init__(self, text: str) -> None:
         self.tokens = tokenize(text)
         self.index = 0
+        self.depth = 0
 
     def peek(self) -> tuple[str | None, str | None]:
         if self.index < len(self.tokens):
@@ -161,7 +171,13 @@ class _Parser:
         kind, value = self.peek()
         if kind == "minus" or (kind, value) == ("op", "NOT"):
             self.take()
-            return Not(self.parse_unary())
+            self.depth += 1
+            if self.depth > MAX_DEPTH:
+                raise QueryError(f"query exceeds maximum nesting depth of {MAX_DEPTH}")
+            try:
+                return Not(self.parse_unary())
+            finally:
+                self.depth -= 1
         return self.parse_near()
 
     def parse_near(self) -> Node:
@@ -174,12 +190,21 @@ class _Parser:
         if not isinstance(left, Term | Regex) or not isinstance(right, Term | Regex):
             raise QueryError("NEAR takes only words, phrases or regexes on each side")
         assert value is not None
-        return Near(left, right, int(value.split("/")[1]))
+        distance = value.split("/")[1]
+        if len(distance) > 1000:
+            raise QueryError("NEAR distance may contain at most 1000 digits")
+        return Near(left, right, int(distance))
 
     def parse_primary(self) -> Node:
         kind, value = self.take()
         if kind == "lp":
-            node = self.parse_or()
+            self.depth += 1
+            if self.depth > MAX_DEPTH:
+                raise QueryError(f"query exceeds maximum nesting depth of {MAX_DEPTH}")
+            try:
+                node = self.parse_or()
+            finally:
+                self.depth -= 1
             if self.take()[0] != "rp":
                 raise QueryError("unclosed parenthesis")
             return node
@@ -190,9 +215,13 @@ class _Parser:
                 raise QueryError('an empty phrase ("") is not allowed')
             return Term(value[1:-1])
         if kind == "regex" and value is not None:
+            if len(value) > 4098:
+                raise QueryError(
+                    "regular expressions may contain at most 4096 characters"
+                )
             try:
                 return Regex(re.compile(value[1:-1]))
-            except re.error as error:
+            except (re.error, RecursionError) as error:
                 raise QueryError(f"invalid regex {value}: {error}") from None
         if value:
             raise QueryError(f"{value!r} cannot appear here")
@@ -207,7 +236,10 @@ def spans(leaf: Leaf, text: str) -> list[tuple[int, int]]:
             found.append((index, index + len(leaf.text)))
             start = index + 1
         return found
-    return [m.span() for m in leaf.pattern.finditer(text) if m.end() > m.start()]
+    try:
+        return regex_worker.spans(leaf.pattern, text)
+    except (OSError, EOFError, TimeoutError, ValueError) as error:
+        raise QueryError(str(error)) from None
 
 
 def evaluate(
@@ -230,13 +262,21 @@ def evaluate(
         return any(evaluate(child, text, allowed) for child in node.children)
     left = leaf_spans(node.left, text, allowed)
     right = leaf_spans(node.right, text, allowed)
-    # Gap = code points between the two matches; overlapping matches give <= 0.
-    return any(
-        max(s1, s2) - min(e1, e2) <= node.dist
-        and (allowed is None or allowed(min(s1, s2), max(e1, e2)))
-        for s1, e1 in left
-        for s2, e2 in right
-    )
+    dist = node.dist
+    j_start = 0
+    n_right = len(right)
+    for s1, e1 in left:
+        while j_start < n_right and right[j_start][1] < s1 - dist:
+            j_start += 1
+        limit = e1 + dist
+        for j in range(j_start, n_right):
+            s2, e2 = right[j]
+            if s2 > limit:
+                break
+            if e2 >= s1 - dist:
+                if allowed is None or allowed(min(s1, s2), max(e1, e2)):
+                    return True
+    return False
 
 
 def leaf_spans(

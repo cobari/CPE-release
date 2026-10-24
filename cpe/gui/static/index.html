@@ -7,116 +7,397 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
-  <header class="top">
-    <h1 data-i18n="app.title"></h1>
-    <button type="button" class="open settings-open" id="settings-open" data-i18n="settings.open"></button>
-  </header>
-  <!-- One line on the main screen; the choices themselves live in the settings dialog. -->
-  <p class="summary"><button type="button" class="link-button" id="summary"></button></p>
-
-  <form class="search is-compound" id="search">
-    <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
-      <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
-      <label data-i18n-title="search.hint.compound"><input type="radio" name="mode" value="pair" checked> <span data-i18n="search.compound"></span></label>
-    </div>
-    <div class="inputs">
-      <div class="boxes words">
-        <span class="field"><input id="query" autocomplete="off" data-i18n-aria="search.word.label" data-i18n-placeholder="search.word.placeholder" data-i18n-title="search.hint.single"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span>
-      </div>
-      <div class="boxes pair">
-        <span class="field"><input id="first" autocomplete="off" data-i18n-aria="search.first.label" data-i18n-placeholder="search.first.placeholder" data-i18n-title="search.hint.compound"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span>
-        <button type="button" class="swap" id="swap" data-i18n-aria="search.swap" data-i18n-title="search.swap">⇄</button>
-        <span class="field"><input id="second" autocomplete="off" data-i18n-aria="search.second.label" data-i18n-placeholder="search.second.placeholder" data-i18n-title="search.hint.compound"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span>
-      </div>
-    </div>
-    <button class="go" type="submit" data-i18n="search.submit"></button>
-  </form>
-
-  <div class="results-bar">
-    <p class="status" id="status" role="status" aria-live="polite"></p>
-    <label class="sort"><span data-i18n="sort.label"></span>
-      <select id="sort">
-        <option value="source" data-i18n="sort.source"></option>
-        <option value="era" data-i18n="sort.era"></option>
-      </select>
-    </label>
+<svg class="is-hidden" aria-hidden="true" focusable="false">
+  <symbol id="icon-arrow" viewBox="0 0 24 24">
+    <path d="M4 12h16m-5-4 5 4-5 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+<a class="skip-link" href="#main" data-i18n="a11y.skip"></a>
+<header class="top">
+  <div class="top-inner">
+    <h1><button type="button" class="brand" id="home" data-i18n-aria="home.label" data-i18n-title="home.label"><img class="brand-icon" src="../assets/icon.png" alt="" aria-hidden="true"><span data-i18n="app.title"></span></button></h1>
+    <nav class="top-nav" data-i18n-aria="nav.label">
+      <button type="button" data-view="sources" data-i18n="nav.sources"></button>
+      <button type="button" data-view="import" data-i18n="nav.import"></button>
+      <button type="button" data-view="language" data-i18n="nav.language"></button>
+    </nav>
   </div>
-  <!-- One panel per searched source: two side by side, three in a row, four as 田. -->
-  <div class="panels" id="panels"></div>
+</header>
+<main class="app" id="main" tabindex="-1">
+  <!-- Shown when the bridge or its catalogs fail. Its text comes from the catalog;
+       a failure before any catalog arrives leaves the keys visible. -->
+  <section class="welcome startup-error is-hidden" id="startup-error" role="alert">
+    <p data-i18n="error.start_failed"></p>
+    <button type="button" class="open" id="startup-retry" data-i18n="error.start_retry"></button>
+  </section>
 
-</div>
-<!-- Bottom of the window: a running import on the left (the window stays usable), one
-     link per online source on the right; on a narrow window the two stack. -->
+  <section class="view" id="view-search">
+    <form class="search is-compound" id="search">
+      <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
+        <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
+        <label data-i18n-title="search.hint.compound"><input type="radio" name="mode" value="pair" checked> <span data-i18n="search.compound"></span></label>
+      </div>
+      <div class="inputs">
+        <div class="boxes words">
+          <span class="field"><label for="query" data-i18n="search.word.label"></label><span class="input-wrap"><input id="query" autocomplete="off" data-i18n-aria="search.word.label" data-i18n-placeholder="search.word.placeholder" data-i18n-title="search.hint.single" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
+        </div>
+        <div class="boxes pair">
+          <span class="field"><label for="first" data-i18n="search.first.label"></label><span class="input-wrap"><input id="first" autocomplete="off" data-i18n-aria="search.first.label" data-i18n-placeholder="search.first.placeholder" data-i18n-title="search.hint.compound" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
+          <button type="button" class="swap" id="swap" data-i18n-aria="search.swap" data-i18n-title="search.swap">
+            <svg class="swap-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g class="swap-arrow swap-arrow-top"><path d="M4 7h16m-5-4 5 4-5 4"/></g>
+              <g class="swap-arrow swap-arrow-bottom"><path d="M20 17H4m5-4-5 4 5 4"/></g>
+            </svg>
+          </button>
+          <span class="field"><label for="second" data-i18n="search.second.label"></label><span class="input-wrap"><input id="second" autocomplete="off" data-i18n-aria="search.second.label" data-i18n-placeholder="search.second.placeholder" data-i18n-title="search.hint.compound" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
+        </div>
+      </div>
+      <button class="go" type="submit" data-i18n="search.submit"></button>
+    </form>
+    <p class="visually-hidden" id="search-help"></p>
+
+    <div class="results-bar is-hidden" id="results-bar">
+      <button type="button" class="link-button" id="results-clear" data-i18n="search.reset"></button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <button type="button" class="link-button batch-details is-hidden" id="batch-details" data-i18n="batch.details"></button>
+      <label class="sort"><span data-i18n="sort.label"></span>
+        <select id="sort">
+          <option value="source" data-i18n="sort.source"></option>
+          <option value="era" data-i18n="sort.era"></option>
+        </select>
+      </label>
+    </div>
+    <!-- One panel per searched source: two side by side, three in a row, four as 田. -->
+    <div class="panels" id="panels"></div>
+    <section class="welcome is-hidden" id="welcome">
+      <span class="welcome-symbol" aria-hidden="true"></span>
+      <h2 data-i18n="welcome.title"></h2>
+      <p data-i18n="welcome.help"></p>
+      <button type="button" class="open" id="welcome-sources" data-i18n="sources.choose"></button>
+    </section>
+  </section>
+
+  <section class="view view-narrow is-hidden" id="view-sources" aria-labelledby="sources-title">
+    <div class="view-head">
+      <h2 id="sources-title" tabindex="-1" data-i18n="nav.sources"></h2>
+    </div>
+    <p class="view-intro" data-i18n="sources.intro"></p>
+    <div class="sources-import-summary" id="sources-import-summary">
+      <span class="sources-import-label" data-i18n="sources.import_target_label"></span>
+      <strong class="sources-import-name" id="sources-import-target-name"></strong>
+      <button type="button" class="link-button sources-import-route" id="sources-import-route" data-i18n="sources.import_route"></button>
+    </div>
+    <section class="view-section">
+      <h3 data-i18n="sources.local"></h3>
+      <div class="local-sources" id="local-sources"></div>
+      <p class="view-empty is-hidden" id="local-empty" data-i18n="sources.empty"></p>
+      <button type="button" class="open add-local-folder" id="add-local-folder" data-i18n="local.add_folder"></button>
+      <p class="local-status" id="local-status" role="status" aria-live="polite"></p>
+    </section>
+    <section class="view-section">
+      <h3 data-i18n="sources.online"></h3>
+      <div class="source-chips" id="source-chips"></div>
+    </section>
+    <details class="source-notes">
+      <summary data-i18n="source.notes"></summary>
+      <div id="source-notes-list"></div>
+      <p data-i18n="library.help"></p>
+    </details>
+  </section>
+
+  <section class="view view-narrow is-hidden" id="view-import" aria-labelledby="import-title">
+    <div class="view-head">
+      <h2 id="import-title" tabindex="-1" data-i18n="nav.import"></h2>
+    </div>
+    <p class="view-intro" data-i18n="import.intro"></p>
+    <label class="local-target"><span data-i18n="local.import_target"></span><select id="local-import-target"></select></label>
+    <p class="local-status" id="settings-status" role="status" aria-live="polite"></p>
+    <div class="import-menu">
+      <button type="button" class="import-row" id="import-originals">
+        <span class="import-row-text"><strong data-i18n="import.originals"></strong><span data-i18n="import.originals.help"></span></span>
+        <span class="import-chev" aria-hidden="true">›</span>
+      </button>
+      <button type="button" class="import-row import-row-secondary import-row-history" id="external-history-open" disabled>
+        <span data-i18n="external.history.open"></span>
+        <span class="import-row-empty is-hidden" id="external-history-note" data-i18n="external.history.none"></span>
+      </button>
+    </div>
+    <section class="import-providers is-hidden" id="import-providers" aria-labelledby="import-providers-title">
+      <div class="view-head">
+        <button type="button" class="link-button import-back" id="import-providers-back" data-i18n-aria="import.back" data-i18n-title="import.back"><svg class="arrow-icon is-prev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg></button>
+        <h3 id="import-providers-title" tabindex="-1" data-i18n="import.providers"></h3>
+      </div>
+      <section class="view-section">
+        <h4 data-i18n="import.region.korea"></h4>
+        <button type="button" class="import-provider" id="release-open">
+          <span><strong data-i18n="release.open"></strong><span data-i18n="import.release.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="import-provider" data-external-provider="nikh-partial">
+          <span><strong data-i18n="external.nikh"></strong><span data-i18n="import.nikh.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+      </section>
+      <section class="view-section">
+        <h4 data-i18n="import.region.china"></h4>
+        <button type="button" class="import-provider" id="ctp-open">
+          <span><strong data-i18n="ctp.open"></strong><span data-i18n="import.ctp.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="import-provider" data-external-provider="cbeta">
+          <span><strong data-i18n="external.cbeta"></strong><span data-i18n="import.cbeta.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="import-provider" data-external-provider="rise">
+          <span><strong data-i18n="external.rise"></strong><span data-i18n="import.rise.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+      </section>
+      <section class="view-section">
+        <h4 data-i18n="import.region.japan"></h4>
+        <button type="button" class="import-provider" data-external-provider="ndl">
+          <span><strong data-i18n="external.ndl"></strong><span data-i18n="import.ndl.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+      </section>
+      <section class="view-section">
+        <h4 data-i18n="import.region.other"></h4>
+        <button type="button" class="import-provider" id="external-open" data-external-provider="gutenberg">
+          <span><strong data-i18n="external.gutenberg"></strong><span data-i18n="import.gutenberg.help"></span></span>
+          <span class="import-chev" aria-hidden="true">›</span>
+        </button>
+      </section>
+    </section>
+  </section>
+
+  <section class="view view-narrow is-hidden" id="view-language" aria-labelledby="language-title">
+    <div class="view-head">
+      <h2 id="language-title" tabindex="-1" data-i18n="nav.language"></h2>
+    </div>
+    <p class="view-intro" data-i18n="language.note"></p>
+    <div class="language-list" id="language-list" role="radiogroup" data-i18n-aria="language.label"></div>
+    <p class="status" id="language-status" role="status" aria-live="polite"></p>
+  </section>
+</main>
+
 <div class="dock">
-<p class="task is-hidden" id="task" role="status"><span id="task-text"></span><span class="spinner small" aria-hidden="true"></span></p>
-<footer class="app-footer" id="source-links"><span data-i18n="source.notes"></span></footer>
+  <p class="task is-hidden" id="task" role="status"><span id="task-text"></span><span class="spinner small" aria-hidden="true"></span></p>
 </div>
-<dialog class="source-dialog ctp-dialog" id="ctp-dialog">
-  <h2 class="dialog-title" data-i18n="ctp.title"></h2>
-  <p class="dialog-body" data-i18n="ctp.help"></p>
-  <label class="ctp-field"><span data-i18n="ctp.key"></span>
-    <input type="password" id="ctp-key" autocomplete="off" data-i18n-placeholder="ctp.key.placeholder">
-    <button type="button" class="open" id="ctp-key-save" data-i18n="ctp.key.save"></button>
-  </label>
-  <p class="ctp-key-state" id="ctp-key-state"></p>
+
+<dialog class="source-dialog ctp-dialog" id="ctp-dialog" aria-labelledby="ctp-title">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="ctp-title" data-i18n="ctp.title"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <details class="dialog-help">
+    <summary data-i18n="dialog.help"></summary>
+    <p data-i18n="ctp.help"></p>
+  </details>
   <label class="ctp-field"><span data-i18n="ctp.url"></span>
     <input type="url" id="ctp-url" autocomplete="off" placeholder="https://ctext.org/analects">
-    <button type="button" class="go ctp-import" id="ctp-import" data-i18n="ctp.import"></button>
   </label>
+  <p class="external-find"><a class="link-button" id="ctp-find-link" href="https://ctext.org/" data-i18n="ctp.find"></a></p>
+  <details class="dialog-help">
+    <summary data-i18n="ctp.key.optional"></summary>
+    <p data-i18n="ctp.key.help"></p>
+    <label class="ctp-field"><span data-i18n="ctp.key"></span>
+      <input type="password" id="ctp-key" autocomplete="off" data-i18n-placeholder="ctp.key.placeholder">
+      <button type="button" class="open" id="ctp-key-save" data-i18n="ctp.key.save"></button>
+    </label>
+    <p class="ctp-key-state" id="ctp-key-state"></p>
+  </details>
   <p class="ctp-status" id="ctp-status" role="status" aria-live="polite"></p>
-  <form method="dialog"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+  </div>
+  <div class="dialog-actions">
+    <span class="dialog-actions-end">
+      <button type="button" class="go ctp-import" id="ctp-import" data-i18n="ctp.import"></button>
+    </span>
+  </div>
 </dialog>
-<!-- Settings: language, which sources are searched, and the local text folder. -->
-<dialog class="source-dialog settings-dialog" id="settings-dialog">
-  <h2 class="dialog-title" data-i18n="settings.title"></h2>
-  <section class="settings-part">
-    <h3 class="step-title"><label for="language" data-i18n="language.label"></label></h3>
-    <select id="language" class="lang-select"></select>
+
+<dialog class="source-dialog release-dialog" id="external-dialog" aria-labelledby="external-title">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="external-title" data-i18n="external.title"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <p class="step-hint" id="external-help"></p>
+  <details class="dialog-help">
+    <summary data-i18n="dialog.help"></summary>
+    <p data-i18n="external.help"></p>
+    <p id="external-offline-help" data-i18n="external.offline.help"></p>
+  </details>
+  <label class="ctp-field" id="external-provider-field"><span data-i18n="external.provider"></span>
+    <select id="external-provider"><option value="gutenberg" data-i18n="external.gutenberg"></option><option value="ndl" data-i18n="external.ndl"></option><option value="cbeta" data-i18n="external.cbeta"></option><option value="nikh-partial" data-i18n="external.nikh"></option><option value="rise" data-i18n="external.rise"></option></select>
+  </label>
+  <div class="external-input">
+    <label class="ctp-field" id="external-address-field"><span id="external-address-label" data-i18n="external.address"></span>
+      <input id="external-address" autocomplete="off" data-i18n-placeholder="external.gutenberg.placeholder">
+    </label>
+    <p class="external-find is-hidden" id="external-find"><a class="link-button" id="external-find-link" href="https://www.gutenberg.org/ebooks/" data-i18n="external.find"></a></p>
+    <div class="external-file-field is-hidden" id="external-file-field">
+      <button type="button" class="open" id="external-file" data-i18n="external.file"></button>
+      <p class="external-file-name" id="external-file-name"></p>
+    </div>
+  </div>
+  <div class="external-rise-fields is-hidden" id="external-rise-fields">
+    <label class="ctp-field" for="external-rise-book"><span data-i18n="external.rise.book"></span>
+      <select id="external-rise-book"></select>
+    </label>
+    <div class="external-rise-pager-field" id="external-rise-book-nav">
+      <span class="external-rise-pager-title" aria-hidden="true"></span>
+      <div class="external-rise-nav">
+        <button type="button" class="open external-pager-btn" id="external-rise-book-prev" data-i18n-aria="external.rise.prev_books" data-i18n-title="external.rise.prev_books"><svg class="arrow-icon is-prev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg></button>
+        <span class="step-hint external-pager-label" id="external-rise-book-page"></span>
+        <button type="button" class="open external-pager-btn" id="external-rise-book-next" data-i18n-aria="external.rise.next_books" data-i18n-title="external.rise.next_books"><svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg></button>
+      </div>
+    </div>
+    <label class="ctp-field" for="external-rise-section"><span data-i18n="external.rise.section"></span>
+      <select id="external-rise-section"></select>
+    </label>
+    <div class="external-rise-pager-field" id="external-rise-range-field">
+      <span class="external-rise-pager-title" data-i18n="external.rise.range"></span>
+      <div class="external-rise-nav" id="external-rise-range-nav">
+        <button type="button" class="open external-pager-btn" id="external-rise-range-prev" data-i18n-aria="external.rise.prev_range" data-i18n-title="external.rise.prev_range"><svg class="arrow-icon is-prev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg></button>
+        <span class="step-hint external-pager-label" id="external-rise-range-label"></span>
+        <button type="button" class="open external-pager-btn" id="external-rise-range-next" data-i18n-aria="external.rise.next_range" data-i18n-title="external.rise.next_range"><svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg></button>
+      </div>
+    </div>
+    <div class="external-rise-state is-hidden" id="external-rise-state">
+      <p class="step-hint is-error" id="external-rise-error" role="status" aria-live="polite"></p>
+      <button type="button" class="open" id="external-rise-retry" data-i18n="external.rise.retry"></button>
+    </div>
+    <details class="dialog-help external-rise-rights">
+      <summary data-i18n="external.rise.rights_summary"></summary>
+      <p data-i18n="external.rise.rights_intro"></p>
+      <p data-i18n="external.rise.rights_notice"></p>
+    </details>
+  </div>
+  <label class="ctp-field is-hidden" id="external-revision-field"><span data-i18n="external.revision"></span><input id="external-revision" autocomplete="off" maxlength="40"></label>
+  <p class="step-hint is-hidden" id="external-revision-help" data-i18n="external.revision.help"></p>
+  <p class="external-find is-hidden" id="external-revision-find"><a class="link-button" id="external-revision-link" href="https://github.com/cbeta-org/xml-p5/commits/master" data-i18n="external.revision.find"></a></p>
+  <section id="external-preview" class="is-hidden">
+    <h3 class="step-title" id="external-book" tabindex="-1"></h3>
+    <p id="external-coverage" class="step-hint"></p>
+    <p id="external-excluded-summary" class="step-hint"></p>
+    <ul id="external-excluded" class="external-history-parts"></ul>
+    <button type="button" class="open is-hidden" id="external-report" data-i18n="external.report.save"></button>
+    <textarea id="external-availability" class="external-text is-hidden" readonly data-i18n-aria="external.availability"></textarea>
+    <div id="external-selection" class="is-hidden">
+    <label class="ctp-field"><span data-i18n="external.edition"></span><input id="external-edition" autocomplete="off"></label>
+    <label class="ctp-field"><span data-i18n="external.unit"></span><select id="external-unit"></select></label>
+    <p class="external-include-row"><label><input type="checkbox" id="external-include"> <span data-i18n="external.include"></span></label> <button type="button" class="link-button" id="external-all" data-i18n="external.all"></button></p>
+    <p class="step-hint" id="external-selected"></p>
+    <div id="external-range" class="is-hidden">
+      <p class="step-hint" data-i18n="external.range.help"></p>
+      <div class="ctp-field"><label for="external-from" data-i18n="external.range.from"></label><input type="number" id="external-from" min="1" step="1"><label for="external-to" data-i18n="external.range.to"></label><input type="number" id="external-to" min="1" step="1"><button type="button" class="open" id="external-range-select" data-i18n="external.range.select"></button></div>
+    </div>
+    <textarea id="external-text" class="external-text" lang="lzh" readonly data-i18n-aria="external.text"></textarea>
+    <p><a id="external-source" href="#" data-i18n="external.source"></a></p>
+    <p class="step-hint" id="external-evidence" data-i18n="external.evidence"></p>
+    <p><label><input type="checkbox" id="external-reviewed"> <span data-i18n="external.review"></span></label></p>
+    </div>
   </section>
-  <section class="settings-part">
-    <!-- The source chips are built from SOURCES in app.js, so adding a source is one line. -->
-    <fieldset class="source-row" id="sources">
-      <legend class="step-title"><span data-i18n="source.label"></span> <span class="source-hint" data-i18n="source.pick"></span></legend>
-      <div class="source-chips" id="source-chips"></div>
-    </fieldset>
-  </section>
-  <section class="settings-part" id="local-library">
-    <h3 class="step-title" data-i18n="source.local"></h3>
-    <p class="library-line" id="library"></p>
-    <p class="library-actions"><button type="button" class="open" id="open" data-i18n="library.open"></button> <button type="button" class="open" id="ctp-open" data-i18n="ctp.open"></button> <button type="button" class="open" id="release-open" data-i18n="release.open"></button></p>
-    <p class="step-hint" id="library-help" data-i18n="library.help"></p>
-    <p class="library-skipped is-hidden" id="skipped"></p>
-  </section>
-  <form method="dialog" class="settings-close"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+  <p class="ctp-status" id="external-status" role="status" aria-live="polite"></p>
+  <progress id="external-progress" class="is-hidden" data-i18n-aria="external.progress"></progress>
+  <button type="button" class="open is-hidden" id="external-cancel" data-i18n="external.cancel"></button>
+  <p class="step-hint next-step" id="external-next-step" role="status"></p>
+  </div>
+  <div class="dialog-actions">
+    <span class="dialog-actions-end">
+      <button type="button" class="open" id="external-fetch" data-i18n="external.fetch"></button>
+      <button type="button" class="go" id="external-import" data-i18n="external.import" disabled></button>
+    </span>
+  </div>
 </dialog>
-<!-- Institute releases: pick the institute, then the release, then the folder; the
-     choices are built from the window's dataset list (cpe.local.portal DATASETS). -->
-<dialog class="source-dialog release-dialog" id="release-dialog">
-  <h2 class="dialog-title" data-i18n="release.title"></h2>
-  <p class="dialog-body" data-i18n="release.intro"></p>
+
+<dialog class="source-dialog release-dialog" id="external-history-dialog" aria-labelledby="external-history-title">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="external-history-title" data-i18n="external.history.title"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <p class="dialog-body" data-i18n="external.history.help"></p>
+  <p class="ctp-status" id="external-history-status" role="status"></p>
+  <label class="ctp-field"><span data-i18n="external.history.book"></span><select id="external-history-book"></select></label>
+  <dl id="external-history-details" class="external-history-details"></dl>
+  <ol id="external-history-parts" class="external-history-parts"></ol>
+  </div>
+</dialog>
+
+<!-- Institute releases: pick the institute and the release; the common import
+     screen or the save-time folder prompt supplies the destination. -->
+<dialog class="source-dialog release-dialog" id="release-dialog" aria-labelledby="release-title">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="release-title" data-i18n="release.title"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <details class="dialog-help">
+    <summary data-i18n="dialog.help"></summary>
+    <p data-i18n="release.intro"></p>
+    <p data-i18n="release.directory.note"></p>
+  </details>
   <ol class="steps">
     <li><h3 class="step-title" data-i18n="release.step.institute"></h3>
       <div class="choices" id="release-institutes" role="radiogroup" data-i18n-aria="release.step.institute"></div></li>
     <li><h3 class="step-title" data-i18n="release.step.dataset"></h3>
       <p class="step-hint" id="release-dataset-hint" data-i18n="release.dataset.first"></p>
       <div class="choices" id="release-datasets" role="radiogroup" data-i18n-aria="release.step.dataset"></div></li>
-    <li><h3 class="step-title" data-i18n="release.step.folder"></h3>
-      <p class="folder-line"><span id="release-folder"></span> <button type="button" class="open" id="release-folder-pick" data-i18n="release.folder.choose"></button></p>
-      <p class="step-hint" data-i18n="release.folder.note"></p></li>
   </ol>
+  <details class="dialog-help">
+    <summary data-i18n="release.saved.summary"></summary>
+    <p data-i18n="release.saved.help"></p>
+    <div class="saved-actions">
+      <button type="button" class="open" id="release-file" data-i18n="release.file"></button>
+      <button type="button" class="open" id="release-directory" data-i18n="release.directory"></button>
+    </div>
+  </details>
+  <p class="local-status" id="release-status" role="status" aria-live="polite"></p>
+  </div>
   <div class="dialog-actions">
-    <button type="button" class="link-button" id="release-file" data-i18n="release.file"></button>
     <span class="dialog-actions-end">
       <button type="button" class="go release-start" id="release-start" data-i18n="release.start" disabled></button>
-      <form method="dialog"><button class="dialog-close" data-i18n="dialog.close"></button></form>
     </span>
   </div>
 </dialog>
-<dialog class="source-dialog" id="source-dialog">
-  <h2 class="dialog-title"></h2>
+
+<!-- Result of importing a folder of downloaded releases: the counts, then one entry
+     per release file with its outcome; file paths and titles are shown as text only. -->
+<dialog class="source-dialog release-dialog" id="batch-dialog" aria-labelledby="batch-title">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="batch-title" data-i18n="batch.title"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <p class="dialog-body" id="batch-summary"></p>
+  <p class="dialog-body batch-load is-hidden" id="batch-load"></p>
+  <ul class="batch-items" id="batch-items"></ul>
+  </div>
+</dialog>
+<dialog class="source-dialog" id="remove-dialog" aria-labelledby="remove-title" aria-describedby="remove-message">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="remove-title" data-i18n="sources.remove"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <p class="dialog-body" id="remove-message"></p>
+  </div>
+  <div class="dialog-actions">
+    <span class="dialog-actions-end">
+      <button type="button" class="go danger" id="remove-confirm" data-i18n="sources.remove_action"></button>
+    </span>
+  </div>
+</dialog>
+<dialog class="source-dialog" id="source-dialog" aria-labelledby="source-title">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="source-title"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
   <p class="dialog-body"></p>
-  <form method="dialog"><button class="dialog-close" data-i18n="dialog.close"></button></form>
+  </div>
 </dialog>
 <template id="panel">
   <section class="panel">
@@ -124,11 +405,11 @@
     <!-- Shown while this source is searching; the status line above says so in words. -->
     <div class="panel-loading" aria-hidden="true"><span class="spinner"></span></div>
     <section class="group likely is-hidden">
-      <h3><span class="label"></span> <span class="n"></span><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span><span class="chev" aria-hidden="true">▼</span></h3>
+      <h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></h3>
       <div class="list"></div>
     </section>
     <section class="group less is-closed is-hidden">
-      <h3><span class="label"></span> <span class="n"></span><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span><span class="chev" aria-hidden="true">▼</span></h3>
+      <h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></h3>
       <div class="list"></div>
     </section>
   </section>
@@ -136,8 +417,8 @@
 <template id="card">
   <article class="card">
     <header><span class="num"></span><a class="src" href="#"></a><span class="era"></span><span class="reasons"></span></header>
-    <p class="text"><span class="ctx before"></span><span class="seg"></span><span class="ctx after"></span></p>
-    <footer><span class="slot a"><b>A</b><span class="v"></span></span><span class="slot b"><b>B</b><span class="v"></span></span></footer>
+    <p class="text" lang="lzh"><span class="ctx before" lang="lzh"></span><span class="seg" lang="lzh"></span><span class="ctx after" lang="lzh"></span></p>
+    <footer><span class="slot a"><b>A</b><span class="v" lang="lzh"></span></span><span class="slot b"><b>B</b><span class="v" lang="lzh"></span></span></footer>
   </article>
 </template>
 <script src="app.js"></script>

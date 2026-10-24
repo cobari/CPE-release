@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -33,11 +34,16 @@ from cpe.itkc.search_cli import make_link
 from cpe.local.releases import ReleaseError, parse, save_bundles
 
 NOTE_OPEN, NOTE_CLOSE = "〘", "〙"
-_INDENT = re.compile(r"\s*\n\s*")
+_INDENT = re.compile(r"[ \t\r\n]*\n[ \t\r\n]*")
 _LEVEL = re.compile(r"레벨\d+$")
 # Skipped inside a paragraph: page markers and line breaks carry no text.
-_SILENT = ("페이지", "br")
+_SILENT = frozenset({"페이지", "br"})
+_ALLOWED_CONTAINERS = frozenset({"고유명사", "주석"})
 HALFWIDTH_MARKS = frozenset(",｡")
+
+
+class _UnknownElementError(ValueError):
+    """Raised when an unrecognized inline XML element is encountered."""
 
 
 @dataclass(frozen=True)
@@ -60,7 +66,7 @@ class Piece:
 def _title(level: ET.Element, kind: str | None = None) -> str:
     for title in level.findall("메타정보/제목정보/제목"):
         if kind is None or title.get("type") == kind:
-            return _INDENT.sub("", "".join(title.itertext())).strip()
+            return _INDENT.sub("", "".join(title.itertext())).strip(" \t\r\n")
     return ""
 
 
@@ -73,7 +79,9 @@ def _author(level: ET.Element) -> Author | None:
     person = level.find("메타정보/저자정보/저자")
     if person is None:
         return None
-    name = (person.findtext("한자성명") or person.findtext("한글성명") or "").strip()
+    name = (person.findtext("한자성명") or person.findtext("한글성명") or "").strip(
+        " \t\r\n"
+    )
     if not name:
         return None
     return Author(name, _year(person.find("생년")), _year(person.find("몰년")))
@@ -83,16 +91,21 @@ def _inline(element: ET.Element) -> str:
     parts = [element.text or ""]
     for child in element:
         if child.tag == "원주":
-            note = _inline(child).strip()
+            note = _inline(child).strip(" \t\r\n")
             if note.startswith("【") and note.endswith("】"):
                 note = note[1:-1]
             parts.append(NOTE_OPEN + note + NOTE_CLOSE)
         elif child.tag in _SILENT:
             pass
         elif child.tag == "kh.td":
-            parts.append(_inline(child) + "\n")
-        else:
+            # Cells are inline in the source. A space keeps them apart after
+            # _INDENT removes line breaks; a newline here would be deleted and
+            # glue the cell to the next character.
+            parts.append(_inline(child) + " ")
+        elif child.tag in _ALLOWED_CONTAINERS:
             parts.append(_inline(child))
+        else:
+            raise _UnknownElementError(f"unrecognized inline element: {child.tag}")
         parts.append(child.tail or "")
     return _INDENT.sub("", "".join(parts))
 
@@ -112,16 +125,27 @@ def _pieces(
         own = author
     body = level.find("본문정보/내용")
     if body is not None:
-        paragraphs = [_inline(p).strip() for p in body if p.tag in ("단락", "단락제목")]
-        text = "\n".join(p for p in paragraphs if p)
-        if text:
-            out.append(Piece(level.get("id", ""), here, text, own or author, volume))
+        try:
+            paragraphs = [
+                _inline(p).strip(" \t\r\n")
+                for p in body
+                if p.tag in ("단락", "단락제목")
+            ]
+            text = "\n".join(p for p in paragraphs if p)
+            if text:
+                out.append(
+                    Piece(level.get("id", ""), here, text, own or author, volume)
+                )
+        except _UnknownElementError:
+            # Articles with unresolved or unknown inline elements are excluded
+            # whole to prevent silent deletion and joining of distinct characters.
+            pass
     for child in level:
         if _LEVEL.match(child.tag):
             _pieces(child, here, own or author, out, volume)
 
 
-def read_documents(found: list[bytes]) -> tuple[str, str, str, list[Piece]]:
+def read_documents(found: Iterable[bytes]) -> tuple[str, str, str, list[Piece]]:
     """The work id, book title, collection name and pieces of a release."""
     works: dict[str, tuple[str, Author | None]] = {}
     pieces: list[Piece] = []
@@ -144,6 +168,8 @@ def read_documents(found: list[bytes]) -> tuple[str, str, str, list[Piece]]:
             for volume in work:
                 if _LEVEL.match(volume.tag):
                     _pieces(volume, [], author, pieces, volume.get("id", ""))
+    if len(works) > 1:
+        raise ReleaseError("release_multiple_works")
     if not pieces:
         raise ReleaseError("release_empty")
     work_id = next(iter(works), "itkc")
@@ -187,7 +213,7 @@ def save(
     return target
 
 
-def import_documents(found: list[bytes], folder: Path) -> dict[str, object]:
+def import_documents(found: Iterable[bytes], folder: Path) -> dict[str, object]:
     work_id, book, collection, pieces = read_documents(found)
     target = save(work_id, book, collection, pieces, folder)
     return {"book": book, "articles": len(pieces), "folder": str(target)}

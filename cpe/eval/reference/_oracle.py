@@ -595,7 +595,7 @@ def run(wire: dict[str, Any]) -> list[Record]:
     """Return full ordered TXT records from the specification's wire input."""
     raw_settings = _object(wire.get("settings", {}), "settings")
     cfg = _settings(raw_settings)
-    texts: list[tuple[str, str, str, str, str, str, str]] = []
+    texts: list[tuple[str, str, str, str, str, str, str, bool]] = []
     for value in _array(wire["texts"], "texts"):
         item = _object(value, "text")
         identifier = _string(item["text_id"], "text_id")
@@ -618,14 +618,28 @@ def run(wire: dict[str, Any]) -> list[Record]:
             "truncated",
         ):
             raise ValueError("text boundaries must be verified or truncated")
+        halfwidth = item.get("halfwidth_punctuation", False)
+        if not isinstance(halfwidth, bool):
+            raise ValueError("halfwidth_punctuation must be true or false")
         texts.append(
-            (identifier, reference, extent, left, right, punctuation, full_stop)
+            (
+                identifier,
+                reference,
+                extent,
+                left,
+                right,
+                punctuation,
+                full_stop,
+                halfwidth,
+            )
         )
     if len({text[0] for text in texts}) != len(texts):
         raise ValueError("duplicate text_id")
     delimiters = cfg.sentence + cfg.clause
     if any(text[5] == "pause" for text in texts):
         delimiters += "、"
+    if any(text[7] for text in texts):
+        delimiters += ".?!｡,;:"
     normalization = normalization_options(
         raw_settings.get("normalization", {}), delimiters
     )
@@ -644,12 +658,22 @@ def run(wire: dict[str, Any]) -> list[Record]:
         right,
         punctuation,
         full_stop,
+        halfwidth,
     ) in enumerate(texts):
         text_cfg = (
             replace(cfg, clause=cfg.clause + "、") if punctuation == "pause" else cfg
         )
+        if halfwidth:
+            text_cfg = replace(
+                text_cfg,
+                sentence=text_cfg.sentence + ".?!｡",
+                clause=text_cfg.clause + ".?!｡,;:",
+            )
         if full_stop == "reading":
-            text_cfg = replace(text_cfg, sentence=cfg.sentence.replace("。", ""))
+            sentence = text_cfg.sentence.replace("。", "")
+            if halfwidth:
+                sentence = sentence.replace(".", "").replace("｡", "")
+            text_cfg = replace(text_cfg, sentence=sentence)
         normalized = normalize(reference, normalization)
         for pattern_index, pattern in enumerate(patterns):
             segments = _segments(

@@ -17,6 +17,7 @@ from cpe.export.run_file import (
     normalization_section,
     settings_section,
 )
+from cpe.export.safe import check_outputs, staged
 from cpe.itkc.query import (
     And,
     Near,
@@ -31,7 +32,7 @@ from cpe.itkc.query import (
     parse,
     positive_leaves,
 )
-from cpe.local.txt import InputError, LocalText, read, text_options
+from cpe.local.txt import InputError, LocalText, read_inputs, text_options
 from cpe.match import segment as seg
 from cpe.match.engine import (
     Settings,
@@ -218,18 +219,32 @@ def search_files(
     run_id: str,
     settings: Settings | None = None,
     mode: str = "sentence",
+    *,
+    force: bool = False,
 ) -> tuple[list[dict[str, Any]], SearchOutputs]:
     settings = settings or Settings()
     options = settings.normalization
+    outputs = SearchOutputs(
+        prefix.with_name(prefix.name + ".csv"),
+        prefix.with_name(prefix.name + ".jsonl"),
+        prefix.with_name(prefix.name + ".run.json"),
+    )
+    check_outputs([outputs.csv, outputs.jsonl, outputs.run], force=force)
     tree = normalize_query(parse(query), options)
-    texts = [read(path) for path in inputs]
+    texts = read_inputs(inputs)
     ids = [text.text_id for text in texts]
     if len(set(ids)) != len(ids):
         raise InputError("duplicate text_id among inputs")
     for text in texts:
         if text.text_type != "original":
             raise InputError(f"{text.path}: text_type {text.text_type!r} not matched")
-    check_variants(settings, [text.punctuation for text in texts])
+    check_variants(
+        settings,
+        [
+            (text.punctuation, text.full_stop, text.halfwidth_punctuation)
+            for text in texts
+        ],
+    )
     records: list[dict[str, Any]] = []
     warnings: list[str] = []
     views: dict[str, TextView] = {}
@@ -247,17 +262,22 @@ def search_files(
         records.extend(search_text(tree, query, text, normalized, settings, mode))
     for rank, record in enumerate(records, start=1):
         record["result_id"] = f"r{rank:06d}"
-    outputs = SearchOutputs(
-        prefix.with_name(prefix.name + ".csv"),
-        prefix.with_name(prefix.name + ".jsonl"),
-        prefix.with_name(prefix.name + ".run.json"),
-    )
     titles = {text.text_id: text.title for text in texts}
     jsonl_text = "".join(
         json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
         for record in records
     )
-    rows = [csv_row(r, views, titles, run_id, options.name) for r in records]
+    normalizations = {text.text_id: text_options(text, options).name for text in texts}
+    rows = [
+        csv_row(
+            record,
+            views,
+            titles,
+            run_id,
+            normalizations.get(record["text_id"], options.name),
+        )
+        for record in records
+    ]
     run = {
         "schema": "cpe.search-run/1",
         "run_id": run_id,
@@ -274,16 +294,21 @@ def search_files(
         "itkc": LOCAL_ITKC,
     }
     run_text = json.dumps(run, ensure_ascii=False, indent=2) + "\n"
-    # All content is built before any file is opened: opening for writing
-    # empties the file.
-    with outputs.jsonl.open("w", encoding="utf-8", newline="") as stream:
-        stream.write(jsonl_text)
-    with outputs.csv.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=COLUMNS, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
-    with outputs.run.open("w", encoding="utf-8", newline="") as stream:
-        stream.write(run_text)
+    # All content is built before any file is opened, and each target is
+    # replaced only after its writer returns.
+    with staged([outputs.jsonl, outputs.csv, outputs.run]) as (
+        jsonl_path,
+        csv_path,
+        run_path,
+    ):
+        with jsonl_path.open("w", encoding="utf-8", newline="") as stream:
+            stream.write(jsonl_text)
+        with csv_path.open("w", encoding="utf-8-sig", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=COLUMNS, lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+        with run_path.open("w", encoding="utf-8", newline="") as stream:
+            stream.write(run_text)
     return records, outputs
 
 

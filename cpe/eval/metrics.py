@@ -21,13 +21,143 @@ from cpe.eval import baselines
 Record = dict[str, Any]
 Runner = Callable[[dict[str, Any]], list[Record]]
 
+_LABELS = ("valid", "lexicalized", "other_usage", "uncertain")
+_KINDS = ("matched", "adjacent", "indeterminate")
+
 
 def load_entries(paths: Iterable[Path]) -> list[dict[str, Any]]:
+    """Gold entries with strict validation: a typo must fail loudly instead of
+    silently changing the metrics (a "false" string counts as confirmed, an
+    unknown label drops out of recall, a repeated id counts twice)."""
     entries: list[dict[str, Any]] = []
+    seen: dict[str, str] = {}
     for path in paths:
         with path.open(encoding="utf-8", newline="") as stream:
-            entries.extend(json.loads(line) for line in stream if line.strip())
+            for lineno, line in enumerate(stream, start=1):
+                if not line.strip():
+                    continue
+                where = f"{path}:{lineno}"
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError as error:
+                    raise ValueError(f"{where}: not a JSON object ({error})") from None
+                _validate_entry(entry, where)
+                if entry["id"] in seen:
+                    raise ValueError(
+                        f"{where}: duplicate entry id {entry['id']!r} "
+                        f"(first in {seen[entry['id']]})"
+                    )
+                seen[entry["id"]] = where
+                entries.append(entry)
     return entries
+
+
+def _validate_entry(entry: Any, where: str) -> None:
+    if not isinstance(entry, dict):
+        raise ValueError(f"{where}: gold entry must be an object")
+    ident = entry.get("id")
+    if not isinstance(ident, str) or not ident:
+        raise ValueError(f"{where}: entry id must be a non-empty string")
+    label = f"{where}: entry {ident!r}"
+    if not isinstance(entry.get("pattern_id"), str) or not entry["pattern_id"]:
+        raise ValueError(f"{label}: pattern_id must be a non-empty string")
+    text = entry.get("text")
+    if not isinstance(text, str):
+        raise ValueError(f"{label}: text must be a string")
+    if type(entry.get("confirmed")) is not bool:
+        raise ValueError(f"{label}: confirmed must be true or false, without quotes")
+    expected = entry.get("expected")
+    if not isinstance(expected, list):
+        raise ValueError(f"{label}: expected must be an array")
+    for record in expected:
+        _validate_record(record, len(text), label)
+    usages = entry.get("usages")
+    if not isinstance(usages, list):
+        raise ValueError(f"{label}: usages must be an array")
+    for usage in usages:
+        _validate_usage(usage, len(text), label)
+    for key, kind in (
+        ("source", dict),
+        ("input", dict),
+        ("normalization", dict),
+        ("case", str),
+    ):
+        if key in entry and not isinstance(entry[key], kind):
+            raise ValueError(
+                f"{label}: {key} must be a {kind.__name__}, not {entry[key]!r}"
+            )
+
+
+def _span(span: Any, length: int, where: str, what: str) -> None:
+    # bool is an int subclass: `type(...) is int` keeps [True, x] out, and
+    # offsets are code points, so they must stay inside the entry text.
+    if (
+        not isinstance(span, list)
+        or len(span) != 2
+        or any(type(value) is not int for value in span)
+        or not 0 <= span[0] < span[1] <= length
+    ):
+        raise ValueError(
+            f"{where}: {what} must be a [start, end) span inside the "
+            f"{length}-code-point text: {span!r}"
+        )
+
+
+def _validate_record(record: Any, length: int, label: str) -> None:
+    if not isinstance(record, dict):
+        raise ValueError(f"{label}: expected record must be an object")
+    if record.get("kind") not in _KINDS:
+        raise ValueError(
+            f"{label}: record kind must be one of {', '.join(_KINDS)}, "
+            f"not {record.get('kind')!r}"
+        )
+    fixed = record.get("fixed")
+    if not isinstance(fixed, list):
+        raise ValueError(f"{label}: record fixed must be an array")
+    for span in fixed:
+        _span(span, length, label, "fixed span")
+    slots = record.get("slots")
+    if not isinstance(slots, dict) or any(
+        not isinstance(name, str) or not name for name in slots
+    ):
+        raise ValueError(f"{label}: record slots must map names to spans")
+    for name, span in slots.items():
+        _span(span, length, label, f"slot {name!r}")
+    ends = record.get("ends")
+    if ends is not None and (
+        not isinstance(ends, list)
+        or any(type(value) is not int or not 0 <= value <= length for value in ends)
+    ):
+        raise ValueError(
+            f"{label}: record ends must be null or code points "
+            f"inside the text: {ends!r}"
+        )
+    if record.get("reason") is not None and not isinstance(record.get("reason"), str):
+        raise ValueError(f"{label}: record reason must be null or a string")
+
+
+def _validate_usage(usage: Any, length: int, label: str) -> None:
+    if not isinstance(usage, dict):
+        raise ValueError(f"{label}: usage must be an object")
+    fixed = usage.get("fixed_offsets")
+    if not isinstance(fixed, list) or not fixed:
+        raise ValueError(f"{label}: usage needs at least one fixed_offsets span")
+    for span in fixed:
+        _span(span, length, label, "fixed_offsets span")
+    for key in ("slot_A", "slot_B"):
+        spans = usage.get(key)
+        if not isinstance(spans, list):
+            raise ValueError(f"{label}: usage {key} must be an array")
+        for span in spans:
+            _span(span, length, label, f"{key} span")
+    if usage.get("label") not in _LABELS:
+        raise ValueError(
+            f"{label}: usage label must be one of {', '.join(_LABELS)}, "
+            f"not {usage.get('label')!r}"
+        )
+    for key in ("notes", "group"):
+        if key in usage and not isinstance(usage[key], str):
+            raise ValueError(f"{label}: usage {key} must be a string")
 
 
 def wilson(k: int, n: int, z: float = 1.959963984540054) -> tuple[float, float] | None:

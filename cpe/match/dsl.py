@@ -8,6 +8,7 @@ from typing import Literal
 
 DEFAULT_SLOT_MIN = 1
 DEFAULT_SLOT_MAX = 20
+MAX_ELEMENTS = 500
 
 # Characters that can never be part of a literal: they delimit DSL syntax.
 _SYNTAX_CHARS = frozenset("{}()|@")
@@ -92,6 +93,10 @@ class Pattern:
 
 def parse(expression: str) -> Pattern:
     tokens = _tokenize(expression)
+    if len(tokens) > MAX_ELEMENTS:
+        raise DslError(
+            "syntax", f"pattern exceeds maximum element count of {MAX_ELEMENTS}"
+        )
     scopes = [index for index, token in enumerate(tokens) if token.startswith("@")]
     if len(scopes) > 1 or (scopes and scopes[0] != len(tokens) - 1):
         raise DslError("R7", "use at most one scope, as the last element")
@@ -225,6 +230,8 @@ def _parse_braced(body: str, token: str) -> Slot | Gap:
 def _parse_int(text: str, token: str) -> int:
     if not _INT_RE.match(text):
         raise DslError("syntax", f"expected a decimal number in {token}")
+    if len(text) > 1000:
+        raise DslError("syntax", "decimal numbers may contain at most 1000 digits")
     return int(text)
 
 

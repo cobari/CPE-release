@@ -4,33 +4,40 @@ The window offers a fixed list of releases (DATASETS); the researcher picks one 
 folder, and the file is fetched the way the portal's own download button fetches it:
 the dataset page names the file's detail key, `selectFileDataDownload.do` turns it
 into a file id, `check-limit.json` says whether the portal wants a CAPTCHA, and
-`fileDownload.do` returns the ZIP. Checked by hand on 2026-10-10 (robots.txt only
+`fileDownload.do` returns ZIP or XML. Checked by hand on 2026-10-10 (robots.txt only
 restricts Googlebot, on other paths). When the portal asks for a CAPTCHA the download
 stops and the researcher is sent to the dataset page: it is never answered or worked
 around (docs/decisions.md "Research use through the tool: which terms matter").
 
 Requests keep the project safeguards: one at a time, at least 1 s apart, a cap per
-session. The ZIP goes to a temporary file that the caller deletes after converting.
+session. The release goes to a temporary file that the caller deletes after converting.
 """
 
 from __future__ import annotations
 
+import http.client
 import http.cookiejar
 import json
 import re
 import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from cpe.local.releases import ReleaseError
 
 PORTAL = "https://www.data.go.kr"
 AGENT = "classic-pattern-explorer (research tool; https://github.com/cobari/CPE)"
 MAX_CALLS = 60
+# A portal download is streamed to disk. Stop a damaged or hostile response before
+# it fills the disk; metadata responses are much smaller.
+MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024
+MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -43,11 +50,19 @@ class Dataset:
     rights: str
 
 
-# Each was downloaded and converted on 2026-10-10 before being listed here.
+# Each release was downloaded and converted before being listed here; what was checked
+# and when is recorded in docs/research/corpus-import-expansion.md,
+# docs/research/aks-geumwiyeong-import.md and
+# docs/research/goryeosa-jeolyo-import.md. NIKH releases may
+# leave out articles with unresolved glyph references (cpe.nikh.importer), so a listed
+# release is not promised in full.
 DATASETS = (
+    Dataset("15052758", "aks", "unrestricted"),  # 금위영등록
     Dataset("15053635", "nikh", "kogl1"),  # 삼국사기
     Dataset("15053634", "nikh", "kogl1"),  # 삼국유사
+    Dataset("15053629", "nikh", "kogl1"),  # 해동고승전
     Dataset("15053637", "nikh", "kogl1"),  # 고려사
+    Dataset("15115521", "nikh", "kogl1_description_conflict"),  # 고려사절요
     Dataset("15053636", "nikh", "kogl1"),  # 비변사등록
     Dataset("15053638", "nikh", "kogl1"),  # 각사등록
     Dataset("15053639", "nikh", "unrestricted"),  # 각사등록 근대편
@@ -90,8 +105,17 @@ class PortalClient:
     calls: int = 0
     _last: float | None = field(default=None, repr=False)
     _opener: urllib.request.OpenerDirector | None = field(default=None, repr=False)
+    _lock: Any = field(default_factory=threading.Lock, repr=False)
 
-    def _send(self, request: urllib.request.Request) -> bytes:
+    def _send(
+        self, request: urllib.request.Request, destination: Path | None = None
+    ) -> bytes:
+        with self._lock:
+            return self._send_locked(request, destination)
+
+    def _send_locked(
+        self, request: urllib.request.Request, destination: Path | None = None
+    ) -> bytes:
         if self.calls >= self.max_calls:
             raise ReleaseError("portal_cap")
         if self._last is not None:
@@ -103,7 +127,13 @@ class PortalClient:
         request.add_header("User-Agent", AGENT)
         try:
             if self.transport is not None:
-                return self.transport(request, self.timeout)
+                content = self.transport(request, self.timeout)
+                if len(content) > MAX_DOWNLOAD_BYTES:
+                    raise ReleaseError("release_large")
+                if destination is not None:
+                    destination.write_bytes(content)
+                    return b""
+                return content
             if self._opener is None:
                 # The portal ties the three download steps together by its session
                 # cookie, as in a browser.
@@ -111,9 +141,24 @@ class PortalClient:
                     urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
                 )
             with self._opener.open(request, timeout=self.timeout) as response:
-                data: bytes = response.read()
+                if destination is not None:
+                    written = 0
+                    try:
+                        with destination.open("wb") as stream:
+                            while chunk := response.read(1024 * 1024):
+                                written += len(chunk)
+                                if written > MAX_DOWNLOAD_BYTES:
+                                    raise ReleaseError("release_large")
+                                stream.write(chunk)
+                    except BaseException:
+                        destination.unlink(missing_ok=True)
+                        raise
+                    return b""
+                data: bytes = response.read(MAX_RESPONSE_BYTES + 1)
+                if len(data) > MAX_RESPONSE_BYTES:
+                    raise ReleaseError("release_large")
                 return data
-        except OSError:
+        except (OSError, http.client.HTTPException):
             raise ReleaseError("portal_failed") from None
 
     def get(self, url: str, referer: str = "") -> bytes:
@@ -142,7 +187,7 @@ def _json(data: bytes) -> dict[str, object]:
 
 
 def download(pk: str, client: PortalClient) -> Path:
-    """The release ZIP of a listed dataset, saved to a temporary file."""
+    """A listed release's ZIP or XML, saved to a temporary file."""
     entry = dataset(pk)
     referer = page_url(entry.pk)
     page = client.get(referer).decode("utf-8", errors="replace")
@@ -169,11 +214,19 @@ def download(pk: str, client: PortalClient) -> Path:
     limit = _json(client.post(f"{PORTAL}/cmm/cmm/check-limit.json", fields, referer))
     if limit.get("needCaptcha"):
         raise ReleaseError("portal_captcha")
-    content = client.get(
-        f"{PORTAL}/cmm/cmm/fileDownload.do?{urllib.parse.urlencode(fields)}", referer
-    )
-    if not content.startswith(b"PK"):
-        raise ReleaseError("portal_changed")
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as stream:
-        stream.write(content)
-    return Path(stream.name)
+        path = Path(stream.name)
+    try:
+        request = urllib.request.Request(
+            f"{PORTAL}/cmm/cmm/fileDownload.do?{urllib.parse.urlencode(fields)}",
+            headers={"Referer": referer},
+        )
+        client._send(request, path)
+        with path.open("rb") as saved:
+            prefix = saved.read(128).lstrip(b"\xef\xbb\xbf \t\r\n")
+            if not prefix.startswith((b"PK", b"<")):
+                raise ReleaseError("portal_changed")
+        return path
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise

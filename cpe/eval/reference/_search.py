@@ -240,11 +240,18 @@ def search(wire: dict[str, Any]) -> list[dict[str, Any]]:
             raise ValueError("text must be an object")
         _choice(item.get("punctuation", "modern"), ("modern", "pause"), "punctuation")
         _choice(item.get("full_stop", "sentence"), ("sentence", "reading"), "full_stop")
+        if not isinstance(item.get("halfwidth_punctuation", False), bool):
+            raise ValueError("halfwidth_punctuation must be true or false")
     cfg = options(
         raw.get("normalization", {}),
         sentence
         + clause
-        + ("、" if any(t.get("punctuation") == "pause" for t in texts) else ""),
+        + ("、" if any(t.get("punctuation") == "pause" for t in texts) else "")
+        + (
+            ".?!｡,;:"
+            if any(t.get("halfwidth_punctuation") is True for t in texts)
+            else ""
+        ),
     )
     tree = parse(query, cfg)
     all_leaves, positives = _leaves(tree), _leaves(tree, True)
@@ -265,15 +272,17 @@ def search(wire: dict[str, Any]) -> list[dict[str, Any]]:
             for key in ("boundary_start", "boundary_end")
         )
         text = normalize(_string(item["text"], "text"), cfg)
-        text_sentence = (
-            sentence.replace("。", "")
-            if item.get("full_stop") == "reading"
-            else sentence
-        )
+        halfwidth = item.get("halfwidth_punctuation", False)
+        text_sentence = sentence + (".?!｡" if halfwidth else "")
+        text_clause = clause + (".?!｡,;:" if halfwidth else "")
+        if item.get("full_stop") == "reading":
+            text_sentence = text_sentence.replace("。", "")
+            if halfwidth:
+                text_sentence = text_sentence.replace(".", "").replace("｡", "")
         delimiters = (
             text_sentence
             if mode == "sentence"
-            else clause + ("、" if item.get("punctuation") == "pause" else "")
+            else text_clause + ("、" if item.get("punctuation") == "pause" else "")
         )
         segments = _segments(text.value, delimiters)
         warned = bool(segments) and sum(b - a for a, b in segments) > threshold * len(

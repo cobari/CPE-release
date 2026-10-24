@@ -18,9 +18,11 @@ host-name verification and relaxes only that strict check.
 from __future__ import annotations
 
 import html
+import http.client
 import json
 import re
 import ssl
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -81,8 +83,13 @@ class CbetaClient:
     sleep: Callable[[float], None] = time.sleep
     calls: int = 0
     _last: float | None = field(default=None, repr=False)
+    _lock: Any = field(default_factory=threading.Lock, repr=False)
 
     def search(self, phrase: str, start: int = 0) -> dict[str, Any]:
+        with self._lock:
+            return self._search(phrase, start)
+
+    def _search(self, phrase: str, start: int) -> dict[str, Any]:
         if self.calls >= self.max_calls:
             raise CbetaCapReached(f"request cap {self.max_calls} reached")
         if self._last is not None:
@@ -100,7 +107,7 @@ class CbetaClient:
         }
         try:
             data = json.loads(self.transport(API_URL, params, self.timeout))
-        except (OSError, ValueError) as error:
+        except (OSError, http.client.HTTPException, ValueError) as error:
             raise CbetaError(str(error)) from None
         if not isinstance(data, dict):
             raise CbetaError("unexpected response")
@@ -127,10 +134,21 @@ def result_texts(result: dict[str, Any]) -> list[LocalText]:
     juan = result.get("juan")
     if isinstance(juan, int):
         title = f"{title} {juan}"
-    kwics = (result.get("kwics") or {}).get("results") or []
+    container = result.get("kwics")
+    if container is None:
+        return []
+    if not isinstance(container, dict):
+        raise CbetaError("kwics must be an object")
+    kwics = container.get("results")
+    if kwics is None:
+        return []
+    if not isinstance(kwics, list):
+        raise CbetaError("kwic results must be a list")
     texts = []
     for index, item in enumerate(kwics, start=1):
-        text = excerpt_text(str(item.get("kwic", ""))) if isinstance(item, dict) else ""
+        if not isinstance(item, dict) or not isinstance(item.get("kwic", ""), str):
+            raise CbetaError("kwic must contain source text")
+        text = excerpt_text(item.get("kwic", ""))
         if not text:
             continue
         texts.append(
@@ -184,7 +202,13 @@ def result_era(result: dict[str, Any]) -> dict[str, Any] | None:
 
 def fetch(phrase: str, client: CbetaClient, start: int = 0) -> Fetched:
     data = client.search(phrase, start)
-    results = [item for item in data.get("results") or [] if isinstance(item, dict)]
+    results = data.get("results")
+    if results is None:
+        results = []
+    if not isinstance(results, list) or any(
+        not isinstance(item, dict) for item in results
+    ):
+        raise CbetaError("results must be a list of objects")
     texts: list[LocalText] = []
     eras: dict[str, dict[str, Any]] = {}
     for item in results:

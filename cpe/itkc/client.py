@@ -6,7 +6,9 @@ transport that replays recorded or synthetic XML (AGENTS.md "Research data").
 
 from __future__ import annotations
 
+import http.client
 import json
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -71,7 +73,12 @@ def parse_response(content: bytes) -> tuple[int, list[dict[str, str]]]:
         if header is not None
         else {}
     )
-    total = int(head.get(FIELD_TOTAL) or 0)
+    try:
+        total = int(head.get(FIELD_TOTAL) or 0)
+        if total < 0:
+            raise ValueError
+    except ValueError:
+        raise ET.ParseError("invalid totalCount") from None
     docs = [
         {f.get("name", ""): _field_text(f) for f in doc.iter("field")}
         for doc in root.iter("doc")
@@ -108,6 +115,7 @@ class ITKCClient:
     stopped: bool = False
     _last_start: float | None = None
     _counts: dict[str, int] = field(default_factory=dict)
+    _lock: Any = field(default_factory=threading.RLock, repr=False)
 
     def __post_init__(self) -> None:
         guard = self.safeguards
@@ -134,7 +142,10 @@ class ITKCClient:
 
         Goes through the same retries, interval, cap and log as `fetch`.
         """
-        params = dict(params)
+        with self._lock:
+            return self._fetch_params(dict(params))
+
+    def _fetch_params(self, params: dict[str, Any]) -> tuple[int, list[dict[str, str]]]:
         last_error: Exception | None = None
         for attempt in range(self.safeguards.retries + 1):
             if attempt:
@@ -142,7 +153,7 @@ class ITKCClient:
             try:
                 content = self._call(params)
                 total, docs = parse_response(content)
-            except (OSError, ET.ParseError) as error:
+            except (OSError, http.client.HTTPException, ET.ParseError) as error:
                 # Only network and XML failures are retried. Local write failures
                 # raise LocalStorageError, which is not an OSError, so a response
                 # already received is never requested again because of the disk.
@@ -164,9 +175,10 @@ class ITKCClient:
 
     def count(self, keyword: str) -> int:
         """`rows=1` hit count, cached per keyword (plan 7.1 default action)."""
-        if keyword not in self._counts:
-            self._counts[keyword] = self.fetch(keyword, 0, 1)[0]
-        return self._counts[keyword]
+        with self._lock:
+            if keyword not in self._counts:
+                self._counts[keyword] = self.fetch(keyword, 0, 1)[0]
+            return self._counts[keyword]
 
     def iter_docs(self, keyword: str, limit: int) -> Iterator[dict[str, str]]:
         """Documents up to `limit`, as the original search CLI collected them."""
@@ -191,7 +203,11 @@ class ITKCClient:
         return docs
 
     def _call(self, params: dict[str, Any]) -> bytes:
-        if self.stopped:
+        with self._lock:
+            return self._call_locked(params)
+
+    def _call_locked(self, params: dict[str, Any]) -> bytes:
+        if self.stopped or self.calls >= self.safeguards.max_calls:
             raise CallCapReached(f"call cap {self.safeguards.max_calls} reached")
         if self._last_start is not None:
             wait = self.safeguards.min_interval - (self.clock() - self._last_start)

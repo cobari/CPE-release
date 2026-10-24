@@ -1,12 +1,13 @@
 """Import a work from the Chinese Text Project into the text folder.
 
-CTP's documented JSON API (https://ctext.org/tools/api) has no full-text or title
-search: `readlink` turns a ctext.org address into a CTP URN, and `gettext` returns a
-chapter's paragraphs or a larger item's subsection URNs; subsections and most texts
-need authentication (an API key or a registered institution). So CTP cannot be a
-search source like ITKC; instead the researcher pastes a work's address and the work
-is saved chapter by chapter as .txt files with manifests, then searched as local text
-(docs/decisions.md "Source databases are connected one at a time").
+This adapter retrieves a supplied address with `readlink` and `gettext`; title
+discovery and online full-text search are outside its scope. CTP separately
+documents title-search XML. Limited chapter text can be available without a key,
+while traversing a work's subsection list requires provider authentication.
+Send a key only when one is configured and preserve authentication/limit errors;
+an empty key must not block a chapter that the provider permits anonymously.
+The retrieved chapters are saved as .txt files with manifests and searched locally
+(docs/research/source-access-audit.md "Chinese Text Project").
 
 The key is the researcher's own, kept in the window's preferences and never bundled.
 CTP states the API is meant for offline use of reasonable amounts of text and asks
@@ -16,8 +17,11 @@ Requests keep the project safeguards: one at a time, 1 s apart, a cap per import
 
 from __future__ import annotations
 
+import http.client
 import json
 import re
+import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -26,10 +30,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.local.file_lock import FileBusyError, exclusive
+from cpe.local.txt import InputError, read
+
 API_URL = "https://api.ctext.org/"
 SITE_URL = "https://ctext.org/"
 AGENT = "classic-pattern-explorer (research tool; https://github.com/cobari/CPE)"
 MAX_CALLS = 400
+MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 
 Transport = Callable[[str, dict[str, Any], float], bytes]
 
@@ -42,12 +50,19 @@ class CtpError(RuntimeError):
         self.code = code
 
 
-def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
+def urllib_transport(
+    url: str,
+    params: dict[str, Any],
+    timeout: float,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> bytes:
     request = urllib.request.Request(
         f"{url}?{urllib.parse.urlencode(params)}", headers={"User-Agent": AGENT}
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        data: bytes = response.read()
+        data: bytes = response.read(max_bytes + 1)
+        if len(data) > max_bytes:
+            raise CtpError("ctp_response_large")
         return data
 
 
@@ -58,12 +73,18 @@ class CtpClient:
     min_interval: float = 1.0
     max_calls: int = MAX_CALLS
     timeout: float = 30.0
+    max_response_bytes: int = MAX_RESPONSE_BYTES
     clock: Callable[[], float] = time.monotonic
     sleep: Callable[[float], None] = time.sleep
     calls: int = 0
     _last: float | None = field(default=None, repr=False)
+    _lock: Any = field(default_factory=threading.Lock, repr=False)
 
     def call(self, function: str, **params: str) -> dict[str, Any]:
+        with self._lock:
+            return self._call(function, params)
+
+    def _call(self, function: str, params: dict[str, str]) -> dict[str, Any]:
         if self.calls >= self.max_calls:
             raise CtpError("ctp_cap")
         if self._last is not None:
@@ -75,8 +96,17 @@ class CtpClient:
         if self.apikey:
             params["apikey"] = self.apikey
         try:
-            data = json.loads(self.transport(API_URL + function, params, self.timeout))
-        except (OSError, ValueError) as error:
+            raw = (
+                urllib_transport(
+                    API_URL + function, params, self.timeout, self.max_response_bytes
+                )
+                if self.transport is urllib_transport
+                else self.transport(API_URL + function, params, self.timeout)
+            )
+            if len(raw) > self.max_response_bytes:
+                raise CtpError("ctp_response_large")
+            data = json.loads(raw)
+        except (OSError, http.client.HTTPException, ValueError) as error:
             raise CtpError("source_failed", str(error)) from None
         if not isinstance(data, dict):
             raise CtpError("source_failed", "unexpected response")
@@ -124,10 +154,13 @@ def _collect(
     urn: str, data: dict[str, Any], client: CtpClient, out: list[Chapter]
 ) -> None:
     text = data.get("fulltext")
+    if text is not None and (
+        not isinstance(text, list)
+        or any(not isinstance(paragraph, str) for paragraph in text)
+    ):
+        raise CtpError("source_failed", "fulltext must be a list of source strings")
     if isinstance(text, list) and text:
-        out.append(
-            Chapter(urn, str(data.get("title", "")), [str(p) for p in text if str(p)])
-        )
+        out.append(Chapter(urn, str(data.get("title", "")), [p for p in text if p]))
     for sub in data.get("subsections") or []:
         if isinstance(sub, str) and sub.startswith("ctp:"):
             _collect(sub, client.call("gettext", urn=sub), client, out)
@@ -150,10 +183,12 @@ def _toml_string(value: str) -> str:
 def save(work_title: str, urn: str, found: list[Chapter], folder: Path) -> Path:
     """Write one .txt and one manifest per chapter under folder/ctp-<work>/.
 
-    Each file's content is built before it is opened (opening empties a file).
+    Existing identical imports are reused; conflicting editions are preserved.
     """
     target = folder / f"ctp-{_slug(urn.removeprefix('ctp:').split('/')[0])}"
-    target.mkdir(parents=True, exist_ok=True)
+    contents: dict[str, str] = {}
+    if len({chapter.urn for chapter in found}) != len(found):
+        raise CtpError("ctp_existing_conflict")
     for number, chapter in enumerate(found, start=1):
         stem = f"{number:03d}-{_slug(chapter.urn.rsplit('/', 1)[-1])}"
         body = "\n".join(chapter.paragraphs) + "\n"
@@ -164,12 +199,37 @@ def save(work_title: str, urn: str, found: list[Chapter], folder: Path) -> Path:
             f'edition = "Chinese Text Project"\n'
             f"text_id = {_toml_string(chapter.urn)}\n"
         )
-        with (target / f"{stem}.txt").open("w", encoding="utf-8", newline="") as stream:
-            stream.write(body)
-        with (target / f"{stem}.txt.manifest.toml").open(
-            "w", encoding="utf-8", newline=""
-        ) as stream:
-            stream.write(manifest)
+        contents[f"{stem}.txt"] = body
+        contents[f"{stem}.txt.manifest.toml"] = manifest
+    try:
+        with exclusive(folder / f".{target.name}.lock"):
+            if target.exists() or target.is_symlink():
+                if target.is_symlink() or not target.is_dir():
+                    raise CtpError("ctp_existing_conflict")
+                if {path.name for path in target.iterdir()} != contents.keys() or any(
+                    (target / name).is_symlink()
+                    or not (target / name).is_file()
+                    or (target / name).read_bytes() != content.encode("utf-8")
+                    for name, content in contents.items()
+                ):
+                    raise CtpError("ctp_existing_conflict")
+                return target
+            with tempfile.TemporaryDirectory(prefix=".ctp-", dir=folder) as temporary:
+                staged = Path(temporary) / target.name
+                staged.mkdir()
+                for name, content in contents.items():
+                    with (staged / name).open(
+                        "w", encoding="utf-8", newline=""
+                    ) as stream:
+                        stream.write(content)
+                try:
+                    for path in staged.glob("*.txt"):
+                        read(path)
+                except InputError:
+                    raise CtpError("ctp_write_failed") from None
+                staged.rename(target)
+    except FileBusyError:
+        raise CtpError("local_busy") from None
     return target
 
 

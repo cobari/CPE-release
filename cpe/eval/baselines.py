@@ -99,12 +99,18 @@ def prepare(wire: dict[str, Any]) -> Context | None:
     )
     if item.get("punctuation") == "pause":
         clause += "、"
+    halfwidth = item.get("halfwidth_punctuation", False)
+    if halfwidth:
+        sentence += ".?!｡"
+        clause += ".?!｡,;:"
     full_stop = item.get("full_stop", "sentence")
     if full_stop not in ("sentence", "reading"):
         raise ValueError("invalid full_stop")
     cfg = options(raw.get("normalization", {}), sentence + clause)
     if full_stop == "reading":
         sentence = sentence.replace("。", "")
+        if halfwidth:
+            sentence = sentence.replace(".", "").replace("｡", "")
     original = parse(pattern["expr"])
     expression = cfg.expression(original)
     reference = item["reference"]
@@ -120,11 +126,17 @@ def prepare(wire: dict[str, Any]) -> Context | None:
         ]
     else:
         start = 0
-        for end in range(len(text.value) + 1):
-            if end == len(text.value) or text.value[end] in delimiters:
+        value = text.value
+        length = len(value)
+        for end in range(length + 1):
+            if end == length or value[end] in delimiters:
                 if start < end:
                     segments.append((start, end))
                 start = end + 1
+                # A closing quotation mark directly after a delimiter (or after
+                # such a mark) closes the sentence and belongs to no segment.
+                while start < length and value[start] in "」』”’":
+                    start += 1
     return Context(
         reference,
         text,

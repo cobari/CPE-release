@@ -29,10 +29,15 @@ def run(wire: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def run_results(wire: dict[str, Any]) -> list[Result]:
+    if not isinstance(wire, dict):
+        raise WireError("wire input must be an object")
     settings = _settings(wire.get("settings", {}))
-    texts = [_text(entry, settings.normalization) for entry in wire.get("texts", [])]
-    check_variants(settings, [text.punctuation for text in texts])
-    specs = [from_mapping(entry) for entry in wire.get("patterns", [])]
+    texts = [_text(entry, settings.normalization) for entry in _entries(wire, "texts")]
+    check_variants(
+        settings,
+        [(text.punctuation, text.full_stop, text.halfwidth) for text in texts],
+    )
+    specs = [from_mapping(entry) for entry in _entries(wire, "patterns")]
     _unique("text_id", [text.text_id for text in texts])
     _unique("pattern id", [spec.id for spec in specs])
     found = [
@@ -45,6 +50,17 @@ def run_results(wire: dict[str, Any]) -> list[Result]:
 
 
 def _text(entry: dict[str, Any], options: Options) -> TextInput:
+    for key in ("text_id", "reference"):
+        value = entry.get(key)
+        if not isinstance(value, str) or (key == "text_id" and not value):
+            raise WireError(
+                f"{key} must be a string"
+                + (" and nonempty" if key == "text_id" else "")
+            )
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError:
+            raise WireError(f"{key} contains an unpaired Unicode surrogate") from None
     range_ = entry.get("range", "excerpt")
     if range_ not in _RANGES:
         raise WireError(f"unknown range: {range_!r}")
@@ -77,14 +93,16 @@ def _text(entry: dict[str, Any], options: Options) -> TextInput:
 
 
 def _settings(raw: dict[str, Any]) -> Settings:
+    if not isinstance(raw, dict) or not isinstance(raw.get("normalization", {}), dict):
+        raise WireError("settings and normalization must be objects")
     defaults = Settings()
     return Settings(
         normalization=options_from_mapping(raw.get("normalization", {})),
-        sentence_delimiters=frozenset(
-            raw.get("sentence_delimiters", defaults.sentence_delimiters)
+        sentence_delimiters=_delimiters(
+            raw, "sentence_delimiters", defaults.sentence_delimiters
         ),
-        clause_delimiters=frozenset(
-            raw.get("clause_delimiters", defaults.clause_delimiters)
+        clause_delimiters=_delimiters(
+            raw, "clause_delimiters", defaults.clause_delimiters
         ),
         state_limit=_count(raw, "state_limit", defaults.state_limit),
         result_limit=_count(raw, "result_limit", defaults.result_limit),
@@ -92,6 +110,27 @@ def _settings(raw: dict[str, Any]) -> Settings:
             raw, "long_segment_threshold", defaults.long_segment_threshold
         ),
     )
+
+
+def _entries(wire: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    entries = wire.get(key, [])
+    if not isinstance(entries, list) or any(
+        not isinstance(entry, dict) for entry in entries
+    ):
+        raise WireError(f"{key} must be a list of objects")
+    return entries
+
+
+def _delimiters(
+    raw: dict[str, Any], key: str, default: frozenset[str]
+) -> frozenset[str]:
+    if key not in raw:
+        return default
+    value = raw[key]
+    # The wire format is a string, as the run file and the reference use.
+    if not isinstance(value, str):
+        raise WireError(f"{key} must be a string of delimiter characters")
+    return frozenset(value)
 
 
 def _count(raw: dict[str, Any], key: str, default: int) -> int:
@@ -102,6 +141,12 @@ def _count(raw: dict[str, Any], key: str, default: int) -> int:
 
 
 def _unique(label: str, values: list[str]) -> None:
-    duplicates = sorted({value for value in values if values.count(value) > 1})
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for value in values:
+        if value in seen:
+            duplicates.add(value)
+        else:
+            seen.add(value)
     if duplicates:
-        raise WireError(f"duplicate {label}: {', '.join(duplicates)}")
+        raise WireError(f"duplicate {label}: {', '.join(sorted(duplicates))}")

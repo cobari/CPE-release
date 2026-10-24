@@ -14,8 +14,10 @@ Nothing is cached; each book keeps its NDL link.
 from __future__ import annotations
 
 import html
+import http.client
 import json
 import re
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -47,7 +49,9 @@ def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
         f"{url}?{urllib.parse.urlencode(params)}", headers={"User-Agent": AGENT}
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        data: bytes = response.read()
+        data: bytes = response.read(32 * 1024 * 1024 + 1)
+        if len(data) > 32 * 1024 * 1024:
+            raise NdlError("response exceeds 32 MB")
         return data
 
 
@@ -64,16 +68,49 @@ class NdlClient:
     sleep: Callable[[float], None] = time.sleep
     calls: int = 0
     _last: float | None = field(default=None, repr=False)
+    _lock: Any = field(default_factory=threading.Lock, repr=False)
 
-    def search(self, phrase: str, start: int = 0) -> dict[str, Any]:
+    def request(
+        self,
+        url: str,
+        params: dict[str, Any],
+        transport_override: Transport | None = None,
+        *,
+        checkpoint: Callable[[], None] | None = None,
+        wait: Callable[[float], None] | None = None,
+    ) -> bytes:
+        """Search and selected OCR imports share one serialized session budget."""
+        with self._lock:
+            return self._request(url, params, transport_override, checkpoint, wait)
+
+    def _request(
+        self,
+        url: str,
+        params: dict[str, Any],
+        transport_override: Transport | None = None,
+        checkpoint: Callable[[], None] | None = None,
+        wait: Callable[[float], None] | None = None,
+    ) -> bytes:
+        if checkpoint:
+            checkpoint()
         if self.calls >= self.max_calls:
             raise NdlCapReached(f"request cap {self.max_calls} reached")
         if self._last is not None:
-            wait = self.min_interval - (self.clock() - self._last)
-            if wait > 0:
-                self.sleep(wait)
+            delay = self.min_interval - (self.clock() - self._last)
+            if delay > 0:
+                (wait or self.sleep)(delay)
+        # A queued import may have been cancelled while a search held the lock
+        # or while the interval elapsed; it must not spend a call or send next.
+        if checkpoint:
+            checkpoint()
         self._last = self.clock()
         self.calls += 1
+        try:
+            return (transport_override or self.transport)(url, params, self.timeout)
+        except (OSError, http.client.HTTPException) as error:
+            raise NdlError(str(error)) from None
+
+    def search(self, phrase: str, start: int = 0) -> dict[str, Any]:
         params = {
             "keyword": phrase,
             "fc-isClassic": "true",
@@ -81,7 +118,7 @@ class NdlClient:
             "from": start,
         }
         try:
-            data = json.loads(self.transport(API_URL, params, self.timeout))
+            data = json.loads(self.request(API_URL, params))
         except (OSError, ValueError) as error:
             raise NdlError(str(error)) from None
         if not isinstance(data, dict):
@@ -106,8 +143,15 @@ def book_texts(book: dict[str, Any]) -> list[LocalText]:
         str(part) for part in (book.get("publisher"), book.get("published")) if part
     )
     texts = []
-    for index, highlight in enumerate(book.get("highlights") or [], start=1):
-        text = excerpt_text(str(highlight))
+    highlights = book.get("highlights")
+    if highlights is None:
+        return []
+    if not isinstance(highlights, list) or any(
+        not isinstance(item, str) for item in highlights
+    ):
+        raise NdlError("highlights must be a list of source strings")
+    for index, highlight in enumerate(highlights, start=1):
+        text = excerpt_text(highlight)
         if not text:
             continue
         texts.append(
@@ -157,7 +201,11 @@ def book_era(book: dict[str, Any]) -> dict[str, Any] | None:
 
 def fetch(phrase: str, client: NdlClient, start: int = 0) -> Fetched:
     data = client.search(phrase, start)
-    books = [book for book in data.get("list") or [] if isinstance(book, dict)]
+    books = data.get("list")
+    if books is None:
+        books = []
+    if not isinstance(books, list) or any(not isinstance(book, dict) for book in books):
+        raise NdlError("books must be a list of objects")
     texts: list[LocalText] = []
     eras: dict[str, dict[str, Any]] = {}
     for book in books:

@@ -9,11 +9,18 @@ from pathlib import Path
 from typing import Any
 
 from cpe.eval.metrics import evaluate, load_entries
+from cpe.export.safe import check_outputs, staged
 from cpe.match.api import run as run_matcher
+from cpe.match.dsl import parse as parse_expression
+from cpe.match.pattern_file import loads as load_patterns
 
 
 def patterns_from(path: Path) -> dict[str, dict[str, Any]]:
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    # The loader rejects duplicate ids and bad schemas first, so a repeated
+    # id can no longer silently keep only its last definition here.
+    raw = path.read_bytes()
+    load_patterns(raw, str(path))
+    data = tomllib.loads(raw.decode("utf-8"))
     return {entry["id"]: entry for entry in data.get("pattern", [])}
 
 
@@ -51,11 +58,18 @@ def build(
 ) -> dict[str, Any]:
     entries = load_entries(gold)
     patterns = patterns_from(patterns_path)
+    for entry in entries:
+        if entry["pattern_id"] not in patterns:
+            raise ValueError(
+                f"entry {entry['id']!r}: unknown pattern_id {entry['pattern_id']!r}"
+            )
 
     def literals(entry: dict[str, Any]) -> list[set[str]]:
+        # Fixed elements come from the parsed DSL structure: splitting the raw
+        # expression would also count words inside slots (such as the `not`
+        # in {A not 甲}) as fixed elements.
         expr = patterns[entry["pattern_id"]]["expr"]
-        tokens = [token for token in expr.split() if not token.startswith(("{", "@"))]
-        return [set(token.strip("()").split("|")) for token in tokens]
+        return [set(fixed.options) for fixed in parse_expression(expr).fixed]
 
     reports = evaluate(
         entries, wire_builder(patterns), run_matcher, confirmed_only, literals
@@ -242,13 +256,17 @@ def _error_lines(name: str, item: dict[str, Any]) -> list[str]:
     ]
 
 
-def write(prefix: Path, data: dict[str, Any]) -> tuple[Path, Path]:
+def write(
+    prefix: Path, data: dict[str, Any], *, force: bool = False
+) -> tuple[Path, Path]:
     json_path = prefix.with_name(prefix.name + ".json")
     md_path = prefix.with_name(prefix.name + ".md")
+    check_outputs([json_path, md_path], force=force)
     json_text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     md_text = markdown(data)
-    with json_path.open("w", encoding="utf-8", newline="") as stream:
-        stream.write(json_text)
-    with md_path.open("w", encoding="utf-8", newline="") as stream:
-        stream.write(md_text)
+    with staged([json_path, md_path]) as (json_target, md_target):
+        with json_target.open("w", encoding="utf-8", newline="") as stream:
+            stream.write(json_text)
+        with md_target.open("w", encoding="utf-8", newline="") as stream:
+            stream.write(md_text)
     return json_path, md_path

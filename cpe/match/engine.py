@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import bisect
+import heapq
+import itertools
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 
 from cpe.match import segment as seg
@@ -102,17 +104,20 @@ def match_text(spec: PatternSpec, text: TextInput, settings: Settings) -> list[R
     """All results of one pattern in one text, unsorted and without ids."""
     pattern = normalized_pattern(spec, settings.normalization)
     norm = text.normalized
-    occurrences = [_occurrences(norm.text, fixed.options) for fixed in pattern.fixed]
     long_warning = long_segment_warning(
         spec, norm.text, settings, text.punctuation, text.full_stop, text.halfwidth
     )
+    segments: Iterable[seg.Segment]
     if pattern.scope.mode == "window":
         size = pattern.scope.window
         assert size is not None
-        anchors = sorted({position for position, _ in occurrences[0]})
-        segments = [
-            seg.window(a, size, len(norm.text), text.boundary_end) for a in anchors
-        ]
+        anchors = itertools.groupby(
+            _occurrences(norm.text, pattern.fixed[0].options), key=lambda hit: hit[0]
+        )
+        segments = (
+            seg.window(position, size, len(norm.text), text.boundary_end)
+            for position, _ in anchors
+        )
     else:
         delimiters = (
             sentence_delimiters(settings, text.full_stop, text.halfwidth)
@@ -133,7 +138,7 @@ def match_text(spec: PatternSpec, text: TextInput, settings: Settings) -> list[R
             _Branch("adjacent", between, diagnostic, diagnostic.require_tail)
         )
 
-    matcher = _Matcher(spec, pattern, text, settings, occurrences, long_warning)
+    matcher = _Matcher(spec, pattern, text, settings, long_warning)
     results: list[Result] = []
     for segment in segments:
         results.extend(matcher.search(segment, branches))
@@ -223,17 +228,32 @@ def sentence_delimiters(
     return found
 
 
-def check_variants(settings: Settings, punctuations: Iterable[seg.Punctuation]) -> None:
-    """Reject a variant table touching U+3001 when a text uses `pause` (2.7)."""
+def check_variants(
+    settings: Settings,
+    texts: Iterable[tuple[seg.Punctuation, seg.FullStop, bool]],
+) -> None:
+    """Reject a variant mapping that touches a delimiter of any input text (2.7).
+
+    A mapping like 甲 -> "." would create a sentence boundary the source does not
+    have in a halfwidth text, so every text's actual delimiters are checked:
+    punctuation convention (U+3001 for pause), halfwidth marks and the full-stop
+    role. Closing quotation marks are not included: their boundary role depends on
+    a following delimiter and is a researcher rule (spec 3.2).
+    """
     table = settings.normalization.variants
-    if table is None or "pause" not in set(punctuations):
+    if table is None:
         return
-    for key, value in table.map.items():
-        if seg.IDEOGRAPHIC_COMMA in key + value:
-            raise NormalizationError(
-                f"variant {key!r} -> {value!r} involves U+3001, a delimiter in a "
-                "text with the pause convention"
-            )
+    for punctuation, full_stop, halfwidth in texts:
+        delimiters = clause_delimiters(settings, punctuation, halfwidth) | (
+            sentence_delimiters(settings, full_stop, halfwidth)
+        )
+        for key, value in table.map.items():
+            for char in key + value:
+                if char in delimiters:
+                    raise NormalizationError(
+                        f"variant {key!r} -> {value!r} involves {char!r}, a "
+                        "delimiter in this text"
+                    )
 
 
 def long_segment_warning(
@@ -284,16 +304,26 @@ def assign_ids(results: Iterable[tuple[int, int, Result]]) -> list[Result]:
     return numbered
 
 
-def _occurrences(text: str, options: Sequence[str]) -> list[tuple[int, str]]:
+def _occurrences(
+    text: str,
+    options: Sequence[str],
+    low: int = 0,
+    high: int | None = None,
+    end: int | None = None,
+) -> Iterator[tuple[int, str]]:
     """Every `(position, literal)`, ascending, alt options in declared order (8.5)."""
-    found = []
-    for order, literal in enumerate(options):
-        start = text.find(literal)
-        while start >= 0:
-            found.append((start, order, literal))
-            start = text.find(literal, start + 1)
-    found.sort()
-    return [(position, literal) for position, _, literal in found]
+    high = len(text) if high is None else high
+    end = len(text) if end is None else end
+
+    def matches(order: int, literal: str) -> Iterator[tuple[int, int, str]]:
+        start = text.find(literal, low, end)
+        while 0 <= start <= high:
+            yield start, order, literal
+            start = text.find(literal, start + 1, end)
+
+    streams = [matches(order, literal) for order, literal in enumerate(options)]
+    for position, _, literal in heapq.merge(*streams):
+        yield position, literal
 
 
 def _set_alt_counts(results: list[Result]) -> None:
@@ -311,7 +341,6 @@ class _Matcher:
         pattern: Pattern,
         text: TextInput,
         settings: Settings,
-        occurrences: list[list[tuple[int, str]]],
         long_warning: bool,
     ) -> None:
         self.spec = spec
@@ -320,8 +349,6 @@ class _Matcher:
         self.text = text
         self.norm = text.normalized
         self.settings = settings
-        self.occurrences = occurrences
-        self.positions = [[p for p, _ in occ] for occ in occurrences]
         self.barriers = sorted(self.norm.barriers)
         self.long_warning = long_warning
         self.canonical = spec.pattern.canonical()
@@ -351,14 +378,16 @@ class _Matcher:
         self, index: int, low: int, high: int, segment: seg.Segment
     ) -> list[tuple[int, str]]:
         """Occurrences of element `index` starting in `[low, high]`, inside segment."""
-        positions = self.positions[index]
-        first = bisect.bisect_left(positions, max(low, segment.start))
-        last = bisect.bisect_right(positions, high)
-        return [
-            (position, literal)
-            for position, literal in self.occurrences[index][first:last]
-            if position + len(literal) <= segment.end
-        ]
+        found = _occurrences(
+            self.norm.text,
+            self.pattern.fixed[index].options,
+            max(low, segment.start),
+            high,
+            segment.end,
+        )
+        # One extra candidate is enough to trigger the existing segment budget;
+        # materializing the full occurrence list would bypass that memory guard.
+        return list(itertools.islice(found, self.settings.state_limit + 1))
 
     def _count(self, search: _Search, added: int) -> None:
         search.states += added
@@ -370,28 +399,32 @@ class _Matcher:
         index = bisect.bisect_right(self.barriers, max(anchor, start))
         return index < len(self.barriers) and self.barriers[index] < end
 
-    def _extend(self, search: _Search, placed: list[tuple[int, str]]) -> None:
+    def _extend(self, search: _Search, initial_placed: list[tuple[int, str]]) -> None:
         pattern = self.pattern
-        if len(placed) == len(pattern.fixed):
-            self._complete(search, placed)
-            return
-        index = len(placed)
-        previous_end = placed[-1][0] + len(placed[-1][1])
-        element = search.branch.between[index - 1]
-        low, high = _distance_range(element)
-        candidates = self._in_range(
-            index, previous_end + low, previous_end + high, search.segment
-        )
-        self._count(search, len(candidates))
-        anchor = placed[0][0]
-        for position, literal in candidates:
-            if isinstance(element, Slot) and _contains_any(
-                self.norm.text[previous_end:position], element.nots
-            ):
+        num_fixed = len(pattern.fixed)
+        stack: list[list[tuple[int, str]]] = [initial_placed]
+        while stack:
+            placed = stack.pop()
+            if len(placed) == num_fixed:
+                self._complete(search, placed)
                 continue
-            if self._crosses(anchor, previous_end - 1, position + len(literal)):
-                continue
-            self._extend(search, [*placed, (position, literal)])
+            index = len(placed)
+            previous_end = placed[-1][0] + len(placed[-1][1])
+            element = search.branch.between[index - 1]
+            low, high = _distance_range(element)
+            candidates = self._in_range(
+                index, previous_end + low, previous_end + high, search.segment
+            )
+            self._count(search, len(candidates))
+            anchor = placed[0][0]
+            for position, literal in reversed(candidates):
+                if isinstance(element, Slot) and _contains_any(
+                    self.norm.text[previous_end:position], element.nots
+                ):
+                    continue
+                if self._crosses(anchor, previous_end - 1, position + len(literal)):
+                    continue
+                stack.append([*placed, (position, literal)])
 
     def _complete(self, search: _Search, placed: list[tuple[int, str]]) -> None:
         pattern = self.pattern
