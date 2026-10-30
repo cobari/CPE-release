@@ -1,15 +1,18 @@
 /* Classic Pattern Explorer: Unified stylesheet for project landing pages (6 languages).
    System fonts only (no external web fonts or scripts fetched); high-contrast academic editorial layout.
-   Color roles: --bg (warm paper), --surface (panel white), --ink (primary text),
-   --muted (secondary text/borders), --accent (scholarly vermilion), --line (divider rules). */
+   Color roles: --bg (canvas white #ffffff), --surface (card white #ffffff),
+   --surface-subtle (secondary neutral #f6f8fa), --ink (primary text #1f2328),
+   --muted (secondary text #59636e), --accent (scholarly vermilion #983626),
+   --line (divider rules #d1d9e0), --control-border (control border #818b98). */
 :root {
-  --bg: #f7f5f0;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --ink: #1d1b18;
-  --muted: #5a554d;
-  --line: #ded8ce;
-  --line-strong: #bcb4a6;
-  --control-border: #8c8377;
+  --surface-subtle: #f6f8fa;
+  --ink: #1f2328;
+  --muted: #59636e;
+  --line: #d1d9e0;
+  --line-strong: #818b98;
+  --control-border: #818b98;
   --accent: #983626;
   --accent-strong: #78291c;
   --accent-soft: #f4e8e5;
@@ -36,8 +39,6 @@ html:lang(ko) body {
   word-break: keep-all;
   overflow-wrap: break-word;
 }
-:lang(ko) h1, :lang(ko) h2, :lang(ko) h3 { text-wrap: balance; }
-:lang(ko) p { text-wrap: pretty; }
 
 html:lang(ja) body {
   font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", "Noto Sans JP", system-ui, sans-serif;
@@ -138,7 +139,7 @@ a:focus-visible {
 
 /* Layout container */
 .site-head, main, .site-foot {
-  width: min(960px, calc(100% - 40px));
+  width: min(1080px, calc(100% - 64px));
   margin: 0 auto;
 }
 
@@ -191,8 +192,9 @@ a:focus-visible {
   line-height: 1.4;
 }
 .languages a:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 .languages a[aria-current="page"] {
   background: var(--ink);
@@ -212,29 +214,30 @@ main > section:last-child {
 
 /* Typography Hierarchy */
 h1 {
-  margin: 0 0 20px;
-  font-size: clamp(32px, 4.4vw, 46px);
+  margin: 0 0 18px;
+  font-size: clamp(28px, 3.2vw, 38px);
   line-height: 1.25;
   letter-spacing: -0.02em;
   font-weight: 700;
   color: var(--ink);
-  text-wrap: balance;
+  text-wrap: wrap;
 }
 h2 {
-  margin: 0 0 20px;
-  font-size: 26px;
+  margin: 0 0 18px;
+  font-size: 24px;
   line-height: 1.32;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.01em;
-  text-wrap: balance;
+  text-wrap: wrap;
 }
 h3 {
   margin: 0 0 8px;
-  font-size: 18.5px;
+  font-size: 18px;
   line-height: 1.4;
   font-weight: 700;
   color: var(--ink);
+  text-wrap: wrap;
 }
 p {
   margin: 0 0 14px;
@@ -247,9 +250,9 @@ p:last-child {
 .hero {
   display: grid;
   grid-template-columns: 1fr 280px;
-  gap: 16px 36px;
+  gap: 20px 44px;
   align-items: start;
-  padding: 56px 0 44px;
+  padding: 52px 0 44px;
 }
 .hero h1 {
   grid-column: 1;
@@ -306,6 +309,7 @@ p:last-child {
   box-sizing: border-box;
 }
 .button:hover {
+  background: var(--surface-subtle);
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -346,8 +350,8 @@ p:last-child {
 }
 .method-item {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 24px;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
   padding: 22px 0;
   border-top: none;
   border-bottom: 1px solid var(--line);
@@ -415,7 +419,7 @@ p:last-child {
 
 /* Limits & Scholarly Notes */
 .limits-box {
-  background: var(--surface);
+  background: var(--surface-subtle);
   border: 1px solid var(--line);
   border-left: 4px solid var(--accent);
   border-radius: var(--border-radius-sm);
@@ -445,8 +449,8 @@ p:last-child {
 }
 .platform-item {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 24px;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
   padding: 22px 0;
   border-top: none;
   border-bottom: 1px solid var(--line);
@@ -558,5 +562,11 @@ p:last-child {
   }
   .limits-box {
     padding: 18px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-head, main, .site-foot {
+    width: calc(100% - 32px);
   }
 }
