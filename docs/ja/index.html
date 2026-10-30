@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Classic Pattern Explorer：漢文原文の文型候補検索</title>
   <meta name="description" content="漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストと対応するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。">
+  <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/ja/">
   <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
   <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/">
   <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/">
   <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/">
   <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/">
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
@@ -24,85 +26,115 @@
 <body>
   <a class="skip" href="#main">本文へスキップ</a>
   <header class="site-head">
-    <a class="brand" href="../ja/"><img src="../assets/icon-192.png" alt="" width="40" height="40"><span>Classic Pattern Explorer</span></a>
+    <a class="brand" href="./"><img src="../assets/icon-192.png" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
     <nav class="languages" aria-label="言語">
       <ul>
-      <li><a href="../" hreflang="en" lang="en">English</a></li>
-      <li><a href="../ko/" hreflang="ko" lang="ko">한국어</a></li>
-      <li><a href="../ja/" hreflang="ja" lang="ja" aria-current="page">日本語</a></li>
-      <li><a href="../zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
-      <li><a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../" hreflang="en" lang="en">English</a></li>
+        <li><a href="../ko/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="./" hreflang="ja" lang="ja" aria-current="page">日本語</a></li>
+        <li><a href="../zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../vi/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
       </ul>
     </nav>
   </header>
   <main id="main">
     <section class="hero">
       <h1>漢文の原文から文型の候補を探す</h1>
-      <p class="lead">Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から <span class="pattern">以…爲</span> や <span class="pattern">雖…而</span> のような文型の候補を探すデジタル・ヒューマニティーズ（人文情報学）の研究支援ツールです。候補ごとにテキストや資料源の抜粋が含む文脈を示し、出典リンクがあればそれも添えて、研究者が自ら読んで判断できるよう支援します。</p>
-      <p class="actions">
-        <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
-        <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 の全ダウンロード</a>
-        <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内を読む</a>
-      </p>
+      <p class="lead">Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から <span class="pattern" lang="lzh">以…爲</span> や <span class="pattern" lang="lzh">雖…而</span> のような文型の候補を探すデジタル・ヒューマニティーズ（人文情報学）の研究支援ツールです。候補ごとにテキストや資料源の抜粋が含む文脈を示し、出典リンクがあればそれも添えて、研究者が自ら読んで判断できるよう支援します。</p>
+      <div class="actions">
+        <div class="action-primary">
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
+        </div>
+        <div class="action-secondary">
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 の全ダウンロード<small>macOS・Linux 用ソースパッケージ</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内を読む<small>詳細ドキュメント (README)</small></a>
+        </div>
+      </div>
     </section>
+
     <section>
       <h2>主な機能</h2>
-      <ul class="features">
-        <li><h3>文脈の中の候補</h3><p>候補を、提供された本文や抜粋の文脈とともに表示します。返されたテキストでは確認できない資料は未確認候補として区別し、出典リンクがあれば添えます。</p></li>
-        <li><h3>5つの画面言語</h3><p>韓国語、日本語、簡体字中国語、繁体字中国語、英語に対応。言語を切り替えても原文が変換されたり変更されたりすることはありません。</p></li>
-        <li><h3>構文解析器ではなく研究支援ツール</h3><p>複合検索では構造的な手がかりにより候補を2つのグループに分けて提示します。この区分は文法判定ではなく、判断は研究者に委ねられます。</p></li>
-      </ul>
+      <div class="method-grid">
+        <div class="method-item">
+          <h3>文脈の中の候補</h3>
+          <p>資料から得られた文脈を候補と一緒に表示します。返された本文で確認できない結果は「未確認」と表示します。出典リンクがある場合は、元の資料も確認できます。</p>
+        </div>
+        <div class="method-item">
+          <h3>5つの画面言語</h3>
+          <p>日本語、韓国語、中国語簡体字・繁体字、英語。画面言語を切り替えても原文は変換されたり変わりません。（ウェブサイトの案内はベトナム語を含む6言語で提供しています。）</p>
+        </div>
+        <div class="method-item">
+          <h3>構文解析器ではなく研究支援ツール</h3>
+          <p>複合検索では候補を構造的な手がかりに基づいて可能性の高い結果と低い結果に分けて提示するだけであり、文脈の判断は利用者に委ねられます。</p>
+        </div>
+      </div>
     </section>
+
     <section>
       <h2>検索対象</h2>
-      <div class="sources">
-        <article class="source">
-          <h3>自分のテキスト</h3>
-          <p class="tag">PC内の全文テキスト</p>
-          <p>指定したフォルダーの UTF-8 .txt・.md ファイル、および機関原文を変換保存した .texts.jsonl バンドルファイルを検索します。各ファイルの全文を対象に検索が行われます。</p>
+      <div class="scope-dossier">
+        <article class="scope-col">
+          <h3>手元のテキスト</h3>
+          <div class="scope-sub">手元のコンピュータの全文テキスト</div>
+          <p>選択したフォルダ内の UTF-8 .txt・.md ファイルと、機関の原典を変換して保存した .texts.jsonl バンドルファイル。各ファイルの全文を検索します。</p>
           <ul>
-          <li>韓国の公共データポータルで対応している国史編纂委員会・韓国古典翻訳院・韓国学中央研究院の原文資料を、検索できるテキストのまとまりとして保存します。</li>
-          <li>Chinese Text Project（CTP/CText、ctext.org）：CTPが許可する単独の章はキーなしで取得を試せます。作品全体の章一覧には、ご自身のCTP APIキーが必要です。</li>
-          <li>MPIWG稀見地方志の選択部分、対応するProject Gutenberg・NDL資料、CBETA・国史編纂委員会のXMLファイルも取り込めます。</li>
-          <li>自身で用意した任意のプレーンテキストファイル。</li>
+            <li>韓国の公共データポータルが提供する国史編纂委員会・韓国古典翻訳院・韓国学中央研究院の原典資料をダウンロードし、検索可能なテキストバンドルとして保存します。</li>
+            <li>Chinese Text Project（CTP/CText, ctext.org）：単一の章はキーなしで取得を試せます。作品全体の章一覧には各自の CTP API キーが必要で、利用可能範囲は CTP の定めに従います。</li>
+            <li>MPIWG の稀覯地方志から選択した一部、対応するプロジェクト・グーテンベルクおよび NDL 資料、CBETA や国史編纂委員会の XML ファイルも取り込めます。</li>
+            <li>自分で用意したプレーンテキストファイル。</li>
           </ul>
         </article>
-        <article class="source">
-          <h3>オンライン資料の検索</h3>
-          <p class="tag">返された本文・資料情報、インターネット接続が必要</p>
-          <p>対応する資料源へ検索語を送り、返されたテキストを確認します。</p>
+
+        <article class="scope-col">
+          <h3>オンライン資料検索</h3>
+          <div class="scope-sub">提供機関が返した語句・資料情報、要インターネット</div>
+          <p>資料源に検索語を送信し、そこから返されたテキストを確認します。</p>
           <ul>
-          <li>韓国古典総合DB（ITKC）：古典原文・韓国文集叢刊（約150字抜粋）。朝鮮王朝実録などの翻訳コレクションは対象外です。</li>
-          <li>国立国会図書館（NDL）：古典籍のOCRテキスト。検索要素の少なくとも一つは2文字以上である必要があります。</li>
-          <li>CBETA 中華電子仏典協会：大蔵経原文から検索語の前後に約40文字ずつの抜粋を取得。</li>
-          <li>東洋古典総合DB：本文の一部や資料情報、出典リンクを表示します。返されたテキストでは検索条件を確認できない資料は、未確認候補として区別します。</li>
-          <li>DocuSky：佛寺志靈應故事のうち、普陀洛迦新志靈應故事と清涼山志靈應故事の2資料に限って検索します。</li>
+            <li>韓国古典総合DB（ITKC）：原文コレクションである古典原文および韓国文集叢刊（約150字抜粋）。朝鮮王朝実録などの翻訳コレクションは検索しません。</li>
+            <li>国立国会図書館（NDL）：古典籍の OCR テキスト。検索要素のうち少なくとも1つは2文字以上が必要です。</li>
+            <li>CBETA 電子仏典：検索語の前後約40字ずつ抜粋。</li>
+            <li>東洋古典総合DB：語句や資料情報、出典リンクを表示します。返されたテキストで検索条件を確認できない資料は未確認候補として区分します。</li>
+            <li>DocuSky：佛寺志靈應故事 のうち 普陀洛迦新志靈應故事 と 清涼山志靈應故事 から選ばれた故事に限り検索し、書籍全体ではありません。</li>
           </ul>
         </article>
       </div>
     </section>
-    <section class="limits">
-      <h2>留意すべき制限事項</h2>
-      <ul>
-        <li>オンライン検索の範囲は、資料源から返された本文や資料情報に限られます。結果件数の上限は資料源ごとに異なります。</li>
-        <li>結果がなくても、その文型が使われていないことの証明にはなりません。</li>
-        <li>NDLのOCRテキストには認識誤りがあり得るため、引用前に書頁画像を確認してください。</li>
-        <li>MPIWGは、選択した節から一度に最大50件の内容単位のうち対応する部分を取り込み、手元のパソコンで検索します。この単位は印刷本のページ番号とは異なり、資料全体のオンライン検索には対応していません。</li>
-        <li>用例を引用する前に、出典リンクがあれば開き、原文全体と文脈を確認してください。</li>
-        <li>提供元のサーバーに配慮し、要求の間隔と回数を制限しています。取得した資料には各提供元の利用条件が適用されます。</li>
-      </ul>
-    </section>
+
     <section>
-      <h2>はじめ方</h2>
-      <div class="steps">
-        <div><h3>Windows</h3><p>v2.0 リリースから cpe-gui.exe をダウンロードしてダブルクリックするだけです。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、起動しない場合はランタイムをインストールしてください。</p></div>
-        <div><h3>macOS と Linux</h3><p>v2.0 リリースからソースパッケージをダウンロードして解凍し、cpe-gui.command（macOS）または cpe-gui.sh（Linux）を実行します。初回の確認で uv のインストールと Python 環境の取得を行うため、インターネット接続が必要です。</p></div>
-        <div><h3>コマンドライン</h3><p>ソースパッケージには CSV・JSONL や実行記録を出力する cpe コマンドも含まれています。詳細は<a href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内</a>をご覧ください。</p></div>
+      <h2>知っておくべき制限</h2>
+      <div class="limits-box">
+        <ul>
+          <li>オンライン検索は各資料源が返した語句と資料情報の範囲内で行われます。結果件数の上限は資料源ごとに異なります。</li>
+          <li>結果が出ないからといって、その文型が使われていないという意味ではありません。</li>
+          <li>NDL の OCR テキストには誤認識が含まれる場合があるため、引用する前に紙面の画像を確認してください。</li>
+          <li>MPIWG は選択した節から一度に最大50単位のうち対応する部分のみを取り込んで手元で検索します。この単位は書籍のページ番号とは異なり、全資料のオンライン検索は提供していません。</li>
+          <li>用例を引用する前には、表示される出典リンクを開いて全体の原文と文脈を確認してください。</li>
+          <li>資料源サーバへの負荷を考慮してリクエスト間隔と回数を制限しています。ダウンロードした資料には各提供機関の利用条件が適用されます。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>利用開始</h2>
+      <div class="platforms-grid">
+        <div class="platform-item">
+          <h3>Windows</h3>
+          <p>v2.0 リリースから cpe-gui.exe をダウンロードしてダブルクリックするだけです。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
+        </div>
+        <div class="platform-item">
+          <h3>macOS および Linux</h3>
+          <p>v2.0 リリースからソースパッケージをダウンロード・解凍し、cpe-gui.command（macOS）または cpe-gui.sh（Linux）を実行します。初回実行時に同意すると uv をインストールし、Python 環境をダウンロードするためインターネット接続が必要です。</p>
+        </div>
+        <div class="platform-item">
+          <h3>コマンドライン</h3>
+          <p>ソースパッケージには CSV、JSONL および実行記録を保存する cpe コマンドも含まれています。詳細は<a href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内</a>をご覧ください。</p>
+        </div>
       </div>
     </section>
   </main>
   <footer class="site-foot">
-    <p>バージョン 2.0（タグ v2.0）。MIT ライセンス。接続先のいかなる機関やデータベースとも提携関係にない個人の独立プロジェクトです。データベースの原本コーパス、現代語訳、生の API レスポンスは同梱されていません。</p>
+    <p>バージョン 2.0（タグ v2.0）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API 生応答は含まれていません。</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub のソースとリリース</a></p>
   </footer>
 </body>

@@ -25,22 +25,25 @@ As shown by `gh repo view cobari/CPE-release`:
   `main`, folder `/docs`. `docs/.nojekyll` makes Pages serve the files as written,
   with no Jekyll build.
 - **Files**: `docs/index.html` (English, also the `x-default` page), `docs/ko/`,
-  `docs/ja/`, `docs/zh-hans/`, `docs/zh-hant/` (one `index.html` each),
+  `docs/ja/`, `docs/zh-hans/`, `docs/zh-hant/`, `docs/vi/` (one `index.html` each),
   `docs/assets/style.css`, `docs/assets/icon-192.png` (a 192-pixel copy of
   `cpe/gui/assets/icon.png`, same license), `docs/sitemap.xml`.
 - **Base URL**: `https://cobari.github.io/CPE-release/`. The canonical links, the
-  `hreflang` links (each page lists all five and `x-default`) and the sitemap use it.
+  `hreflang` links (each page lists all six and `x-default`) and the sitemap use it.
   If the repository is renamed or a custom domain is added, every page and the
   sitemap must be changed together, or search engines are pointed at missing pages.
-- **What the pages say**: release v1.0 only, as its READMEs describe it. A feature
+- **What the pages say**: release v2.0 only, as its READMEs describe it. A feature
   that is not in a published release is not described; the pages are updated with
-  each release.
+  each release. In-development work stays off the pages: the sixth GUI language
+  and the Việt Điện search route are development state, not v2.0 behavior, so the
+  pages keep saying five interface languages until a release ships them.
+  Indexing of a page is requested only after that page answers 200.
 - **No external requests**: no analytics, tracker, web font or script from another
-  host. Links go to this repository, its v1.0 release and Microsoft's WebView2 page.
+  host. Links go to this repository, its v2.0 release and Microsoft's WebView2 page.
 - **robots.txt**: a project site cannot serve `robots.txt` at the host root
   (`cobari.github.io`), so none is added; the sitemap is submitted in Search Console.
-- **Check after publishing**: each of the five URLs answers 200; the language
-  switch reaches every page; `sitemap.xml` answers 200 with five URLs.
+- **Check after publishing**: each of the six URLs answers 200; the language
+  switch reaches every page; `sitemap.xml` answers 200 with six URLs.
 
 ## Google Search Console
 
@@ -51,11 +54,50 @@ As shown by `gh repo view cobari/CPE-release`:
   - HTML file: add the file Google provides (`google….html`) to `docs/` unchanged;
   - HTML tag: add the `<meta name="google-site-verification" …>` tag Google provides
     to the head of `docs/index.html`.
-  The token belongs to the owner's account. None is in the repository, and a
+  The token belongs to the owner's account. The existing meta tag in
+  `docs/index.html` is present; keep it unchanged. Whether the property is
+  verified for the owner's account must be checked in Search Console; a
   placeholder must not be committed: a wrong token only fails verification and
   publishes a meaningless file.
-- **After verification**: submit `sitemap.xml`, then request indexing of the five
-  pages with URL Inspection.
+- **After verification**: submit `https://cobari.github.io/CPE-release/sitemap.xml`,
+  then request indexing of the six pages with URL Inspection.
+
+## Search Console maintenance
+
+- **Property**: URL prefix `https://cobari.github.io/CPE-release/`. Keep using this
+  property; a Domain property is not possible on `github.io`.
+- **After each publication**: resubmit the sitemap only if it changed, run URL
+  Inspection on each changed page, and confirm the sitemap status shows all six
+  URLs discovered. The `vi/` page is inspected only after it answers 200.
+- **Performance review**: read the Performance report by query, country and page to
+  see which real queries surface which language page. Treat the numbers as
+  observation only; they do not promise traffic or ranking, and passing local
+  checks never establishes indexing.
+- **Per-language search-phrase drafts**: the phrases below describe actual page
+  content for future title and description work. Search volume was not checked for
+  any of them, and none implies a ranking claim.
+  - English: "sentence pattern search", "Literary Sinitic".
+  - Korean: "한문 문형 검색".
+  - Japanese: "漢文 文型 検索".
+  - Simplified Chinese: "汉文 句型 检索".
+  - Traditional Chinese: "漢文 句型 檢索".
+  - Vietnamese: "tìm mẫu câu Hán văn" (Hán văn for Literary Sinitic; chữ Nôm only
+    as a disambiguation line so the two scripts are not confused. Term usage:
+    "mẫu câu" is the standard Vietnamese word for a sentence pattern in grammar
+    instruction; "Hán văn" is the Vietnamese scholarly term for Literary Sinitic
+    writing; "tìm" matches software UI usage such as Microsoft vi-vn Support.
+    No native-speaker review is claimed).
+
+## Official references
+
+- Title links: <https://developers.google.com/search/docs/appearance/title-link>
+- Snippets and meta descriptions: <https://developers.google.com/search/docs/appearance/snippet>
+- Canonical URLs: <https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls>
+- Localized page versions: <https://developers.google.com/search/docs/specialty/international/localized-versions>
+- Sitemap building and submission: <https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap>
+- robots.txt introduction: <https://developers.google.com/search/docs/crawling-indexing/robots/intro>
+- Structured data introduction: <https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data>
+- Search Console start: <https://developers.google.com/search/docs/monitor-debug/search-console-start>
 
 ## Limits
 

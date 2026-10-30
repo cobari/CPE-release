@@ -12,6 +12,7 @@
   <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/">
   <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/">
   <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/">
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
@@ -25,80 +26,110 @@
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-head">
-    <a class="brand" href="./"><img src="assets/icon-192.png" alt="" width="40" height="40"><span>Classic Pattern Explorer</span></a>
+    <a class="brand" href="./"><img src="assets/icon-192.png" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
     <nav class="languages" aria-label="Language">
       <ul>
-      <li><a href="./" hreflang="en" lang="en" aria-current="page">English</a></li>
-      <li><a href="ko/" hreflang="ko" lang="ko">한국어</a></li>
-      <li><a href="ja/" hreflang="ja" lang="ja">日本語</a></li>
-      <li><a href="zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
-      <li><a href="zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="./" hreflang="en" lang="en" aria-current="page">English</a></li>
+        <li><a href="ko/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="ja/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="zh-hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="vi/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
       </ul>
     </nav>
   </header>
   <main id="main">
     <section class="hero">
       <h1>Find sentence-pattern candidates in Literary Sinitic texts</h1>
-      <p class="lead">Classic Pattern Explorer is a digital humanities research aid for finding sentence-pattern candidates, such as <span class="pattern">以…爲</span> or <span class="pattern">雖…而</span>, in Literary Sinitic source texts (漢文, often called Classical Chinese). Each candidate is shown with the context its text or the source&#x27;s excerpt provides, alongside a source link where available, so you can read and judge it yourself.</p>
-      <p class="actions">
-        <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Download for Windows<small>cpe-gui.exe, 64-bit</small></a>
-        <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">All downloads for v2.0</a>
-        <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.md">Read the guide</a>
-      </p>
+      <p class="lead">Classic Pattern Explorer is a digital humanities research aid for finding sentence-pattern candidates, such as <span class="pattern" lang="lzh">以…爲</span> or <span class="pattern" lang="lzh">雖…而</span>, in Literary Sinitic source texts (漢文, often called Classical Chinese). Each candidate is shown with the context its text or the source&#x27;s excerpt provides, alongside a source link where available, so you can read and judge it yourself.</p>
+      <div class="actions">
+        <div class="action-primary">
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Download for Windows<small>cpe-gui.exe, 64-bit</small></a>
+        </div>
+        <div class="action-secondary">
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">All downloads for v2.0<small>macOS and Linux source package</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.md">Read the guide<small>Comprehensive documentation</small></a>
+        </div>
+      </div>
     </section>
+
     <section>
       <h2>What it does</h2>
-      <ul class="features">
-        <li><h3>Candidates in context</h3><p>Read candidates in the context supplied by the text or provider, with source links where available. Records that cannot be checked against the returned text are marked as unverified.</p></li>
-        <li><h3>Five interface languages</h3><p>Korean, Japanese, Simplified Chinese, Traditional Chinese and English. Changing the language never converts or alters the source text.</p></li>
-        <li><h3>A research aid, not a parser</h3><p>In compound search, candidates are sorted by structural cues into likely and less likely results. That grouping is not a grammatical verdict; the reading stays with you.</p></li>
-      </ul>
+      <div class="method-grid">
+        <div class="method-item">
+          <h3>Candidates in context</h3>
+          <p>Read candidates in the context supplied by the text or provider, with source links where available. Records that cannot be checked against the returned text are marked as unverified.</p>
+        </div>
+        <div class="method-item">
+          <h3>Five interface languages</h3>
+          <p>Korean, Japanese, Simplified Chinese, Traditional Chinese and English. Changing the language never converts or alters the source text. (This website guide is provided in six languages, including Vietnamese.)</p>
+        </div>
+        <div class="method-item">
+          <h3>A research aid, not a parser</h3>
+          <p>In compound search, candidates are grouped by structural cues into likely and less likely results. That grouping is not a grammatical verdict; the reading stays with you.</p>
+        </div>
+      </div>
     </section>
+
     <section>
       <h2>Where it searches</h2>
-      <div class="sources">
-        <article class="source">
+      <div class="scope-dossier">
+        <article class="scope-col">
           <h3>Your own texts</h3>
-          <p class="tag">Full text on your computer</p>
+          <div class="scope-sub">Full text on your computer</div>
           <p>A folder you choose: UTF-8 .txt and .md files, and .texts.jsonl bundles the window writes for institute originals. The text of each file is searched in full.</p>
           <ul>
-          <li>Supported original-text releases from Korea's public data portal, including the National Institute of Korean History, the Institute for the Translation of Korean Classics and the Academy of Korean Studies, saved as searchable text bundles.</li>
-          <li>Chinese Text Project (CTP/CText, ctext.org): try a single chapter without a key where CTP permits it. A work's full chapter list requires your own CTP API key.</li>
-          <li>Selected portions of MPIWG rare local gazetteers; supported Project Gutenberg and NDL texts; CBETA and NIKH XML files.</li>
-          <li>Any plain-text files you prepare yourself.</li>
+            <li>Supported original-text releases from Korea's public data portal, including the National Institute of Korean History, the Institute for the Translation of Korean Classics and the Academy of Korean Studies, saved as searchable text bundles.</li>
+            <li>Chinese Text Project (CTP/CText, ctext.org): try a single chapter without a key where CTP permits it. A work's full chapter list requires your own CTP API key.</li>
+            <li>Selected portions of MPIWG rare local gazetteers; supported Project Gutenberg and NDL texts; CBETA and NIKH XML files.</li>
+            <li>Any plain-text files you prepare yourself.</li>
           </ul>
         </article>
-        <article class="source">
+
+        <article class="scope-col">
           <h3>Online source search</h3>
-          <p class="tag">Returned passages and records; Internet needed</p>
+          <div class="scope-sub">Returned passages and records; Internet needed</div>
           <p>The app sends your search to a supported source and checks the text it returns.</p>
           <ul>
-          <li>Korean Classics DB (ITKC): original-text collections Classical Texts and Korean Literary Collections (~150-character excerpts). Translated collections such as the Annals of the Joseon Dynasty are not searched.</li>
-          <li>National Diet Library of Japan (NDL): OCR text of classical books; at least one search element must contain two or more characters.</li>
-          <li>CBETA Chinese Buddhist Canon: excerpts of about 40 characters on each side of a hit.</li>
-          <li>Cyber Seodang (Dongyang Classics DB): returned passages or record information with source links. Candidates that cannot be verified in the returned text are marked as unverified.</li>
-          <li>DocuSky: limited to 普陀洛迦新志靈應故事 and 清涼山志靈應故事 in the 佛寺志靈應故事 database.</li>
+            <li>Korean Classics DB (ITKC): original-text collections Classical Texts and Korean Literary Collections (~150-character excerpts). Translated collections such as the Annals of the Joseon Dynasty are not searched.</li>
+            <li>National Diet Library of Japan (NDL): OCR text of classical books; at least one search element must contain two or more characters.</li>
+            <li>CBETA Chinese Buddhist Canon: excerpts of about 40 characters on each side of a hit.</li>
+            <li>Cyber Seodang (Dongyang Classics DB): returned passages or record information with source links. Candidates that cannot be verified in the returned text are marked as unverified.</li>
+            <li>DocuSky: limited to selected stories from 普陀洛迦新志靈應故事 and 清涼山志靈應故事 in the 佛寺志靈應故事 database, not the complete books.</li>
           </ul>
         </article>
       </div>
     </section>
-    <section class="limits">
+
+    <section>
       <h2>Limits to keep in mind</h2>
-      <ul>
-        <li>Online coverage depends on the passages and records returned by each provider, within its result limits.</li>
-        <li>An empty result does not show that a pattern never occurs.</li>
-        <li>NDL's OCR text may contain recognition errors; check the page image before citing.</li>
-        <li>MPIWG imports supported portions from up to 50 source units in a selected section at a time, for local searching. These units do not correspond to printed page numbers; whole-corpus online search is not provided.</li>
-        <li>Before citing a candidate, open its source where a link is available and check the full passage.</li>
-        <li>Request intervals and limits protect provider servers. Downloaded material remains subject to the provider's terms.</li>
-      </ul>
+      <div class="limits-box">
+        <ul>
+          <li>Online coverage depends on the passages and records returned by each provider, within its result limits.</li>
+          <li>An empty result does not show that a pattern never occurs.</li>
+          <li>NDL's OCR text may contain recognition errors; check the page image before citing.</li>
+          <li>MPIWG imports supported portions from up to 50 source units in a selected section at a time, for local searching. These units do not correspond to printed page numbers; whole-corpus online search is not provided.</li>
+          <li>Before citing a candidate, open its source where a link is available and check the full passage.</li>
+          <li>Request intervals and limits protect provider servers. Downloaded material remains subject to the provider's terms.</li>
+        </ul>
+      </div>
     </section>
+
     <section>
       <h2>Get started</h2>
-      <div class="steps">
-        <div><h3>Windows</h3><p>Download cpe-gui.exe from the v2.0 release and double-click it; Python is not needed. It runs on the <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; if the window does not open, install the runtime.</p></div>
-        <div><h3>macOS and Linux</h3><p>Download the source package from the v2.0 release, unpack it and run cpe-gui.command (macOS) or cpe-gui.sh (Linux). On the first run it offers to install uv and downloads the Python environment, so it needs an Internet connection.</p></div>
-        <div><h3>Command line</h3><p>The source package also has the cpe command, which writes CSV, JSONL and run records. See the <a href="https://github.com/cobari/CPE-release/blob/main/README.md">guide</a> for details.</p></div>
+      <div class="platforms-grid">
+        <div class="platform-item">
+          <h3>Windows</h3>
+          <p>Download cpe-gui.exe from the v2.0 release and double-click it; Python is not needed. It runs on the <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; if the window does not open, install the runtime.</p>
+        </div>
+        <div class="platform-item">
+          <h3>macOS and Linux</h3>
+          <p>Download the source package from the v2.0 release, unpack it and run cpe-gui.command (macOS) or cpe-gui.sh (Linux). On the first run it offers to install uv and downloads the Python environment, so it needs an Internet connection.</p>
+        </div>
+        <div class="platform-item">
+          <h3>Command line</h3>
+          <p>The source package also has the cpe command, which writes CSV, JSONL and run records. See the <a href="https://github.com/cobari/CPE-release/blob/main/README.md">guide</a> for details.</p>
+        </div>
       </div>
     </section>
   </main>

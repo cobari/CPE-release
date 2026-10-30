@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Classic Pattern Explorer：文言文（汉文）原文句式候选检索</title>
   <meta name="description" content="免费汉文（文言文）研究辅助工具：查找原文中的句式候选用例，查看上下文和出处。支持本地文本及指定在线数据库，适用于 Windows、macOS 和 Linux。">
+  <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/zh-hans/">
   <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
   <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/">
   <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/">
   <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/">
   <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/">
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
@@ -24,86 +26,116 @@
 <body>
   <a class="skip" href="#main">跳转到主要内容</a>
   <header class="site-head">
-    <a class="brand" href="../zh-hans/"><img src="../assets/icon-192.png" alt="" width="40" height="40"><span>Classic Pattern Explorer</span></a>
+    <a class="brand" href="./"><img src="../assets/icon-192.png" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
     <nav class="languages" aria-label="语言">
       <ul>
-      <li><a href="../" hreflang="en" lang="en">English</a></li>
-      <li><a href="../ko/" hreflang="ko" lang="ko">한국어</a></li>
-      <li><a href="../ja/" hreflang="ja" lang="ja">日本語</a></li>
-      <li><a href="../zh-hans/" hreflang="zh-Hans" lang="zh-Hans" aria-current="page">简体中文</a></li>
-      <li><a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../" hreflang="en" lang="en">English</a></li>
+        <li><a href="../ko/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../ja/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="./" hreflang="zh-Hans" lang="zh-Hans" aria-current="page">简体中文</a></li>
+        <li><a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../vi/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
       </ul>
     </nav>
   </header>
   <main id="main">
     <section class="hero">
       <h1>在文言文原文中查找句式候选</h1>
-      <p class="lead">Classic Pattern Explorer 是一款面向数字人文（Digital Humanities）研究的辅助工具，用于在文言文（汉文，Literary Sinitic）原文中查找 <span class="pattern">以…爲</span>、<span class="pattern">雖…而</span> 等句式候选用例。每个用例均显示文本或数据源摘录所包含的上下文，并在可用时附带出处链接，供研究者亲自阅读和研判。</p>
-      <p class="actions">
-        <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">下载 Windows 版<small>cpe-gui.exe，64 位</small></a>
-        <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 全部下载</a>
-        <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.zh-CN.md">阅读使用说明</a>
-      </p>
+      <p class="lead">Classic Pattern Explorer 是一款面向数字人文（Digital Humanities）研究的辅助工具，用于在文言文（汉文，Literary Sinitic）原文中查找 <span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span> 等句式候选用例。每个用例均显示文本或数据源摘录所包含的上下文，并在可用时附带出处链接，供研究者亲自阅读和研判。</p>
+      <div class="actions">
+        <div class="action-primary">
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">下载 Windows 版<small>cpe-gui.exe，64 位</small></a>
+        </div>
+        <div class="action-secondary">
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 全部下载<small>macOS 与 Linux 源码包</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.zh-CN.md">阅读使用说明<small>详细说明书 (README)</small></a>
+        </div>
+      </div>
     </section>
+
     <section>
       <h2>主要功能</h2>
-      <ul class="features">
-        <li><h3>上下文中的候选</h3><p>在提供的正文或摘录范围内展示候选用例的上下文。无法在返回文本中确认的资料会标为未确认候选；有出处链接时一并提供。</p></li>
-        <li><h3>五种界面语言</h3><p>支持韩语、日语、简体中文、繁体中文和英语。切换界面语言绝不会转换或更改文献原文。</p></li>
-        <li><h3>研究辅助工具而非句法分析器</h3><p>在组合检索中，程序依据结构线索将候选用例分为两组呈现。这种分组并非语法判定，最终理解仍由研究者掌握。</p></li>
-      </ul>
+      <div class="method-grid">
+        <div class="method-item">
+          <h3>上下文中的用例</h3>
+          <p>在提供的上下文中查验候选用例。在返回文本中无法核对的结果标为未核实。若有出处链接，亦可核实原始资料。</p>
+        </div>
+        <div class="method-item">
+          <h3>五种界面语言</h3>
+          <p>简体中文、繁体中文、日语、韩语、英语。切换界面语言不会转换或改动原文。（网站说明提供包含越南语在内的6种语言。）</p>
+        </div>
+        <div class="method-item">
+          <h3>研究辅助工具而非语法分析器</h3>
+          <p>在复合检索中，仅依据文献结构线索将候选用例分为可能性较高与较低的结果，上下文的判断由研究者自行把握。</p>
+        </div>
+      </div>
     </section>
+
     <section>
       <h2>检索范围</h2>
-      <div class="sources">
-        <article class="source">
-          <h3>自己的文本</h3>
-          <p class="tag">本机全文字符检索</p>
-          <p>检索所选文件夹中的 UTF-8 .txt、.md 文本，以及转换保存的机构原文 .texts.jsonl 合集文件。检索覆盖各文件的全部文本内容。</p>
+      <div class="scope-dossier">
+        <article class="scope-col">
+          <h3>本地文本</h3>
+          <div class="scope-sub">本地计算机中的全文检索</div>
+          <p>所选目录中的 UTF-8 .txt、.md 文件，以及程序转换保存的机构古籍 .texts.jsonl 绑定文件。检索每个文件的全部文本。</p>
           <ul>
-          <li>支持从韩国公共数据门户获取国史编纂委员会、韩国古典翻译院及韩国学中央研究院的指定原文资料，并保存为可检索的文本集合。</li>
-          <li>中国哲学书电子化计划（CTP/CText，ctext.org）：对于CTP允许的单个章节，可以尝试免密钥获取；整部作品的章节列表需要您自己的CTP API密钥。</li>
-          <li>也可导入MPIWG稀见地方志的选定部分、支持的古腾堡计划及NDL资料，以及CBETA和国史编纂委员会的XML文件。</li>
-          <li>研究者自行整理的各类纯文本文件。</li>
+            <li>从韩国公共数据门户下载国史编纂委员会、韩国古典翻译院、韩国学中央研究院的古籍资料，保存为可检索的文本绑定文件。</li>
+            <li>Chinese Text Project（CTP/CText, ctext.org）：单个章节可在 CTP 允许的情况下无需密钥尝试获取；整部著作的章节列表需要自备 CTP API 密钥，实际可用范围由 CTP 决定。</li>
+            <li>MPIWG 珍本地方志中所选的部分章节、支持的古登堡计划及 NDL 资料、CBETA 与国史编纂委员会 XML 文件。</li>
+            <li>自行准备的纯文本文件。</li>
           </ul>
         </article>
-        <article class="source">
-          <h3>在线资料检索</h3>
-          <p class="tag">返回的文段与资料信息，需联网</p>
-          <p>将检索词发送至支持的数据源，再核对返回的文本。</p>
+
+        <article class="scope-col">
+          <h3>在线数据源检索</h3>
+          <div class="scope-sub">机构返回的文句与资料信息，需网络连接</div>
+          <p>向数据源发送检索词，核对返回的文本。</p>
           <ul>
-          <li>韩国古典综合DB（ITKC）：古典原文与韩国文集丛刊（约150字摘录）。不检索朝鲜王朝实录等现代翻译集合。</li>
-          <li>日本国立国会图书馆（NDL）：古籍OCR文本；至少一个检索要素须为两个或更多字符。</li>
-          <li>CBETA 中华电子佛典协会：从大藏经原文中提取检索词前后约40字的用例摘录。</li>
-          <li>东洋古典综合DB：展示返回的文段、资料信息及出处链接。无法在返回文本中核实检索条件的资料会标为未确认候选。</li>
-          <li>DocuSky：仅检索佛寺志靈應故事中的普陀洛迦新志靈應故事与清涼山志靈應故事两项资料。</li>
+            <li>韩国古典综合DB（ITKC）：原文文献库（古典原文与韩国文集丛刊，摘录约150字）。不检索朝鲜王朝实录等翻译库。</li>
+            <li>日本国立国会图书馆（NDL）：古籍 OCR 文本。检索要素中至少有一项须为两个汉字以上。</li>
+            <li>CBETA 电子佛典：检索词前后约40字摘录。</li>
+            <li>东洋古典综合DB：提供文句或资料信息及出处链接。返回文本中未核实检索条件者标为未核实候选。</li>
+            <li>DocuSky：仅检索 佛寺志靈應故事 数据库中 普陀洛迦新志靈應故事 与 清涼山志靈應故事 的故事选段，并非全书。</li>
           </ul>
         </article>
       </div>
     </section>
-    <section class="limits">
-      <h2>需注意的使用局限</h2>
-      <ul>
-        <li>在线检索限于各数据源返回的文段与资料信息；结果数量上限因数据源而异。</li>
-        <li>没有结果并不能证明该句式从未出现。</li>
-        <li>NDL的OCR文本可能含有识别错误，引用前请核对书页图像。</li>
-        <li>MPIWG每次从选定章节的最多50个内容单元中导入支持的部分，供本地检索。这些单元并非印刷书页编号，也不提供整库在线检索。</li>
-        <li>引用用例前，如有出处链接，请打开并核对完整原文与上下文。</li>
-        <li>为减轻提供方服务器负担，程序设有请求间隔及次数上限。下载资料须遵守各提供方的使用条件。</li>
-      </ul>
-    </section>
+
     <section>
-      <h2>开始使用</h2>
-      <div class="steps">
-        <div><h3>Windows</h3><p>从 v2.0 发行版下载 cpe-gui.exe 并双击即可运行，无需 Python。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 运行时</a>为运行基础；若窗口未打开，请安装该运行时。</p></div>
-        <div><h3>macOS 与 Linux</h3><p>从 v2.0 发行版下载源码包，解压后运行 cpe-gui.command（macOS）或 cpe-gui.sh（Linux）。初次运行时若同意则会自动安装 uv 并下载 Python 环境，需要网络连接。</p></div>
-        <div><h3>命令行</h3><p>源码包中还包含可输出 CSV、JSONL 及运行记录的 cpe 命令。详情请参阅<a href="https://github.com/cobari/CPE-release/blob/main/README.zh-CN.md">使用说明</a>。</p></div>
+      <h2>注意事项与限制</h2>
+      <div class="limits-box">
+        <ul>
+          <li>在线检索受各数据源返回的文句和资料信息范围限制，且存在单次检索结果上限。</li>
+          <li>检索无结果并不代表该句式未曾使用。</li>
+          <li>NDL 的 OCR 文本可能存在识别误差，引用前请核对页面图像底本。</li>
+          <li>MPIWG 仅从所选节中一次提取最多50个单位中受支持的部分存入本地进行检索。这些单位并不对应纸质书籍的页码；不提供整部语料库的在线检索。</li>
+          <li>引用用例前，请打开提供的出处链接确认完整原文与上下文。</li>
+          <li>为保护数据源服务器，程序对请求间隔和调用次数设有保护限制。下载的资料受各机构使用条款约束。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>快速开始</h2>
+      <div class="platforms-grid">
+        <div class="platform-item">
+          <h3>Windows</h3>
+          <p>从 v2.0 发布页面下载 cpe-gui.exe 双击运行即可，无需安装 Python。基于 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 运行时</a> 运行；若窗口未打开请安装该运行时。</p>
+        </div>
+        <div class="platform-item">
+          <h3>macOS 与 Linux</h3>
+          <p>从 v2.0 发布页面下载源码包并解压，运行 cpe-gui.command (macOS) 或 cpe-gui.sh (Linux)。首次运行时经同意会安装 uv 并下载 Python 环境，因此需要网络连接。</p>
+        </div>
+        <div class="platform-item">
+          <h3>命令行</h3>
+          <p>源码包内还包含可输出 CSV、JSONL 及运行记录的 cpe 命令工具。详情请参阅 <a href="https://github.com/cobari/CPE-release/blob/main/README.zh-CN.md">使用说明</a>。</p>
+        </div>
       </div>
     </section>
   </main>
   <footer class="site-foot">
-    <p>版本 2.0（标签 v2.0）。MIT 许可证。本软件为个人独立项目，与所连接的任何机构或数据库均无从属关系。未打包任何数据库原文全集、现代翻译或原始 API 响应。</p>
-    <p><a href="https://github.com/cobari/CPE-release">GitHub 源码与发行版</a></p>
+    <p>版本 2.0（标签 v2.0）。MIT 许可证。与所连接的各学术机构或数据库无任何附属关系的独立个人项目。各数据库原文语料、现代译文及 API 原始响应均不随软件包分发。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub 上的源码与发布</a></p>
   </footer>
 </body>
 </html>
