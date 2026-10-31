@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Classic Pattern Explorer: sentence-pattern search for Literary Sinitic texts</title>
+  <title>Classic Pattern Explorer: find sentence-pattern candidates in Literary Sinitic</title>
   <meta name="description" content="Find sentence-pattern candidates in Literary Sinitic (Classical Chinese) texts, read their context and follow source links. A free desktop research tool for local texts and selected online databases.">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/">
@@ -16,7 +16,7 @@
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
-  <meta property="og:title" content="Classic Pattern Explorer: sentence-pattern search for Literary Sinitic texts">
+  <meta property="og:title" content="Classic Pattern Explorer: find sentence-pattern candidates in Literary Sinitic">
   <meta property="og:description" content="Find sentence-pattern candidates in Literary Sinitic (Classical Chinese) texts, read their context and follow source links. A free desktop research tool for local texts and selected online databases.">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/">
   <meta property="og:locale" content="en_US">
@@ -41,20 +41,20 @@
   <main id="main">
     <section class="hero">
       <h1>Find sentence-pattern candidates in Literary Sinitic texts</h1>
-      <p class="lead">Classic Pattern Explorer is a digital humanities research aid for finding sentence-pattern candidates, such as <span class="pattern" lang="lzh">以…爲</span> or <span class="pattern" lang="lzh">雖…而</span>, in Literary Sinitic source texts (漢文, often called Classical Chinese). Each candidate is shown with the context its text or the source&#x27;s excerpt provides, alongside a source link where available, so you can read and judge it yourself.</p>
+      <p class="lead">Classic Pattern Explorer is a digital humanities research aid for finding sentence-pattern candidates, such as <span class="pattern" lang="lzh">以…爲</span> or <span class="pattern" lang="lzh">雖…而</span>, in Literary Sinitic source texts (漢文, often called Classical Chinese). Examine each candidate in the available source text or excerpt. Follow its source link, where provided, to check the wider context and make your own judgment.</p>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Download for Windows<small>cpe-gui.exe, 64-bit</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">All downloads for v2.0<small>macOS and Linux source package</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 downloads<small>macOS and Linux source package</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.md">Read the guide<small>Comprehensive documentation</small></a>
         </div>
-        <p class="action-note">The public v2.0 release is prior to the addition of Vietnamese.</p>
+        <p class="action-note">The public v2.0 download does not yet include the Vietnamese interface.</p>
       </div>
       <figure class="hero-preview">
-        <img src="assets/interface-preview.png" alt="Installed desktop application interface (development build; may differ from public v2.0 release)" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Installed desktop application interface (development build; may differ from public v2.0 release)</figcaption>
+        <img src="assets/interface-preview.png" alt="Desktop app screen — current development build; the public v2.0 interface may differ" width="1180" height="560" loading="eager" decoding="async">
+        <figcaption>Desktop app screen — current development build; the public v2.0 interface may differ</figcaption>
       </figure>
     </section>
 
@@ -71,7 +71,7 @@
         </div>
         <div class="method-item">
           <h3>A research aid, not a parser</h3>
-          <p>In compound search, candidates are grouped by structural cues into likely and less likely results. That grouping is not a grammatical verdict; the reading stays with you.</p>
+          <p>Compound search groups candidates by structural cues into likely and less likely results. These groups help you examine the evidence; they do not establish a grammatical reading.</p>
         </div>
       </div>
     </section>
@@ -82,7 +82,7 @@
         <article class="scope-col">
           <h3>Your own texts</h3>
           <div class="scope-sub">Full text on your computer</div>
-          <p>A folder you choose: UTF-8 .txt and .md files, and .texts.jsonl bundles the window writes for institute originals. The text of each file is searched in full.</p>
+          <p>Search the full text of UTF-8 .txt and .md files in a folder you choose, along with .texts.jsonl text collections saved by the app's supported importers.</p>
           <ul>
             <li>Supported original-text releases from Korea's public data portal, including the National Institute of Korean History, the Institute for the Translation of Korean Classics and the Academy of Korean Studies, saved as searchable text bundles.</li>
             <li>Chinese Text Project (CTP/CText, ctext.org): try a single chapter without a key where CTP permits it. A work's full chapter list requires your own CTP API key.</li>
@@ -93,10 +93,10 @@
 
         <article class="scope-col">
           <h3>Online source search</h3>
-          <div class="scope-sub">Returned passages and records; Internet needed</div>
-          <p>The app sends your search to a supported source and checks the text it returns.</p>
+          <div class="scope-sub">Provider excerpts and records; internet connection required</div>
+          <p>Send a query to a supported source and examine the text or records it supplies.</p>
           <ul>
-            <li>Korean Classics DB (ITKC): original-text collections Classical Texts and Korean Literary Collections (~150-character excerpts). Translated collections such as the Annals of the Joseon Dynasty are not searched.</li>
+            <li>Korean Classics DB (ITKC): original-text collections Classical Texts, Korean Literary Collections and Ilseongnok (~150-character excerpts). Translated collections such as the Annals of the Joseon Dynasty are not searched.</li>
             <li>National Diet Library of Japan (NDL): OCR text of classical books; at least one search element must contain two or more characters.</li>
             <li>CBETA Chinese Buddhist Canon: excerpts of about 40 characters on each side of a hit.</li>
             <li>Cyber Seodang (Dongyang Classics DB): returned passages or record information with source links. Candidates that cannot be verified in the returned text are marked as unverified.</li>
@@ -117,7 +117,7 @@
         <h3>Data access and usage notes</h3>
         <ul>
           <li>Online coverage depends on the passages and records returned by each provider, within its result limits.</li>
-          <li>MPIWG imports supported portions from up to 50 source units in a selected section at a time, for local searching. These units do not correspond to printed page numbers; whole-corpus online search is not provided.</li>
+          <li>Each MPIWG preview reads up to 50 source units from a selected section. Supported portions can be saved for local searching. These units do not correspond to printed page numbers; whole-corpus online search is not provided.</li>
           <li>Request intervals and limits reduce load on provider servers. Downloaded material remains subject to each provider's terms.</li>
         </ul>
       </div>

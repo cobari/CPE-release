@@ -41,20 +41,20 @@
   <main id="main">
     <section class="hero">
       <h1>한문 원문에서 문형 후보를 찾습니다</h1>
-      <p class="lead">Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 <span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span> 같은 문형을 찾는 디지털 인문학 연구 보조 도구입니다. 후보마다 원문 텍스트나 자료원의 발췌문이 담은 문맥을 보여 주며, 출처 링크가 있으면 함께 제공하여 연구자가 직접 읽고 판단할 수 있도록 돕습니다.</p>
+      <p class="lead">Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 <span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span> 같은 문형을 찾는 디지털 인문학 연구 보조 도구입니다. 원문이나 제공된 발췌문에서 후보의 문맥을 살피고, 출처 링크가 있으면 전체 원문도 대조할 수 있습니다. 문형에 해당하는지는 연구자가 직접 읽고 판단합니다.</p>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Windows용 내려받기<small>cpe-gui.exe, 64비트</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 전체 내려받기<small>macOS·Linux 소스 및 패키지</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 다운로드 목록<small>macOS·Linux 소스 패키지</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ko.md">사용 안내 읽기<small>상세 설명서 (README)</small></a>
         </div>
-        <p class="action-note">현재 공개된 v2.0 릴리스는 베트남어가 추가되기 전의 버전입니다.</p>
+        <p class="action-note">현재 공개된 v2.0 다운로드에는 베트남어 화면이 아직 포함되어 있지 않습니다.</p>
       </div>
       <figure class="hero-preview">
-        <img src="../assets/interface-preview.png" alt="설치형 데스크톱 앱 실행 화면 (개발본 기준; 공개 배포 v2.0과 화면 구성이 다를 수 있습니다)" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>설치형 데스크톱 앱 실행 화면 (개발본 기준; 공개 배포 v2.0과 화면 구성이 다를 수 있습니다)</figcaption>
+        <img src="../assets/interface-preview.png" alt="설치형 데스크톱 앱 실행 화면 — 현재 개발본이며 공개 v2.0과 화면 구성이 다를 수 있습니다" width="1180" height="560" loading="eager" decoding="async">
+        <figcaption>설치형 데스크톱 앱 실행 화면 — 현재 개발본이며 공개 v2.0과 화면 구성이 다를 수 있습니다</figcaption>
       </figure>
     </section>
 
@@ -71,7 +71,7 @@
         </div>
         <div class="method-item">
           <h3>구문 분석기가 아닌 연구 보조 도구</h3>
-          <p>복합 검색에서는 후보를 구조적 단서에 따라 가능성 높은 결과와 낮은 결과로 나누어 제시할 뿐이며, 문맥 판단은 연구자의 몫입니다.</p>
+          <p>복합 검색은 구조적 단서를 바탕으로 가능성이 높은 후보와 낮은 후보를 나누어 보여 줍니다. 이 구분은 검토를 돕기 위한 것이며, 문법적 해석을 확정하지는 않습니다.</p>
         </div>
       </div>
     </section>
@@ -80,12 +80,12 @@
       <h2>검색 대상</h2>
       <div class="scope-dossier">
         <article class="scope-col">
-          <h3>내 텍스트</h3>
+          <h3>내 컴퓨터의 텍스트</h3>
           <div class="scope-sub">내 컴퓨터의 전체 텍스트</div>
-          <p>직접 고른 폴더의 UTF-8 .txt·.md 파일과, 기관 원문을 변환해 저장한 .texts.jsonl 묶음 파일. 각 파일의 텍스트 전체를 검색합니다.</p>
+          <p>직접 고른 폴더의 UTF-8 .txt·.md 파일과, 지원하는 가져오기 기능으로 저장한 .texts.jsonl 텍스트 묶음 파일의 본문 전체를 검색합니다.</p>
           <ul>
             <li>공공데이터포털에서 지원하는 국사편찬위원회·한국고전번역원·한국학중앙연구원의 원문 자료를 내려받아 검색할 수 있는 텍스트 묶음으로 저장합니다.</li>
-            <li>Chinese Text Project(CTP/CText, ctext.org): 개별 장은 접근키 없이 가져오기를 시도할 수 있습니다. 작품 전체의 장 목록에는 본인의 CTP 접근키가 필요하며, 실제 이용 가능 범위는 CTP가 정합니다.</li>
+            <li>Chinese Text Project(CTP/CText, ctext.org): 개별 장은 API 키 없이 가져오기를 시도할 수 있습니다. 작품 전체의 장 목록에는 본인의 CTP API 키가 필요하며, 실제 이용 가능 범위는 CTP가 정합니다.</li>
             <li>MPIWG 희귀 지방지에서 고른 일부, 지원하는 프로젝트 구텐베르크·NDL 자료, CBETA·국사편찬위원회 XML 파일도 가져올 수 있습니다.</li>
             <li>직접 준비한 일반 텍스트 파일.</li>
           </ul>
@@ -93,13 +93,13 @@
 
         <article class="scope-col">
           <h3>온라인 자료 검색</h3>
-          <div class="scope-sub">기관에서 돌려준 구절·자료 정보, 인터넷 필요</div>
-          <p>자료원에 검색어를 보내고, 그곳에서 돌려준 텍스트를 확인합니다.</p>
+          <div class="scope-sub">제공처의 발췌문·자료 정보, 인터넷 연결 필요</div>
+          <p>자료원에 검색어를 보내고, 제공된 본문이나 자료 정보를 확인합니다.</p>
           <ul>
-            <li>한국고전종합DB(ITKC): 원문 컬렉션인 고전원문과 한국문집총간(약 150자 발췌). 조선왕조실록 같은 번역 컬렉션은 검색하지 않습니다.</li>
+            <li>한국고전종합DB(ITKC): 원문 컬렉션인 고전원문·한국문집총간·일성록(약 150자 발췌). 조선왕조실록 같은 번역 컬렉션은 검색하지 않습니다.</li>
             <li>일본 국립국회도서관(NDL): 고전 자료의 OCR 텍스트. 검색 요소 가운데 하나는 두 글자 이상이어야 합니다.</li>
             <li>CBETA 전자불전: 검색어 앞뒤로 약 40자씩 발췌.</li>
-            <li>동양고전종합DB: 구절이나 자료 정보, 출처 링크를 보여 줍니다. 돌려받은 텍스트에서 검색 조건을 확인할 수 없는 자료는 미확인 후보로 구분합니다.</li>
+            <li>동양고전종합DB: 구절이나 자료 정보, 출처 링크를 보여 줍니다. 제공된 본문에서 검색 조건을 확인할 수 없는 자료는 미확인 후보로 구분합니다.</li>
             <li>DocuSky: 佛寺志靈應故事 가운데 普陀洛迦新志靈應故事와 清涼山志靈應故事에서 선별한 이야기만 검색하며, 책 전체가 아닙니다.</li>
           </ul>
         </article>
@@ -116,8 +116,8 @@
         </ul>
         <h3>자료 이용 안내</h3>
         <ul>
-          <li>온라인 검색은 자료원이 돌려준 구절과 자료 정보의 범위 안에서 이루어집니다. 결과 건수의 상한은 자료원마다 다릅니다.</li>
-          <li>MPIWG는 선택한 절에서 한 번에 최대 50개 단위 중 지원하는 부분만 가져와 내 컴퓨터에서 검색합니다. 이 단위는 책의 쪽 번호와 다르며, 자료 전체의 온라인 검색은 지원하지 않습니다.</li>
+          <li>온라인 검색에서 확인할 수 있는 범위는 자료원이 제공하는 발췌문과 자료 정보에 따라 달라집니다. 결과 건수의 상한은 자료원마다 다릅니다.</li>
+          <li>MPIWG 지방지는 한 번의 미리보기에서 선택한 권차의 원본 단위를 최대 50개까지 읽습니다. 지원하는 부분만 내 컴퓨터에 저장해 검색할 수 있습니다. 이 단위는 책의 쪽 번호와 다르며, 자료 전체의 온라인 검색은 지원하지 않습니다.</li>
           <li>자료원 서버의 부담을 줄이기 위해 요청 간격과 횟수를 제한합니다. 내려받은 자료에는 각 제공 기관의 이용 조건이 적용됩니다.</li>
         </ul>
       </div>
@@ -142,7 +142,7 @@
     </section>
   </main>
   <footer class="site-foot">
-    <p>버전 2.0(태그 v2.0). MIT 라이선스. 연결하는 기관이나 데이터베이스와 관계없는 개인 프로젝트입니다. 데이터베이스의 원문 묶음, 현대 번역, API 원응답은 들어 있지 않습니다.</p>
+    <p>버전 2.0(태그 v2.0). MIT 라이선스. 연결하는 기관이나 데이터베이스와 관계없는 개인 프로젝트입니다. 데이터베이스의 원문 묶음, 현대 번역, API 원본 응답은 들어 있지 않습니다.</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub의 소스와 릴리스</a></p>
   </footer>
 </body>

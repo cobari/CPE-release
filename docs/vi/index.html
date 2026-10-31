@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Classic Pattern Explorer: tìm mẫu câu trong văn bản Hán văn</title>
-  <meta name="description" content="Công cụ miễn phí để tìm mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
+  <title>Classic Pattern Explorer: tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn</title>
+  <meta name="description" content="Công cụ miễn phí giúp tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/vi/">
   <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
@@ -16,8 +16,8 @@
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
-  <meta property="og:title" content="Classic Pattern Explorer: tìm mẫu câu trong văn bản Hán văn">
-  <meta property="og:description" content="Công cụ miễn phí để tìm mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
+  <meta property="og:title" content="Classic Pattern Explorer: tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn">
+  <meta property="og:description" content="Công cụ miễn phí giúp tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/vi/">
   <meta property="og:locale" content="vi_VN">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
@@ -40,14 +40,14 @@
   </header>
   <main id="main">
     <section class="hero">
-      <h1>Tìm mẫu câu trong văn bản Hán văn nguyên tác</h1>
+      <h1>Tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn nguyên tác</h1>
       <p class="lead">Classic Pattern Explorer giúp tìm các đoạn có thể chứa mẫu câu như <span class="pattern" lang="lzh">以…爲</span> hoặc <span class="pattern" lang="lzh">雖…而</span> trong văn bản Hán văn. Bạn có thể đọc ngữ cảnh được cung cấp và mở liên kết nguồn khi có để tự đối chiếu.</p>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Tải xuống cho Windows<small>cpe-gui.exe, 64-bit</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">Toàn bộ tệp phát hành v2.0<small>Gói mã nguồn cho macOS và Linux</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">Danh sách tệp phát hành v2.0<small>Gói mã nguồn cho macOS và Linux</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.md">Đọc hướng dẫn sử dụng<small>Tài liệu chi tiết (tiếng Anh)</small></a>
         </div>
         <p class="action-note">Bản phát hành v2.0 công khai hiện tại là phiên bản trước khi bổ sung tiếng Việt.</p>
@@ -63,7 +63,7 @@
       <div class="method-grid">
         <div class="method-item">
           <h3>Kết quả trong ngữ cảnh</h3>
-          <p>Kiểm tra kết quả trong ngữ cảnh được cung cấp. Các kết quả không thể đối chiếu trong nguyên văn được đánh dấu là chưa xác minh. Nếu có liên kết xuất xứ, bạn có thể kiểm tra toàn văn tài liệu gốc.</p>
+          <p>Xem kết quả trong ngữ cảnh được cung cấp. Kết quả không đối chiếu được với nguyên văn sẽ ghi rõ là chưa xác minh. Nếu có liên kết xuất xứ, bạn có thể kiểm tra toàn văn tài liệu gốc.</p>
         </div>
         <div class="method-item">
           <h3>Sáu ngôn ngữ giao diện</h3>
@@ -82,24 +82,24 @@
         <article class="scope-col">
           <h3>Văn bản của bạn</h3>
           <div class="scope-sub">Toàn văn trên máy tính của bạn</div>
-          <p>Thư mục bạn chọn: tệp UTF-8 .txt, .md và các gói tệp .texts.jsonl chương trình chuyển đổi từ tài liệu gốc của các viện nghiên cứu. Toàn bộ nội dung mỗi tệp đều được tìm kiếm.</p>
+          <p>Thư mục bạn chọn: các tệp UTF-8 .txt và .md, cùng các tệp .texts.jsonl do ứng dụng tạo ra khi nhập tài liệu gốc từ các viện nghiên cứu. Toàn văn mỗi tệp đều được tìm kiếm.</p>
           <ul>
-            <li>Tài liệu gốc từ Cổng dữ liệu công cộng Hàn Quốc (NIKH, ITKC, AKS) được lưu trữ dưới dạng gói văn bản có thể tìm kiếm.</li>
+            <li>Tài liệu gốc từ Cổng dữ liệu công cộng Hàn Quốc của Viện Lịch sử Quốc gia Hàn Quốc (NIKH), Viện Dịch thuật Kinh điển Hàn Quốc và Học viện Nghiên cứu Hàn Quốc được lưu thành gói văn bản có thể tìm kiếm.</li>
             <li>Chinese Text Project (CTP/CText, ctext.org): có thể thử tải một chương mà không cần khóa nếu CTP cho phép; danh mục toàn bộ chương của tác phẩm yêu cầu khóa API CTP của bạn.</li>
-            <li>Các phần chọn lọc từ phương chí quý hiếm MPIWG, tài liệu Project Gutenberg và NDL, tệp XML từ CBETA và NIKH.</li>
+            <li>Các phần chọn lọc từ địa chí quý hiếm của MPIWG, tài liệu Project Gutenberg và NDL, tệp XML từ CBETA và NIKH.</li>
             <li>Tệp văn bản thuần túy do bạn tự chuẩn bị.</li>
           </ul>
         </article>
 
         <article class="scope-col">
           <h3>Tìm kiếm nguồn trực tuyến</h3>
-          <div class="scope-sub">Đoạn trích và thông tin do cơ quan cung cấp trả về, cần Internet</div>
+          <div class="scope-sub">Đoạn trích và thông tin do nguồn trả về; cần kết nối Internet</div>
           <p>Ứng dụng gửi truy vấn đến nguồn hỗ trợ và kiểm tra văn bản trả về.</p>
           <ul>
-            <li>Korean Classics DB (ITKC): các bộ sưu tập văn bản nguyên tác Văn bản kinh điển và Tùng thư văn học Hàn Quốc (trích đoạn khoảng 150 chữ). Không tìm kiếm các bộ dịch thuật như Thực lục triều Joseon.</li>
+            <li>CSDL Kinh điển Hàn Quốc (ITKC): các bộ sưu tập nguyên tác là Văn bản kinh điển, Tuyển tập văn của các tác gia Hàn Quốc (韓國文集叢刊) và Ilseongnok (日省錄) (trích đoạn khoảng 150 ký tự). Không tìm kiếm các bộ dịch thuật như Thực lục triều Joseon.</li>
             <li>Thư viện Quốc hội Nhật Bản (NDL): văn bản OCR của sách cổ điển; ít nhất một thành tố tìm kiếm phải có từ hai ký tự trở lên.</li>
-            <li>Đại tạng kinh điện tử CBETA: trích đoạn khoảng 40 ký tự ở mỗi bên vị trí khớp.</li>
-            <li>CSDL Kinh điển phương Đông (Cyber Seodang): cung cấp đoạn trích hoặc thông tin tài liệu và liên kết xuất xứ. Các mục không thể kiểm tra trong văn bản trả về được đánh dấu là chưa xác minh.</li>
+            <li>Đại tạng kinh điện tử CBETA: trích đoạn khoảng 40 ký tự trước và sau vị trí khớp.</li>
+            <li>CSDL Kinh điển phương Đông (Cyber Seodang): cung cấp đoạn trích hoặc thông tin tài liệu và liên kết xuất xứ. Các mục không kiểm tra được trong văn bản trả về sẽ được ghi là chưa xác minh.</li>
             <li>DocuSky: giới hạn trong các câu chuyện được chọn lọc từ 普陀洛迦新志靈應故事 và 清涼山志靈應故事 thuộc cơ sở dữ liệu 佛寺志靈應故事, không phải toàn bộ sách.</li>
           </ul>
         </article>
@@ -110,14 +110,14 @@
       <h2>Lưu ý khi diễn giải kết quả</h2>
       <div class="limits-box">
         <ul>
-          <li>Việc không có kết quả không chứng minh rằng mẫu câu đó chưa từng được sử dụng.</li>
+          <li>Không có kết quả không có nghĩa là mẫu câu đó chưa từng được dùng.</li>
           <li>Trước khi trích dẫn, hãy mở liên kết xuất xứ khi có để kiểm tra toàn bộ văn bản và ngữ cảnh.</li>
           <li>Văn bản OCR của NDL có thể chứa lỗi nhận dạng; vui lòng kiểm tra hình ảnh trang trước khi trích dẫn.</li>
         </ul>
         <h3>Hướng dẫn sử dụng tài liệu</h3>
         <ul>
           <li>Tìm kiếm trực tuyến phụ thuộc vào các đoạn trích và thông tin do mỗi nguồn trả về, trong phạm vi giới hạn kết quả của từng nguồn.</li>
-          <li>MPIWG chỉ nhập phần hỗ trợ từ tối đa 50 đơn vị nguồn trong một phần được chọn để tìm kiếm cục bộ. Các đơn vị này không tương ứng với số trang in; không hỗ trợ tìm kiếm trực tuyến toàn bộ kho ngữ liệu.</li>
+          <li>Mỗi lần xem trước địa chí MPIWG, ứng dụng đọc tối đa 50 đơn vị nguồn trong mục đã chọn. Bạn có thể lưu những phần được hỗ trợ để tìm kiếm trên máy. Các đơn vị này không tương ứng với số trang in của sách; không hỗ trợ tìm kiếm trực tuyến toàn bộ kho ngữ liệu.</li>
           <li>Để giảm tải cho máy chủ của nhà cung cấp, ứng dụng áp dụng khoảng thời gian và giới hạn yêu cầu. Tài liệu tải về tuân theo các điều khoản sử dụng của từng cơ quan.</li>
         </ul>
       </div>
@@ -128,7 +128,7 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>Tải cpe-gui.exe từ bản phát hành v2.0 và nhấp đúp để chạy; không cần cài đặt Python. Ứng dụng chạy trên <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; nếu cửa sổ không mở, hãy cài đặt môi trường thời gian chạy này.</p>
+          <p>Tải cpe-gui.exe từ bản phát hành v2.0 và nhấp đúp để chạy; không cần cài đặt Python. Ứng dụng chạy trên <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; nếu cửa sổ không mở, hãy cài đặt WebView2 Runtime này.</p>
         </div>
         <div class="platform-item">
           <h3>macOS và Linux</h3>
@@ -136,7 +136,7 @@
         </div>
         <div class="platform-item">
           <h3>Dòng lệnh</h3>
-          <p>Gói mã nguồn cũng bao gồm lệnh cpe để ghi kết quả ra tệp CSV, JSONL và nhật ký thực thi. Xem chi tiết trong <a href="https://github.com/cobari/CPE-release/blob/main/README.md">hướng dẫn sử dụng</a>.</p>
+          <p>Gói mã nguồn cũng bao gồm lệnh cpe để ghi kết quả ra tệp CSV, JSONL và nhật ký thực thi. Xem chi tiết trong <a href="https://github.com/cobari/CPE-release/blob/main/README.md">hướng dẫn sử dụng</a> (tiếng Anh).</p>
         </div>
       </div>
     </section>

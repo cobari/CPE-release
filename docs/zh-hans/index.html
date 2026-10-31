@@ -41,20 +41,20 @@
   <main id="main">
     <section class="hero">
       <h1>在文言文原文中查找句式候选</h1>
-      <p class="lead">Classic Pattern Explorer 是一款面向数字人文（Digital Humanities）研究的辅助工具，用于在文言文（汉文，Literary Sinitic）原文中查找 <span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span> 等句式候选用例。每个用例均显示文本或数据源摘录所包含的上下文，并在可用时附带出处链接，供研究者亲自阅读和研判。</p>
+      <p class="lead">Classic Pattern Explorer 是一款面向数字人文（Digital Humanities）研究的辅助工具，用于在文言文（汉文，Literary Sinitic）原文中查找 <span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span> 等句式候选用例。研究者可在所获原文或摘录中查看候选用例的前后文，并通过提供的出处链接进一步核对原始资料，自行判断句式是否成立。</p>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">下载 Windows 版<small>cpe-gui.exe，64 位</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 全部下载<small>macOS 与 Linux 源码包</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 下载列表<small>macOS 与 Linux 源码包</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.zh-CN.md">阅读使用说明<small>详细说明书 (README)</small></a>
         </div>
         <p class="action-note">当前公开发布的 v2.0 版本尚未包含越南语。</p>
       </div>
       <figure class="hero-preview">
-        <img src="../assets/interface-preview.png" alt="桌面端应用运行界面（开发版基准；与公开发布的 v2.0 界面可能有所不同）" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>桌面端应用运行界面（开发版基准；与公开发布的 v2.0 界面可能有所不同）</figcaption>
+        <img src="../assets/interface-preview.png" alt="桌面应用运行界面（当前开发版，可能与公开发布的 v2.0 不同）" width="1180" height="560" loading="eager" decoding="async">
+        <figcaption>桌面应用运行界面（当前开发版，可能与公开发布的 v2.0 不同）</figcaption>
       </figure>
     </section>
 
@@ -71,7 +71,7 @@
         </div>
         <div class="method-item">
           <h3>研究辅助工具而非语法分析器</h3>
-          <p>在复合检索中，仅依据文献结构线索将候选用例分为可能性较高与较低的结果，上下文的判断由研究者自行把握。</p>
+          <p>“组合检索”依据结构线索将候选用例分组，便于比较可能性较高和较低的结果。这种分组不等于语法判定，仍须结合前后文研读。</p>
         </div>
       </div>
     </section>
@@ -82,11 +82,11 @@
         <article class="scope-col">
           <h3>本地文本</h3>
           <div class="scope-sub">本地计算机中的全文检索</div>
-          <p>所选目录中的 UTF-8 .txt、.md 文件，以及程序转换保存的机构古籍 .texts.jsonl 绑定文件。检索每个文件的全部文本。</p>
+          <p>检索所选文件夹中 UTF-8 .txt、.md 文件的全文，以及程序通过支持的导入功能保存的 .texts.jsonl 文本合集文件。</p>
           <ul>
-            <li>从韩国公共数据门户下载国史编纂委员会、韩国古典翻译院、韩国学中央研究院的古籍资料，保存为可检索的文本绑定文件。</li>
+            <li>从韩国公共数据门户下载国史编纂委员会、韩国古典翻译院、韩国学中央研究院的古籍资料，保存为可检索的文本合集文件。</li>
             <li>Chinese Text Project（CTP/CText, ctext.org）：单个章节可在 CTP 允许的情况下无需密钥尝试获取；整部著作的章节列表需要自备 CTP API 密钥，实际可用范围由 CTP 决定。</li>
-            <li>MPIWG 珍本地方志中所选的部分章节、支持的古登堡计划及 NDL 资料、CBETA 与国史编纂委员会 XML 文件。</li>
+            <li>MPIWG 稀见地方志中所选的部分章节、支持的古登堡计划及 NDL 资料、CBETA 与国史编纂委员会 XML 文件。</li>
             <li>自行准备的纯文本文件。</li>
           </ul>
         </article>
@@ -96,10 +96,10 @@
           <div class="scope-sub">机构返回的文句与资料信息，需网络连接</div>
           <p>向数据源发送检索词，核对返回的文本。</p>
           <ul>
-            <li>韩国古典综合DB（ITKC）：原文文献库（古典原文与韩国文集丛刊，摘录约150字）。不检索朝鲜王朝实录等翻译库。</li>
-            <li>日本国立国会图书馆（NDL）：古籍 OCR 文本。检索要素中至少有一项须为两个汉字以上。</li>
-            <li>CBETA 电子佛典：检索词前后约40字摘录。</li>
-            <li>东洋古典综合DB：提供文句或资料信息及出处链接。返回文本中未核实检索条件者标为未核实候选。</li>
+            <li>韩国古典综合数据库（ITKC）：原文文献库（古典原文、韩国文集丛刊与日省录，摘录约150字）。不检索朝鲜王朝实录等翻译库。</li>
+            <li>日本国立国会图书馆（NDL）：古籍 OCR 文本。至少一个检索要素须包含两个或更多字符。</li>
+            <li>CBETA 电子佛典：提供检索词前后各约40字的摘录。</li>
+            <li>东洋古典综合数据库：提供文句或资料信息及出处链接。返回文本中未核实检索条件者标为未核实候选。</li>
             <li>DocuSky：仅检索 佛寺志靈應故事 数据库中 普陀洛迦新志靈應故事 与 清涼山志靈應故事 的故事选段，并非全书。</li>
           </ul>
         </article>
@@ -117,7 +117,7 @@
         <h3>数据利用与使用条件</h3>
         <ul>
           <li>在线检索受各数据源返回的文句和资料信息范围限制，且存在单次检索结果上限。</li>
-          <li>MPIWG 仅从所选节中一次提取最多50个单位中受支持的部分存入本地进行检索。这些单位并不对应纸质书籍的页码；不提供整部语料库的在线检索。</li>
+          <li>MPIWG 方志的每次预览最多读取所选卷目的50个源单元，可将支持的部分保存为本地可检索文本。这些单位并不对应纸质书籍的页码；不提供整部语料库的在线检索。</li>
           <li>为减轻数据源服务器负担，程序限制了请求间隔与频次。下载的资料受各机构使用条款约束。</li>
         </ul>
       </div>
