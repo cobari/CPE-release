@@ -318,6 +318,12 @@ p:last-child {
   gap: 8px;
   width: 100%;
 }
+.action-note {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
 .button {
   display: inline-flex;
   flex-direction: column;
@@ -501,6 +507,13 @@ p:last-child {
 }
 .limits-box li:last-child {
   margin-bottom: 0;
+}
+.limits-box h3 {
+  margin: 20px 0 10px;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 /* Platform & Installation Reference Table/Grid (Row layout) */
