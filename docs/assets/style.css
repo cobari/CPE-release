@@ -3,7 +3,7 @@
    Semantic color roles: --bg (canvas white #ffffff), --surface (card white #ffffff),
    --surface-subtle (secondary neutral #f6f8fa), --ink (primary text #1f2328),
    --muted (secondary text #59636e), --line (divider rules #d1d9e0),
-   --control-border (control border #818b98), --primary-action-bg (dark neutral #1f2328),
+   --control-border (control border #818b98), --primary-action-bg (primary deep blue #0043ce),
    --interactive (Carbon Blue 60 #0f62fe), --pattern-bg (pale annotation #fff1b8). */
 :root {
   --bg: #ffffff;
@@ -15,8 +15,8 @@
   --line-strong: #818b98;
   --control-border: #818b98;
   /* Joint role contract */
-  --primary-action-bg: #1f2328;
-  --primary-action-hover: #111418;
+  --primary-action-bg: #0043ce;
+  --primary-action-hover: #002d9c;
   --primary-action-text: #ffffff;
 
   /* Shared interaction base tokens */
@@ -29,8 +29,8 @@
   --focus-ring: var(--interaction);
   --selection-indicator: var(--interaction);
 
-  --nav-active-bg: #1f2328;
-  --nav-active-text: #ffffff;
+  --nav-active-bg: #e8f0ff;
+  --nav-active-text: #0043ce;
   --pattern-bg: #fff1b8;
   --pattern-border: #e8db9b;
   --pattern-text: #1f2328;
