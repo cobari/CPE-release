@@ -1,9 +1,10 @@
 /* Classic Pattern Explorer: Unified stylesheet for project landing pages (6 languages).
    System fonts only (no external web fonts or scripts fetched); high-contrast academic editorial layout.
-   Color roles: --bg (canvas white #ffffff), --surface (card white #ffffff),
+   Semantic color roles: --bg (canvas white #ffffff), --surface (card white #ffffff),
    --surface-subtle (secondary neutral #f6f8fa), --ink (primary text #1f2328),
-   --muted (secondary text #59636e), --accent (scholarly vermilion #983626),
-   --line (divider rules #d1d9e0), --control-border (control border #818b98). */
+   --muted (secondary text #59636e), --line (divider rules #d1d9e0),
+   --control-border (control border #818b98), --primary-action-bg (dark neutral #1f2328),
+   --interactive (Carbon Blue 60 #0f62fe), --pattern-bg (pale annotation #fff1b8). */
 :root {
   --bg: #ffffff;
   --surface: #ffffff;
@@ -13,9 +14,27 @@
   --line: #d1d9e0;
   --line-strong: #818b98;
   --control-border: #818b98;
-  --accent: #983626;
-  --accent-strong: #78291c;
-  --accent-soft: #f4e8e5;
+  /* Joint role contract */
+  --primary-action-bg: #1f2328;
+  --primary-action-hover: #111418;
+  --primary-action-text: #ffffff;
+
+  /* Shared interaction base tokens */
+  --interaction: #0f62fe; /* Carbon Blue 60 */
+  --interaction-hover: #0043ce; /* Carbon Blue 70 */
+
+  /* Semantic role aliases for individual interactive elements */
+  --link-color: var(--interaction);
+  --link-hover: var(--interaction-hover);
+  --focus-ring: var(--interaction);
+  --selection-indicator: var(--interaction);
+
+  --nav-active-bg: #1f2328;
+  --nav-active-text: #ffffff;
+  --pattern-bg: #fff1b8;
+  --pattern-border: #e8db9b;
+  --pattern-text: #1f2328;
+  --error: #7a1f2b;
   --border-radius-sm: 4px;
   --border-radius-md: 6px;
   color-scheme: light;
@@ -88,13 +107,16 @@ h1 {
 }
 
 .pattern {
-  display: inline-block;
-  padding: 0.05em 0.35em;
+  display: inline;
+  padding: 0.1em 0.25em;
   font-weight: 600;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: var(--border-radius-sm);
-  border-bottom: 1.5px solid var(--accent);
+  color: var(--pattern-text);
+  background: var(--pattern-bg);
+  border: none;
+  border-radius: 2px;
+  outline: none;
+  text-decoration: none;
+  cursor: text;
 }
 
 /* Accessibility: Skip link & Focus indicators */
@@ -113,26 +135,31 @@ h1 {
 }
 .skip:focus {
   top: 16px;
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
 a {
-  color: var(--accent);
+  color: var(--link-color);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 a:hover {
-  color: var(--accent-strong);
+  color: var(--link-hover);
   text-decoration-thickness: 2px;
 }
+
+::selection {
+  background: var(--selection-indicator);
+  color: #ffffff;
+}
 a:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: var(--border-radius-sm);
 }
@@ -167,7 +194,7 @@ a:focus-visible {
   display: block;
   border-radius: var(--border-radius-sm);
 }
-.brand:hover { color: var(--accent-strong); }
+.brand:hover { color: var(--link-hover); }
 
 .languages {
   font-size: 14px;
@@ -197,9 +224,9 @@ a:focus-visible {
   color: var(--ink);
 }
 .languages a[aria-current="page"] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: var(--nav-active-bg);
+  border-color: var(--nav-active-bg);
+  color: var(--nav-active-text);
   font-weight: 600;
 }
 
@@ -310,8 +337,13 @@ p:last-child {
 }
 .button:hover {
   background: var(--surface-subtle);
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--line-strong);
+  color: var(--ink);
+  text-decoration: none;
+}
+.button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .button small {
   font-weight: 400;
@@ -321,23 +353,56 @@ p:last-child {
 .button.primary {
   min-height: 52px;
   padding: 10px 18px;
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  color: #fff;
+  background: var(--primary-action-bg);
+  border: 1px solid var(--primary-action-bg);
+  color: var(--primary-action-text);
   font-size: 15.5px;
   font-weight: 700;
-  box-shadow: 0 2px 4px rgba(152, 54, 38, 0.2);
+  box-shadow: 0 2px 4px rgba(31, 35, 40, 0.12);
 }
 .button.primary:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
+  background: var(--primary-action-hover);
+  border-color: var(--primary-action-hover);
+  color: var(--primary-action-text);
+  text-decoration: none;
 }
 .button.primary small {
-  color: #fcece9;
+  color: #d1d9e0;
 }
 .button.primary:focus-visible {
-  outline-color: var(--ink);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Hero interface preview figure */
+.hero-preview {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin: 28px 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius-md);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(31, 35, 40, 0.06);
+}
+.hero-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1180 / 560;
+  max-height: 560px;
+  object-fit: contain;
+  object-position: top center;
+  background: var(--surface-subtle);
+}
+.hero-preview figcaption {
+  padding: 10px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--line);
+  font-style: normal;
 }
 
 /* Research Method / Architectural Pillars (Editorial row layout) */
@@ -384,7 +449,6 @@ p:last-child {
 .scope-col {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-top: 3px solid var(--accent);
   border-radius: var(--border-radius-sm);
   padding: 26px;
 }
@@ -396,7 +460,7 @@ p:last-child {
   margin: 0 0 14px;
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--muted);
   letter-spacing: 0.01em;
 }
 .scope-col p {
@@ -421,7 +485,7 @@ p:last-child {
 .limits-box {
   background: var(--surface-subtle);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--accent);
+  border-left: 4px solid var(--control-border);
   border-radius: var(--border-radius-sm);
   padding: 22px 26px;
   margin-top: 20px;
@@ -516,6 +580,9 @@ p:last-child {
   .action-secondary .button {
     width: auto;
   }
+  .hero-preview {
+    margin: 24px 0 0;
+  }
 }
 
 @media (max-width: 860px) {
@@ -562,6 +629,13 @@ p:last-child {
   }
   .limits-box {
     padding: 18px 20px;
+  }
+  .hero-preview {
+    margin: 20px 0 0;
+  }
+  .hero-preview figcaption {
+    font-size: 12px;
+    padding: 8px 12px;
   }
 }
 
