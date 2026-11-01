@@ -71,6 +71,7 @@ def _fixed(hit: FixedHit) -> dict[str, Any]:
         "norm": [hit.start, hit.end],
         "src": [hit.src.start, hit.src.end],
         "src_exact": list(hit.src_exact),
+        "src_deleted": [list(span) for span in hit.src.deleted],
     }
 
 

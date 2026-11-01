@@ -20,3 +20,20 @@ Accuracy is the highest priority. Use clearly legible regular-script brush calli
 Use bold but carefully separated strokes, enough space between all four glyphs, and a reasonably large column so its handwriting impression survives a 32px icon. Keep the rest of the icon unchanged. Square RGBA output, 1024x1024 preferred, transparent margin. No logos or watermarks.
 ```
 
+
+
+## Runtime UI font and compact home icon
+
+`home-icon.png` is a 72px downsample of the unchanged generated `icon.png`,
+used at 36px (2x density). The bridge sends this derivative rather than the
+full-resolution artwork. The original remains available for native packaging.
+
+`ui-font.woff2` is Pretendard Variable, self-hosted from the upstream
+[orioncactus/pretendard repository](https://github.com/orioncactus/pretendard)
+(`packages/pretendard/dist/web/variable/woff2/PretendardVariable.woff2`).
+Its redistribution license is **SIL Open Font License 1.1**, reproduced in
+`font-license.txt`; the icon's MIT statement above does not cover the font.
+No third-party font request is made at runtime. Region-specific JA/ZH UI
+fallbacks remain explicit, and this UI font is never forced onto source text.
+
+Font SHA-256: `9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4`.

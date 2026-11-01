@@ -73,7 +73,9 @@ def shown(reference: str, start: int, end: int, hidden: Spans = ()) -> str:
     """
     parts = []
     cursor = start
-    for span_start, span_end in hidden:
+    first = bisect.bisect_right(hidden, start, key=lambda span: span[1])
+    last = bisect.bisect_left(hidden, end, key=lambda span: span[0])
+    for span_start, span_end in hidden[first:last]:
         if span_end <= cursor or span_start >= end:
             continue
         parts.append(reference[cursor:span_start])
@@ -103,10 +105,13 @@ def text_view(
     sentence_delimiters: frozenset[str],
     text_start: seg.TextEdge,
     text_end: seg.TextEdge,
+    *,
+    sentences: tuple[seg.Segment, ...] | None = None,
 ) -> TextView:
-    sentences = tuple(
-        seg.split(normalized.text, sentence_delimiters, text_start, text_end)
-    )
+    if sentences is None:
+        sentences = tuple(
+            seg.split(normalized.text, sentence_delimiters, text_start, text_end)
+        )
     return TextView(
         reference,
         normalized,
@@ -251,14 +256,17 @@ def mark_terms(
     is any occurrence inside a hidden span.
     """
     strong_spans = _merge(span for span in strong if start <= span[0] < end)
+    overlaps = _merge([*strong_spans, *hidden])
     weak: set[tuple[int, int]] = set()
     body = reference[start:end]
     for literal in literals:
         index = body.find(literal)
         while index >= 0:
             span = (start + index, start + index + len(literal))
-            overlaps = [*strong_spans, *hidden]
-            if not any(span[0] < e and s < span[1] for s, e in overlaps):
+            index_after = bisect.bisect_right(
+                overlaps, span[0], key=lambda item: item[1]
+            )
+            if index_after == len(overlaps) or overlaps[index_after][0] >= span[1]:
                 weak.add(span)
             index = body.find(literal, index + 1)
     marks = [(s, e, True) for s, e in strong_spans]

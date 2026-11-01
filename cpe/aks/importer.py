@@ -10,13 +10,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import threading
 import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from cpe.local.releases import ReleaseError, bundle_name, parse, save_bundles
+from cpe.local.releases import ReleaseError, parse, save_bundles
 
 ROOT = "금위영등록"
 BOOK = "禁衛營謄錄"
@@ -27,7 +26,6 @@ PREFIX = "aks:geumwiyeong:"
 _ID = re.compile(r"[0-9]+(?:_[0-9]+)+")
 _INDENT = re.compile(r"[ \t\r\n]*\n[ \t\r\n]*")
 _REVIEW = re.compile(r"[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af■□]")
-_LOCK = threading.Lock()
 
 
 class _Excluded(Exception):
@@ -127,36 +125,13 @@ def import_documents(found: Iterable[bytes], folder: Path) -> dict[str, object]:
         + "\n"
     )
     target = folder / "aks-geumwiyeong"
-    contents = {
-        bundle_name("articles"): "".join(
-            json.dumps(record, ensure_ascii=False) + "\n" for record in records
-        ),
-        "import-report.json": report,
-    }
-    with _LOCK:
-        backup = target.with_name(f".{target.name}.previous")
-        if backup.is_symlink():
-            raise ReleaseError("release_existing_conflict")
-        if backup.exists():
-            if target.exists() or target.is_symlink():
-                raise ReleaseError("release_existing_conflict")
-            backup.rename(target)
-        if target.is_symlink():
-            raise ReleaseError("release_existing_conflict")
-        if target.exists():
-            if (
-                not target.is_dir()
-                or {path.name for path in target.iterdir()} != contents.keys()
-                or any(
-                    (target / name).is_symlink()
-                    or not (target / name).is_file()
-                    or (target / name).read_bytes() != value.encode("utf-8")
-                    for name, value in contents.items()
-                )
-            ):
-                raise ReleaseError("release_existing_conflict")
-        else:
-            save_bundles(target, {"articles": records}, PREFIX, report=report)
+    save_bundles(
+        target,
+        {"articles": records},
+        PREFIX,
+        report=report,
+        keep_existing=True,
+    )
     return {
         "book": BOOK,
         "articles": len(records),

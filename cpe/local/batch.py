@@ -83,7 +83,11 @@ def _check_identical_release(staged: Path, dest: Path) -> bool:
 
     for name, staged_entry in staged_entries.items():
         dest_entry = dest_entries[name]
+        if staged_entry.is_symlink() or dest_entry.is_symlink():
+            return False
         if staged_entry.is_dir() != dest_entry.is_dir():
+            return False
+        if staged_entry.is_file() != dest_entry.is_file():
             return False
         if staged_entry.is_file():
             try:
@@ -94,6 +98,8 @@ def _check_identical_release(staged: Path, dest: Path) -> bool:
         elif staged_entry.is_dir():
             if not _check_identical_release(staged_entry, dest_entry):
                 return False
+        else:
+            return False
     return True
 
 
@@ -183,9 +189,11 @@ def _process_staged_release(
 
     dest_target = folder / staged_target.name
 
-    if dest_target.exists():
-        if dest_target.is_dir() and _check_identical_release(
-            staged_target, dest_target
+    if dest_target.exists() or dest_target.is_symlink():
+        if (
+            not dest_target.is_symlink()
+            and dest_target.is_dir()
+            and _check_identical_release(staged_target, dest_target)
         ):
             item: dict[str, Any] = {
                 "path": str(file_path),

@@ -9,6 +9,7 @@ here decides a pass or fail from a point estimate alone (decision U2).
 
 from __future__ import annotations
 
+import io
 import json
 import math
 from collections.abc import Callable, Iterable
@@ -25,22 +26,38 @@ _LABELS = ("valid", "lexicalized", "other_usage", "uncertain")
 _KINDS = ("matched", "adjacent", "indeterminate")
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
+
 def load_entries(paths: Iterable[Path]) -> list[dict[str, Any]]:
     """Gold entries with strict validation: a typo must fail loudly instead of
     silently changing the metrics (a "false" string counts as confirmed, an
     unknown label drops out of recall, a repeated id counts twice)."""
+    return parse_entries((path, path.read_bytes()) for path in paths)
+
+
+def parse_entries(snapshots: Iterable[tuple[Path, bytes]]) -> list[dict[str, Any]]:
+    """Validate captured JSONL bytes; paths identify errors without being reread."""
     entries: list[dict[str, Any]] = []
     seen: dict[str, str] = {}
-    for path in paths:
-        with path.open(encoding="utf-8", newline="") as stream:
+    for path, content in snapshots:
+        with io.StringIO(content.decode("utf-8"), newline="") as stream:
             for lineno, line in enumerate(stream, start=1):
                 if not line.strip():
                     continue
                 where = f"{path}:{lineno}"
                 try:
-                    entry = json.loads(line)
+                    entry = json.loads(line, object_pairs_hook=_unique_object)
                 except json.JSONDecodeError as error:
                     raise ValueError(f"{where}: not a JSON object ({error})") from None
+                except ValueError as error:
+                    raise ValueError(f"{where}: {error}") from None
                 _validate_entry(entry, where)
                 if entry["id"] in seen:
                     raise ValueError(
@@ -86,6 +103,11 @@ def _validate_entry(entry: Any, where: str) -> None:
             raise ValueError(
                 f"{label}: {key} must be a {kind.__name__}, not {entry[key]!r}"
             )
+    overridden = {"reference", "text_id"} & entry.get("input", {}).keys()
+    if overridden:
+        raise ValueError(
+            f"{label}: input cannot override {', '.join(sorted(overridden))}"
+        )
 
 
 def _span(span: Any, length: int, where: str, what: str) -> None:
@@ -403,16 +425,18 @@ def evaluate(
             by_fixed.setdefault(_key([f["src"] for f in record["fixed"]]), []).append(
                 record
             )
-        labelled = {_key(u["fixed_offsets"]): u for u in entry["usages"]}
+        labelled: dict[tuple[tuple[int, int], ...], set[str]] = {}
+        for usage in entry["usages"]:
+            labelled.setdefault(_key(usage["fixed_offsets"]), set()).add(usage["label"])
         for record in placements.values():
             if record["kind"] != "matched":
                 continue
             key = _key([f["src"] for f in record["fixed"]])
             report.candidates += 1
-            label = labelled[key]["label"] if key in labelled else None
-            if label == "valid":
+            labels = labelled.get(key, set())
+            if "valid" in labels:
                 report.valid_hits += 1
-            elif label == "uncertain":
+            elif "uncertain" in labels:
                 report.uncertain_hits += 1
             else:
                 _error(

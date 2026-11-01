@@ -32,16 +32,18 @@ As shown by `gh repo view cobari/CPE-release`:
   `hreflang` links (each page lists all six and `x-default`) and the sitemap use it.
   If the repository is renamed or a custom domain is added, every page and the
   sitemap must be changed together, or search engines are pointed at missing pages.
-- **What the pages say**: release v2.0 only, as its READMEs describe it. A feature
-  that is not in a published release is not described; the pages are updated with
-  each release. In-development work stays off the pages: the sixth GUI language
-  and the Việt Điện search route are development state, not v2.0 behavior, so the
-  pages keep saying five interface languages until a release ships them.
+- **What the pages say**: v3.0.0 supports six interface languages and 18 online
+  sources. Local full texts, provider-returned excerpts and source-linked
+  references remain distinct; a source connection is not complete corpus coverage.
+  Downloads, README guides and screenshots describe the same published version.
   Indexing of a page is requested only after that page answers 200.
-- **No external requests**: no analytics, tracker, web font or script from another
-  host. Links go to this repository, its v2.0 release and Microsoft's WebView2 page.
-- **robots.txt**: a project site cannot serve `robots.txt` at the host root
-  (`cobari.github.io`), so none is added; the sitemap is submitted in Search Console.
+- **No external requests**: no analytics, tracker, remote font or remote script.
+  The UI font and its license are served locally. Links go to the repository,
+  the v3.0.0 release and Microsoft's WebView2 page.
+- **robots.txt**: the project-path file is a reference containing the sitemap
+  location, not a host-root robots policy. Crawlers use the host-root file;
+  the project sitemap can be submitted directly in Search Console. No account
+  indexing submission is implied by publication.
 - **Check after publishing**: each of the six URLs answers 200; the language
   switch reaches every page; `sitemap.xml` answers 200 with six URLs.
 

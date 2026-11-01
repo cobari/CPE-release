@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from cpe.export import csv_out, jsonl, run_file
-from cpe.export.safe import check_outputs, staged
+from cpe.export.safe import check_input_collisions, check_outputs, staged
 from cpe.local.txt import InputError, LocalText, read_inputs, text_options
 from cpe.match.engine import (
     Settings,
@@ -47,6 +48,8 @@ def match_files(
     *,
     force: bool = False,
 ) -> tuple[list[Result], Outputs]:
+    outputs = outputs_for(prefix)
+    check_input_collisions([outputs.csv, outputs.jsonl, outputs.run], [pattern_file])
     pattern_bytes = pattern_file.read_bytes()
     specs = loads(pattern_bytes, str(pattern_file))
     return match_specs(
@@ -75,6 +78,7 @@ def match_specs(
     """Match already built pattern specs; `pattern_bytes` is what the run records."""
     settings = settings or Settings()
     outputs = outputs_for(prefix)
+    check_input_collisions([outputs.csv, outputs.jsonl, outputs.run], inputs)
     check_outputs([outputs.csv, outputs.jsonl, outputs.run], force=force)
     texts = read_inputs(inputs)
     _check(texts)
@@ -117,6 +121,7 @@ def match_specs(
             text_input.punctuation,
             text_input.full_stop,
             text_input.halfwidth,
+            prepared=text_input,
         )
     ]
     info = run_file.RunInfo(
@@ -136,6 +141,11 @@ def match_specs(
             sentence_delimiters(settings, text.full_stop, text.halfwidth_punctuation),
             text.boundary_start,
             text.boundary_end,
+            sentences=text_input.segments(
+                sentence_delimiters(
+                    settings, text.full_stop, text.halfwidth_punctuation
+                )
+            ),
         )
         for text, text_input in zip(texts, inputs_, strict=True)
     }
@@ -143,7 +153,7 @@ def match_specs(
     normalizations = {text.text_id: text_options(text, options).name for text in texts}
     # Matching is finished before any output is opened, and each target is
     # replaced only after its writer returns.
-    with staged([outputs.jsonl, outputs.csv, outputs.run]) as (
+    with staged([outputs.jsonl, outputs.csv, outputs.run], force=force) as (
         jsonl_path,
         csv_path,
         run_path,
@@ -163,8 +173,8 @@ def match_specs(
 
 
 def _check(texts: Sequence[LocalText]) -> None:
-    ids = [text.text_id for text in texts]
-    duplicates = sorted({text_id for text_id in ids if ids.count(text_id) > 1})
+    counts = Counter(text.text_id for text in texts)
+    duplicates = sorted(text_id for text_id, count in counts.items() if count > 1)
     if duplicates:
         raise InputError(f"duplicate text_id: {', '.join(duplicates)}")
     for text in texts:

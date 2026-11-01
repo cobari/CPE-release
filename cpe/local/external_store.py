@@ -12,7 +12,7 @@ from typing import Any
 
 from cpe.local.external import Download, ExternalError
 from cpe.local.file_lock import FileBusyError, exclusive
-from cpe.local.txt import InputError, read_bundle
+from cpe.local.txt import InputError, parse_bundle
 
 BOOK_NAME = (
     r"(?:(?:gutenberg|ndl)-[1-9][0-9]{0,11}"
@@ -39,17 +39,23 @@ def _read_part(part: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         if bundle.is_symlink() or (part / "import-receipt.json").is_symlink():
             raise ValueError
         receipt = json.loads((part / "import-receipt.json").read_text(encoding="utf-8"))
-        read_bundle(bundle)
-        records = [
-            json.loads(line)
-            for line in bundle.read_text(encoding="utf-8").split("\n")
-            if line.strip()
-        ]
         if (
             not isinstance(receipt, dict)
             or receipt.get("original_reviewed") is not True
         ):
             raise ValueError
+        bundle_content = bundle.read_bytes()
+        if (
+            "bundle_sha256" in receipt
+            and receipt["bundle_sha256"] != hashlib.sha256(bundle_content).hexdigest()
+        ):
+            raise ValueError
+        parse_bundle(bundle, bundle_content)
+        records = [
+            json.loads(line)
+            for line in bundle_content.decode("utf-8").split("\n")
+            if line.strip()
+        ]
         provider, id_ = receipt["provider"], receipt["id"]
         if not re.fullmatch(BOOK_NAME, f"{provider}-{id_}"):
             raise ValueError
@@ -241,7 +247,6 @@ def _save_locked(
         {
             "text_id": _text_id(download.provider, download.id, unit.id),
             "text": unit.text,
-            "title": title,
             "source": unit.source,
             "edition": edition,
             "range": "excerpt",
@@ -255,7 +260,6 @@ def _save_locked(
                 for key, value in unit.metadata.items()
                 if key
                 in {
-                    "title",
                     "era",
                     "year",
                     "year_end",
@@ -264,6 +268,9 @@ def _save_locked(
                     "halfwidth_punctuation",
                 }
             },
+            # A unit's own heading names one excerpt; `title` names the book and
+            # is what history() shows, so metadata must not replace it.
+            "title": title,
         }
         for unit in download.units
     ]
@@ -274,9 +281,7 @@ def _save_locked(
     # Compare overlapping units even when they were not selected for this import.
     for record in incoming:
         old = previous.get(record["text_id"])
-        if old is not None and any(
-            old.get(key) != value for key, value in record.items()
-        ):
+        if old is not None and old != record:
             raise ExternalError("external_text_conflict")
     selected_ids = {
         _text_id(download.provider, download.id, unit_id) for unit_id in chosen
@@ -315,6 +320,7 @@ def _save_locked(
     content = "".join(
         json.dumps(record, ensure_ascii=False) + "\n" for record in records
     ).encode("utf-8")
+    receipt["bundle_sha256"] = hashlib.sha256(content).hexdigest()
     receipt_bytes = (json.dumps(receipt, ensure_ascii=False, indent=2) + "\n").encode(
         "utf-8"
     )

@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.http import content_length
+
 AGENT = "classic-pattern-explorer (research tool; https://github.com/cobari/CPE)"
 GUTENBERG = "https://gutenberg.pglaf.org/cache/epub/"
 NDL = "https://lab.ndl.go.jp/dl/api/book/"
@@ -90,10 +92,12 @@ def transport(
 
 
 def read_response(response: Any, control: DownloadControl | None = None) -> bytes:
-    length = response.headers.get("Content-Length", "")
-    total = int(length) if str(length).isdigit() else 0
-    if total > MAX_BYTES:
-        raise ExternalError("external_large")
+    try:
+        total = content_length(response.headers.get("Content-Length"), MAX_BYTES)
+    except OverflowError:
+        raise ExternalError("external_large") from None
+    except ValueError:
+        raise ExternalError("external_network") from None
     chunks = []
     received = 0
     while True:
@@ -107,8 +111,8 @@ def read_response(response: Any, control: DownloadControl | None = None) -> byte
         if received > MAX_BYTES:
             raise ExternalError("external_large")
         if control:
-            control.update(phase="downloading", received=received, total=total)
-    if total and received != total:
+            control.update(phase="downloading", received=received, total=total or 0)
+    if total is not None and received != total:
         raise ExternalError("external_network")
     return b"".join(chunks)
 

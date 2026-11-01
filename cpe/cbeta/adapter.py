@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint, pause
 from cpe.local.txt import LocalText
 
 API_URL = "https://cbdata.dila.edu.tw/stable/search/all_in_one"
@@ -85,17 +86,25 @@ class CbetaClient:
     _last: float | None = field(default=None, repr=False)
     _lock: Any = field(default_factory=threading.Lock, repr=False)
 
-    def search(self, phrase: str, start: int = 0) -> dict[str, Any]:
+    def search(
+        self, phrase: str, start: int = 0, checkpoint: Checkpoint = None
+    ) -> dict[str, Any]:
         with self._lock:
-            return self._search(phrase, start)
+            return self._search(phrase, start, checkpoint)
 
-    def _search(self, phrase: str, start: int) -> dict[str, Any]:
+    def _search(
+        self, phrase: str, start: int, checkpoint: Checkpoint = None
+    ) -> dict[str, Any]:
+        if checkpoint:
+            checkpoint()
         if self.calls >= self.max_calls:
             raise CbetaCapReached(f"request cap {self.max_calls} reached")
         if self._last is not None:
             wait = self.min_interval - (self.clock() - self._last)
             if wait > 0:
-                self.sleep(wait)
+                pause(wait, self.sleep, checkpoint)
+        if checkpoint:
+            checkpoint()
         self._last = self.clock()
         self.calls += 1
         params = {
@@ -109,6 +118,8 @@ class CbetaClient:
             data = json.loads(self.transport(API_URL, params, self.timeout))
         except (OSError, http.client.HTTPException, ValueError) as error:
             raise CbetaError(str(error)) from None
+        if checkpoint:
+            checkpoint()
         if not isinstance(data, dict):
             raise CbetaError("unexpected response")
         return data
@@ -200,8 +211,14 @@ def result_era(result: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def fetch(phrase: str, client: CbetaClient, start: int = 0) -> Fetched:
-    data = client.search(phrase, start)
+def fetch(
+    phrase: str, client: CbetaClient, start: int = 0, checkpoint: Checkpoint = None
+) -> Fetched:
+    data = (
+        client.search(phrase, start, checkpoint=checkpoint)
+        if checkpoint
+        else client.search(phrase, start)
+    )
     results = data.get("results")
     if results is None:
         results = []

@@ -52,12 +52,14 @@ class Dataset:
 
 # Each release was downloaded and converted before being listed here; what was checked
 # and when is recorded in docs/research/corpus-import-expansion.md,
-# docs/research/aks-geumwiyeong-import.md and
+# docs/research/aks-geumwiyeong-import.md, docs/research/aks-sunmuyeong-import.md,
+# docs/research/gojong-sidae-sa-inspection.md and
 # docs/research/goryeosa-jeolyo-import.md. NIKH releases may
 # leave out articles with unresolved glyph references (cpe.nikh.importer), so a listed
 # release is not promised in full.
 DATASETS = (
     Dataset("15052758", "aks", "unrestricted"),  # 금위영등록
+    Dataset("15052764", "aks", "unrestricted"),  # 순무영등록
     Dataset("15053635", "nikh", "kogl1"),  # 삼국사기
     Dataset("15053634", "nikh", "kogl1"),  # 삼국유사
     Dataset("15053629", "nikh", "kogl1"),  # 해동고승전
@@ -67,6 +69,10 @@ DATASETS = (
     Dataset("15053638", "nikh", "kogl1"),  # 각사등록
     Dataset("15053639", "nikh", "unrestricted"),  # 각사등록 근대편
     Dataset("15053646", "nikh", "kogl4"),  # 고종·순종실록
+    Dataset("15053647", "nikh", "kogl1"),  # 조선왕조실록 (태조~철종)
+    Dataset("15138768", "nikh", "kogl1"),  # 고종시대사
+    Dataset("15053631", "nikh", "kogl1"),  # 한국고대사료집성 중국편
+    Dataset("15053632", "nikh", "kogl1"),  # 한국사료총서
     Dataset("15022432", "itkc", "unrestricted"),  # 고전원문 (古芸堂筆記)
     Dataset("15141448", "itkc", "unrestricted"),  # 임하필기
     Dataset("15141472", "itkc", "unrestricted"),  # 신증동국여지승람
@@ -141,6 +147,7 @@ class PortalClient:
                     urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
                 )
             with self._opener.open(request, timeout=self.timeout) as response:
+                expected = response.length
                 if destination is not None:
                     written = 0
                     try:
@@ -150,6 +157,8 @@ class PortalClient:
                                 if written > MAX_DOWNLOAD_BYTES:
                                     raise ReleaseError("release_large")
                                 stream.write(chunk)
+                        if expected is not None and written != expected:
+                            raise ReleaseError("portal_failed")
                     except BaseException:
                         destination.unlink(missing_ok=True)
                         raise
@@ -157,6 +166,8 @@ class PortalClient:
                 data: bytes = response.read(MAX_RESPONSE_BYTES + 1)
                 if len(data) > MAX_RESPONSE_BYTES:
                     raise ReleaseError("release_large")
+                if expected is not None and len(data) != expected:
+                    raise ReleaseError("portal_failed")
                 return data
         except (OSError, http.client.HTTPException):
             raise ReleaseError("portal_failed") from None

@@ -19,11 +19,14 @@ def exclusive(path: Path) -> Iterator[None]:
     if path.is_symlink():
         raise FileBusyError("lock path is a symlink")
     with path.open("a+b") as stream:
-        if stream.seek(0, 2) == 0:
-            stream.write(b"\0")
-            stream.flush()
-        stream.seek(0)
         try:
+            # On Windows a byte-range lock held by another process can refuse this
+            # write; without the guard it would escape as a raw PermissionError
+            # instead of the busy signal callers handle.
+            if stream.seek(0, 2) == 0:
+                stream.write(b"\0")
+                stream.flush()
+            stream.seek(0)
             if sys.platform == "win32":
                 import msvcrt
 

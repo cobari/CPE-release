@@ -19,6 +19,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from cpe.http import content_length
 from cpe.local.external import Download, DownloadControl, ExternalError, Unit
 
 BASE = "https://rise.mpiwg-berlin.mpg.de/api"
@@ -59,9 +60,12 @@ def urllib_transport(url: str, timeout: float) -> Response:
     with urllib.request.build_opener(_NoRedirect()).open(
         request, timeout=timeout
     ) as response:
-        length = response.headers.get("Content-Length", "")
-        if str(length).isdigit() and int(length) > MAX_JSON:
-            raise ExternalError("external_large")
+        try:
+            total = content_length(response.headers.get("Content-Length"), MAX_JSON)
+        except OverflowError:
+            raise ExternalError("external_large") from None
+        except ValueError:
+            raise ExternalError("external_network") from None
         chunks: list[bytes] = []
         received = 0
         while True:
@@ -72,6 +76,8 @@ def urllib_transport(url: str, timeout: float) -> Response:
             received += len(chunk)
             if received > MAX_JSON:
                 raise ExternalError("external_large")
+        if total is not None and received != total:
+            raise ExternalError("external_network")
         headers = {
             str(key).lower(): str(value) for key, value in response.headers.items()
         }

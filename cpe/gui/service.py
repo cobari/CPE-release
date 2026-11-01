@@ -15,6 +15,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint
 from cpe.export import csv_out
 from cpe.itkc.query import QueryError
 from cpe.itkc.query import parse as parse_query
@@ -38,6 +39,7 @@ from cpe.match.engine import (
     sentence_delimiters,
 )
 from cpe.match.pair import pair_spec
+from cpe.match.pattern_file import PatternFileError
 from cpe.match.result import Result
 from cpe.normalize.options import NormalizationError, normalize
 from cpe.normalize.text import NormalizedText
@@ -70,9 +72,9 @@ class Text:
         source = self.local.source
         return source if source.startswith(("https://", "http://")) else ""
 
-    def matcher_input(self) -> TextInput:
+    def matcher_input(self, settings: Settings | None = None) -> TextInput:
         local = self.local
-        return TextInput(
+        result = TextInput(
             local.text_id,
             self.normalized,
             local.range,
@@ -82,6 +84,12 @@ class Text:
             local.full_stop,
             local.halfwidth_punctuation,
         )
+        if settings is not None:
+            delimiters = sentence_delimiters(
+                settings, local.full_stop, local.halfwidth_punctuation
+            )
+            result._segments[delimiters] = self.view.sentences
+        return result
 
 
 class Library:
@@ -248,7 +256,9 @@ def text_from(
     return Text(local, normalized, view, era)
 
 
-def search_pair(library: Library, first: str, second: str) -> dict[str, Any]:
+def search_pair(
+    library: Library, first: str, second: str, *, checkpoint: Checkpoint = None
+) -> dict[str, Any]:
     """Two-box search (spec 14.1): FIRST {A} SECOND {B}, FIRST always first."""
     first, second = first.strip(), second.strip()
     if not first or not second:
@@ -259,11 +269,21 @@ def search_pair(library: Library, first: str, second: str) -> dict[str, Any]:
         return {"error": "bad_box"}
     options = library.settings.normalization
     seconds = {options.literal(option) for option in spec.pattern.fixed[1].options}
-    found = [
-        (index, 0, result)
-        for index, text in enumerate(library.texts)
-        for result in match_text(spec, text.matcher_input(), library.settings)
-    ]
+    try:
+        found = [
+            (index, 0, result)
+            for index, text in enumerate(library.texts)
+            for result in match_text(
+                spec,
+                text.matcher_input(library.settings),
+                library.settings,
+                checkpoint=checkpoint,
+            )
+        ]
+    except PatternFileError:
+        # A box that normalization empties, or two alternatives it makes equal,
+        # cannot be searched; it is a bad box, not an internal failure (14.1).
+        return {"error": "bad_box"}
     results = assign_ids(found)
     paired: dict[tuple[str, int, int], set[tuple[int, int]]] = {}
     for result in results:
@@ -275,6 +295,8 @@ def search_pair(library: Library, first: str, second: str) -> dict[str, Any]:
     likely: list[dict[str, Any]] = []
     less: list[dict[str, Any]] = []
     for result in results:
+        if checkpoint:
+            checkpoint()
         text = by_id[result.text_id]
         key = (result.text_id, result.segment.start, result.segment.end)
         row = _pair_row(result, text, frozenset(paired[key]), seconds, library.settings)
@@ -339,7 +361,9 @@ def _pair_row(
     }
 
 
-def search_words(library: Library, query: str) -> dict[str, Any]:
+def search_words(
+    library: Library, query: str, *, checkpoint: Checkpoint = None
+) -> dict[str, Any]:
     """One-box word search (spec 14.2): every sentence that satisfies the query."""
     query = query.strip()
     if not query:
@@ -348,38 +372,44 @@ def search_words(library: Library, query: str) -> dict[str, Any]:
         tree = normalize_query(parse_query(query), library.settings.normalization)
     except QueryError:
         return {"error": "bad_query"}
-    try:
-        records = [
-            record
-            for text in library.texts
-            for record in search_text(
-                tree, query, text.local, text.normalized, library.settings, "sentence"
-            )
-        ]
-    except QueryError:
-        return {"error": "query_limit"}
     views = {text.local.text_id: text.view for text in library.texts}
     links = {text.local.text_id: text.link for text in library.texts}
     eras = {text.local.text_id: text.era for text in library.texts}
     titles = {text.local.text_id: text.title for text in library.texts}
-    rows = []
-    for rank, record in enumerate(records, start=1):
-        record["result_id"] = f"r{rank:06d}"
-        row = csv_row(record, views, titles, "", "")
-        rows.append(
-            {
-                "id": record["result_id"],
-                "text_id": record["text_id"],
-                "title": titles[record["text_id"]],
-                "link": links[record["text_id"]],
-                "era": eras[record["text_id"]],
-                "kind": "occurrence",
-                "before": row["context_before"],
-                "segment": row["segment"],
-                "after": row["context_after"],
-                "a": "",
-                "b": [],
-                "reasons": [],
-            }
-        )
+    rows: list[dict[str, Any]] = []
+    # Convert one text's records before searching the next, so record metadata
+    # for the entire library is not retained beside the finished display rows.
+    try:
+        for text in library.texts:
+            if checkpoint:
+                checkpoint()
+            for record in search_text(
+                tree,
+                query,
+                text.local,
+                text.normalized,
+                library.settings,
+                "sentence",
+                checkpoint=checkpoint,
+            ):
+                record["result_id"] = f"r{len(rows) + 1:06d}"
+                row = csv_row(record, views, titles, "", "")
+                rows.append(
+                    {
+                        "id": record["result_id"],
+                        "text_id": record["text_id"],
+                        "title": titles[record["text_id"]],
+                        "link": links[record["text_id"]],
+                        "era": eras[record["text_id"]],
+                        "kind": "occurrence",
+                        "before": row["context_before"],
+                        "segment": row["segment"],
+                        "after": row["context_after"],
+                        "a": "",
+                        "b": [],
+                        "reasons": [],
+                    }
+                )
+    except QueryError:
+        return {"error": "query_limit"}
     return {"mode": "words", "likely": rows, "less": []}

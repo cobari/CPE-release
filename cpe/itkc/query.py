@@ -243,7 +243,11 @@ def spans(leaf: Leaf, text: str) -> list[tuple[int, int]]:
 
 
 def evaluate(
-    node: Node, text: str, allowed: Callable[[int, int], bool] | None = None
+    node: Node,
+    text: str,
+    allowed: Callable[[int, int], bool] | None = None,
+    *,
+    find_spans: Callable[[Leaf], list[tuple[int, int]]] | None = None,
 ) -> bool:
     """Whether `text` satisfies the query.
 
@@ -251,17 +255,27 @@ def evaluate(
     crossing a note barrier in local search (spec 14.2): a leaf hit and the
     whole stretch of a NEAR pair must be allowed. Independent terms joined by
     AND are tested separately, so they may lie on both sides of a barrier.
+    A supplied `find_spans` must apply the same `allowed` filter to leaf hits.
     """
+
+    def default_spans(leaf: Leaf) -> list[tuple[int, int]]:
+        return leaf_spans(leaf, text, allowed)
+
+    lookup = default_spans if find_spans is None else find_spans
     if isinstance(node, Term | Regex):
-        return bool(leaf_spans(node, text, allowed))
+        return bool(lookup(node))
     if isinstance(node, Not):
-        return not evaluate(node.child, text, allowed)
+        return not evaluate(node.child, text, allowed, find_spans=lookup)
     if isinstance(node, And):
-        return all(evaluate(child, text, allowed) for child in node.children)
+        return all(
+            evaluate(child, text, allowed, find_spans=lookup) for child in node.children
+        )
     if isinstance(node, Or):
-        return any(evaluate(child, text, allowed) for child in node.children)
-    left = leaf_spans(node.left, text, allowed)
-    right = leaf_spans(node.right, text, allowed)
+        return any(
+            evaluate(child, text, allowed, find_spans=lookup) for child in node.children
+        )
+    left = lookup(node.left)
+    right = lookup(node.right)
     dist = node.dist
     j_start = 0
     n_right = len(right)

@@ -81,7 +81,12 @@ def _inline(element: ET.Element, mappings: dict[str, str]) -> str:
             if child.get("ref") not in mappings:
                 raise _Unsafe("unresolved_glyph")
             parts.append(mappings[child.get("ref", "")])
-        elif child.tag == f"{{{TEI}}}{name}" and name in MARKERS and not _text(child):
+        elif (
+            child.tag == f"{{{TEI}}}{name}"
+            and name in MARKERS
+            and not len(child)
+            and not (child.text or "").strip()
+        ):
             pass
         elif child.tag == f"{{{TEI}}}hi":
             parts.append(_inline(child, mappings))

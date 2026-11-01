@@ -144,15 +144,23 @@ def work_urn(address: str, client: CtpClient) -> str:
 def chapters(urn: str, client: CtpClient) -> tuple[str, list[Chapter]]:
     """The work's title and its chapters in order, walking subsections depth first."""
     data = client.call("gettext", urn=urn)
-    title = str(data.get("title", "")) or urn
+    title = _title(data) or urn
     found: list[Chapter] = []
     _collect(urn, data, client, found)
     return title, found
 
 
+def _title(data: dict[str, Any]) -> str:
+    title = data.get("title", "")
+    if not isinstance(title, str):
+        raise CtpError("source_failed", "title must be a source string")
+    return title
+
+
 def _collect(
     urn: str, data: dict[str, Any], client: CtpClient, out: list[Chapter]
 ) -> None:
+    title = _title(data)
     text = data.get("fulltext")
     if text is not None and (
         not isinstance(text, list)
@@ -160,10 +168,16 @@ def _collect(
     ):
         raise CtpError("source_failed", "fulltext must be a list of source strings")
     if isinstance(text, list) and text:
-        out.append(Chapter(urn, str(data.get("title", "")), [p for p in text if p]))
-    for sub in data.get("subsections") or []:
-        if isinstance(sub, str) and sub.startswith("ctp:"):
-            _collect(sub, client.call("gettext", urn=sub), client, out)
+        out.append(Chapter(urn, title, [p for p in text if p]))
+    subsections = data.get("subsections")
+    if subsections is None:
+        subsections = []
+    if not isinstance(subsections, list) or any(
+        not isinstance(sub, str) or not sub.startswith("ctp:") for sub in subsections
+    ):
+        raise CtpError("source_failed", "subsections must be a list of source URNs")
+    for sub in subsections:
+        _collect(sub, client.call("gettext", urn=sub), client, out)
 
 
 def page_link(urn: str) -> str:

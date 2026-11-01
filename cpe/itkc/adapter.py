@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint
 from cpe.itkc.client import (
     FIELD_ARTICLE,
     FIELD_BOOK,
@@ -29,9 +30,10 @@ from cpe.itkc.client import (
 from cpe.itkc.search_cli import make_link
 from cpe.local.txt import LocalText
 
-# Collections of classical originals: 고전원문 and 한국문집총간. BT_AA (translations)
-# mixes Korean translation and original in one excerpt and is not searched.
-COLLECTIONS = ("GO_AA", "MO_AA")
+# Collections of classical originals: 고전원문, 한국문집총간 and 일성록. BT_AA
+# (translations) mixes Korean translation and original in one excerpt and is not
+# searched. IT_AA is the Ilseongnok collection answered by the same API.
+COLLECTIONS = ("GO_AA", "MO_AA", "IT_AA")
 PAGE_ROWS = 100
 # Excerpts of one record are joined by "... ..." (two runs of three dots).
 _JOIN = re.compile(r"\s*\.{3}\s*\.{3}\s*")
@@ -110,6 +112,7 @@ def fetch(
     client: ITKCClient,
     collections: Sequence[str] = COLLECTIONS,
     start: int = 0,
+    checkpoint: Checkpoint = None,
 ) -> list[Fetched]:
     """One page of records per collection, all through one client's safeguards.
 
@@ -119,8 +122,16 @@ def fetch(
     """
     found = []
     for collection in collections:
+        if checkpoint:
+            checkpoint()
         params = {**client.params(keyword, start, PAGE_ROWS), "secId": collection}
-        total, records = client.fetch_params(params)
+        total, records = (
+            client.fetch_params(params, checkpoint=checkpoint)
+            if checkpoint
+            else client.fetch_params(params)
+        )
+        if checkpoint:
+            checkpoint()
         texts: list[LocalText] = []
         eras: dict[str, dict[str, Any]] = {}
         for record in records:

@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import html
 import math
 import re
 import sys
@@ -64,6 +65,9 @@ from cpe.itkc.query import (
 
 HEADER = ["data_id", "book", "volume", "article", "author", "matched_sentence", "link"]
 _SENTENCE_RE = re.compile(r'[^.?!。？！]+(?:[.?!。？！]+["”’」』)\]]*)?')
+# The hit highlighting arrives as escaped text, not as XML elements, so it survives
+# parsing as literal "<em ...>" characters; it is markup, never source text.
+_HIGHLIGHT = re.compile(r"</?em\b[^>]*>")
 
 ClientFactory = Callable[[argparse.Namespace, Path], ITKCClient]
 
@@ -72,12 +76,17 @@ def sentences(text: str) -> list[str]:
     return [s.strip() for s in _SENTENCE_RE.findall(text) if s.strip()]
 
 
+def source_text(value: str) -> str:
+    """A field's own text: the API's <em> hit markup and entities are not source."""
+    return html.unescape(_HIGHLIGHT.sub("", value))
+
+
 def split_doc(doc: dict[str, str]) -> tuple[str, str]:
-    raw = doc.get(FIELD_SEARCH, "")
+    raw = source_text(doc.get(FIELD_SEARCH, ""))
     title, separator, body = raw.partition("|")
     if not separator:
         title, body = doc.get(FIELD_ARTICLE, ""), raw
-    return title.strip(), body.strip()
+    return source_text(title).strip(), body.strip()
 
 
 def make_link(doc: dict[str, str]) -> str:
@@ -147,12 +156,16 @@ def main(
         "--dry-run", action="store_true", help="show the plan and counts only"
     )
     args = parser.parse_args(argv)
+    if args.rows < 1:
+        parser.error("--rows must be positive")
+    if args.max_docs < 1:
+        parser.error("--max-docs must be positive")
     if not math.isfinite(args.delay) or args.delay < 1.0:
         parser.error("--delay must be at least 1 second (probe safeguard)")
     if not args.dry_run:
         try:
             check_outputs([args.output], force=args.force)
-        except FileExistsError as error:
+        except OSError as error:
             parser.error(str(error))
 
     try:
@@ -166,7 +179,7 @@ def main(
     client = client_factory(args, log_path)
     try:
         return _run(args, tree, client, parser)
-    except (ApiError, CallCapReached, LocalStorageError) as error:
+    except (ApiError, CallCapReached, LocalStorageError, QueryError, OSError) as error:
         _log(f"error: {error}")
         return 1
 
@@ -227,7 +240,7 @@ def _run(
                     )
     # All rows are collected before the file is opened; staged() replaces the
     # target atomically so a failed write never destroys an existing CSV.
-    with staged([args.output]) as (staged_output,):
+    with staged([args.output], force=args.force) as (staged_output,):
         with staged_output.open("w", encoding="utf-8-sig", newline="") as stream:
             writer = csv.writer(stream, lineterminator="\n")
             writer.writerow(HEADER)

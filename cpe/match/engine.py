@@ -9,6 +9,7 @@ from collections import Counter
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 
+from cpe.cancellation import Checkpoint
 from cpe.match import segment as seg
 from cpe.match.dsl import Fixed, Gap, Pattern, Slot
 from cpe.match.pattern_file import (
@@ -74,6 +75,37 @@ class TextInput:
     # Whether halfwidth . ? ! , ; : are punctuation in this text (spec 3.9).
     halfwidth: bool = False
 
+    _segments: dict[frozenset[str], tuple[seg.Segment, ...]] = field(
+        default_factory=dict, compare=False, repr=False, hash=False
+    )
+
+    _segment_means: dict[frozenset[str], float] = field(
+        default_factory=dict, compare=False, repr=False, hash=False
+    )
+
+    def mean_segment_length(self, delimiters: frozenset[str]) -> float:
+        if delimiters not in self._segment_means:
+            segments = self.segments(delimiters)
+            self._segment_means[delimiters] = (
+                sum(item.end - item.start for item in segments) / len(segments)
+                if segments
+                else 0
+            )
+        return self._segment_means[delimiters]
+
+    def segments(self, delimiters: frozenset[str]) -> tuple[seg.Segment, ...]:
+        """Reuse segmentation only within this unchanged text and edge policy."""
+        if delimiters not in self._segments:
+            self._segments[delimiters] = tuple(
+                seg.split(
+                    self.normalized.text,
+                    delimiters,
+                    self.boundary_start,
+                    self.boundary_end,
+                )
+            )
+        return self._segments[delimiters]
+
 
 class _BudgetExceeded(Exception):
     def __init__(self, reason: str) -> None:
@@ -100,12 +132,24 @@ class _Search:
     found: list[Result] = field(default_factory=list)
 
 
-def match_text(spec: PatternSpec, text: TextInput, settings: Settings) -> list[Result]:
+def match_text(
+    spec: PatternSpec,
+    text: TextInput,
+    settings: Settings,
+    *,
+    checkpoint: Checkpoint = None,
+) -> list[Result]:
     """All results of one pattern in one text, unsorted and without ids."""
     pattern = normalized_pattern(spec, settings.normalization)
     norm = text.normalized
     long_warning = long_segment_warning(
-        spec, norm.text, settings, text.punctuation, text.full_stop, text.halfwidth
+        spec,
+        norm.text,
+        settings,
+        text.punctuation,
+        text.full_stop,
+        text.halfwidth,
+        prepared=text,
     )
     segments: Iterable[seg.Segment]
     if pattern.scope.mode == "window":
@@ -124,9 +168,7 @@ def match_text(spec: PatternSpec, text: TextInput, settings: Settings) -> list[R
             if pattern.scope.mode == "sentence"
             else clause_delimiters(settings, text.punctuation, text.halfwidth)
         )
-        segments = seg.split(
-            norm.text, delimiters, text.boundary_start, text.boundary_end
-        )
+        segments = text.segments(delimiters)
 
     branches = [_Branch("matched", pattern.between)]
     for diagnostic in spec.diagnostics:
@@ -139,8 +181,11 @@ def match_text(spec: PatternSpec, text: TextInput, settings: Settings) -> list[R
         )
 
     matcher = _Matcher(spec, pattern, text, settings, long_warning)
+    matcher.checkpoint = checkpoint
     results: list[Result] = []
     for segment in segments:
+        if checkpoint:
+            checkpoint()
         results.extend(matcher.search(segment, branches))
     _set_alt_counts(results)
     return results
@@ -263,6 +308,8 @@ def long_segment_warning(
     punctuation: seg.Punctuation = "modern",
     full_stop: seg.FullStop = "sentence",
     halfwidth: bool = False,
+    *,
+    prepared: TextInput | None = None,
 ) -> bool:
     """Whether the text's mean segment length exceeds the threshold (spec 3.5).
 
@@ -277,6 +324,10 @@ def long_segment_warning(
         if mode == "sentence"
         else clause_delimiters(settings, punctuation, halfwidth)
     )
+    if prepared is not None:
+        return (
+            prepared.mean_segment_length(delimiters) > settings.long_segment_threshold
+        )
     segments = seg.split(text, delimiters)
     if not segments:
         return False
@@ -335,6 +386,8 @@ def _set_alt_counts(results: list[Result]) -> None:
 
 
 class _Matcher:
+    checkpoint: Checkpoint = None
+
     def __init__(
         self,
         spec: PatternSpec,
@@ -390,7 +443,10 @@ class _Matcher:
         return list(itertools.islice(found, self.settings.state_limit + 1))
 
     def _count(self, search: _Search, added: int) -> None:
+        previous = search.states
         search.states += added
+        if self.checkpoint and previous // 256 != search.states // 256:
+            self.checkpoint()
         if search.states > self.settings.state_limit:
             raise _BudgetExceeded("state_budget")
 
@@ -574,12 +630,8 @@ class _Matcher:
             if open_slot is not None and open_slot.ends
             else fixed[-1].end
         )
-        joined = tuple(
-            note for note in norm.notes if fixed[0].start < note[0] < coverage_end
-        )
-        annotations = tuple(
-            item for item in norm.annotations if fixed[0].start < item[0] < coverage_end
-        )
+        joined = norm.removals_between("notes", fixed[0].start, coverage_end)
+        annotations = norm.removals_between("annotations", fixed[0].start, coverage_end)
         return self._base(
             kind,
             segment,

@@ -231,15 +231,22 @@ def _probe(args: argparse.Namespace) -> int:
 
 def _run(args: argparse.Namespace, command: Callable[..., tuple[int, Any]]) -> int:
     # Imported here so that `cpe --help` works even if a matcher module is broken.
+    from cpe.export.safe import check_input_collisions
     from cpe.itkc.query import QueryError
     from cpe.local.txt import InputError
     from cpe.match.dsl import DslError
     from cpe.match.engine import Settings
     from cpe.match.pattern_file import PatternFileError
+    from cpe.match.run import outputs_for
     from cpe.normalize.options import NormalizationError, Options, load_variant_table
 
     run_id = args.run_id or datetime.now().strftime("%Y%m%d-%H%M%S")
     try:
+        if args.variants:
+            outputs = outputs_for(args.out)
+            check_input_collisions(
+                [outputs.csv, outputs.jsonl, outputs.run], [args.variants]
+            )
         markers = args.note_markers or (None, None)
         annotations = args.annotation_markers or (None, None)
         options = Options(

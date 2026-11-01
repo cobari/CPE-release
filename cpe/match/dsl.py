@@ -205,11 +205,11 @@ def _parse_braced(body: str, token: str) -> Slot | Gap:
     if not words:
         raise DslError("syntax", f"empty slot: {token}")
     head, rest = words[0], words[1:]
-    name, _, length = head.partition(":")
+    name, colon, length = head.partition(":")
     if not _NAME_RE.match(name):
         raise DslError("syntax", f"invalid slot name: {token}")
     low, high = DEFAULT_SLOT_MIN, DEFAULT_SLOT_MAX
-    if length:
+    if colon:
         low_text, separator, high_text = length.partition("..")
         if not separator:
             raise DslError("syntax", f"slot length must be min..max: {token}")

@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
   <title>Classic Pattern Explorer: 한문 원문의 문형 후보 검색</title>
   <meta name="description" content="한문 원문에서 문형 후보를 찾고 문맥과 출처를 확인하는 무료 연구 도구입니다. 내 컴퓨터의 텍스트와 지원하는 온라인 자료를 검색하며 Windows·macOS·Linux에서 사용할 수 있습니다.">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
@@ -20,13 +22,24 @@
   <meta property="og:description" content="한문 원문에서 문형 후보를 찾고 문맥과 출처를 확인하는 무료 연구 도구입니다. 내 컴퓨터의 텍스트와 지원하는 온라인 자료를 검색하며 Windows·macOS·Linux에서 사용할 수 있습니다.">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/ko/">
   <meta property="og:locale" content="ko_KR">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="고전문형탐색기 데스크톱 프로그램 실행 화면">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="고전문형탐색기: 한문 문형 후보 검색과 원문 맥락 확인">
+  <meta name="twitter:description" content="한문(漢文) 문헌에서 문형 후보를 찾고, 제공된 원문과 앞뒤 문맥을 검토하여 연구자 스스로 판단할 수 있도록 돕는 연구 보조 도구입니다.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image.png">
+  <meta name="twitter:image:alt" content="고전문형탐색기 데스크톱 프로그램 실행 화면">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <a class="skip" href="#main">본문으로 건너뛰기</a>
   <header class="site-head">
-    <a class="brand" href="./"><img src="../assets/icon-192.png" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <a class="brand" href="./"><img src="../assets/icon-36.png" srcset="../assets/icon-36.png 1x, ../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
     <nav class="languages" aria-label="언어">
       <ul>
         <li><a href="../" hreflang="en" lang="en">English</a></li>
@@ -44,17 +57,17 @@
       <p class="lead">Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 <span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span> 같은 문형을 찾는 디지털 인문학 연구 보조 도구입니다. 원문이나 제공된 발췌문에서 후보의 문맥을 살피고, 출처 링크가 있으면 전체 원문도 대조할 수 있습니다. 문형에 해당하는지는 연구자가 직접 읽고 판단합니다.</p>
       <div class="actions">
         <div class="action-primary">
-          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Windows용 내려받기<small>cpe-gui.exe, 64비트</small></a>
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe">Windows용 내려받기<small>cpe-gui.exe, 64비트</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">v2.0 다운로드 목록<small>macOS·Linux 소스 패키지</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.0.0">v3.0.0 다운로드 목록<small>macOS·Linux 소스 패키지</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ko.md">사용 안내 읽기<small>상세 설명서 (README)</small></a>
         </div>
-        <p class="action-note">현재 공개된 v2.0 다운로드에는 베트남어 화면이 아직 포함되어 있지 않습니다.</p>
+        <p class="action-note"><strong>v3.0.0 배포본 안내:</strong> Windows 사용자는 독립 실행 파일 <code>cpe-gui.exe</code>를 바로 실행할 수 있습니다(Microsoft Edge WebView2 런타임 필요). macOS와 Linux에서는 소스 패키지를 내려받아 <code>cpe-gui.command</code> 또는 <code>cpe-gui.sh</code>를 실행하세요(처음 실행할 때 uv 설치와 Python 환경 다운로드를 진행하므로 인터넷 연결 필요). 5개 지역 18개 온라인 자료원 검색은 인터넷 연결이 필요하며, 각 제공처의 건수 상한에 따라 제한된 발췌문이나 서지 정보가 제공됩니다.</p>
       </div>
       <figure class="hero-preview">
-        <img src="../assets/interface-preview.png" alt="설치형 데스크톱 앱 실행 화면 — 현재 개발본이며 공개 v2.0과 화면 구성이 다를 수 있습니다" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>설치형 데스크톱 앱 실행 화면 — 현재 개발본이며 공개 v2.0과 화면 구성이 다를 수 있습니다</figcaption>
+        <img src="../assets/interface-preview.png" srcset="../assets/interface-preview.png 1180w, ../assets/interface-preview-2x.png 2360w, ../assets/interface-preview-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="내비게이션, 검색 방식, 두 개의 검색어 입력란이 있는 Classic Pattern Explorer 검색 화면(한국어)." width="1180" height="560" loading="eager" decoding="async">
+        <figcaption>Classic Pattern Explorer 검색 화면(한국어 표시 예시. v3.0.0에서 6개 언어 지원).</figcaption>
       </figure>
     </section>
 
@@ -66,8 +79,8 @@
           <p>제공된 문맥에서 후보를 확인합니다. 원문에서 확인할 수 없는 결과는 미확인으로 표시합니다. 출처 링크가 있으면 전체 원문도 대조할 수 있습니다.</p>
         </div>
         <div class="method-item">
-          <h3>여섯 가지 화면 언어</h3>
-          <p>한국어, 일본어, 중국어 간체, 중국어 번체, 베트남어, 영어. 화면 언어를 바꿔도 원문 표기는 바뀌지 않습니다.</p>
+          <h3>6개 인터페이스 언어</h3>
+          <p>한국어, 일본어, 중국어 간체, 중국어 번체, 베트남어, 영어. 화면 언어를 바꿔도 원문 표기는 절대 변환되거나 변경되지 않습니다.</p>
         </div>
         <div class="method-item">
           <h3>구문 분석기가 아닌 연구 보조 도구</h3>
@@ -93,14 +106,14 @@
 
         <article class="scope-col">
           <h3>온라인 자료 검색</h3>
-          <div class="scope-sub">제공처의 발췌문·자료 정보, 인터넷 연결 필요</div>
-          <p>자료원에 검색어를 보내고, 제공된 본문이나 자료 정보를 확인합니다.</p>
+          <div class="scope-sub">18개 자료원의 발췌문·서지 정보, 인터넷 연결 필요</div>
+          <p>자료원에 검색어를 보내고, 제공된 본문이나 자료 정보를 확인합니다. 5개 탐색 지역으로 분류되어 있습니다.</p>
           <ul>
-            <li>한국고전종합DB(ITKC): 원문 컬렉션인 고전원문·한국문집총간·일성록(약 150자 발췌). 조선왕조실록 같은 번역 컬렉션은 검색하지 않습니다.</li>
-            <li>일본 국립국회도서관(NDL): 고전 자료의 OCR 텍스트. 검색 요소 가운데 하나는 두 글자 이상이어야 합니다.</li>
-            <li>CBETA 전자불전: 검색어 앞뒤로 약 40자씩 발췌.</li>
-            <li>동양고전종합DB: 구절이나 자료 정보, 출처 링크를 보여 줍니다. 제공된 본문에서 검색 조건을 확인할 수 없는 자료는 미확인 후보로 구분합니다.</li>
-            <li>DocuSky: 佛寺志靈應故事 가운데 普陀洛迦新志靈應故事와 清涼山志靈應故事에서 선별한 이야기만 검색하며, 책 전체가 아닙니다.</li>
+            <li><strong>한국(8):</strong> 한국고전종합DB (ITKC), 동양고전종합DB (사이버서당), 한국사데이터베이스 통합검색, 조선왕조실록 · 국사편찬위원회 검색, 동북아역사넷 검색, 국립문화유산연구원(NRICH) · 목간 판독문, 한국학중앙연구원 고문서자료관, 규장각 고문서 · 원문 검색.</li>
+            <li><strong>일본(4):</strong> 일본 국립국회도서관 (NDL), SAT 대정신수대장경 텍스트 데이터베이스, 도쿄대 고기록 전문DB · 공식 검색, CanD 중국·일본 한시 · 서지 참고.</li>
+            <li><strong>중국(1):</strong> 저장대 중국역대묘지DB · 녹문 검색.</li>
+            <li><strong>대만(4):</strong> CBETA 중화전자불전, DocuSky · 佛寺志靈應故事, 중앙연구원 대만사연구소 대만문헌전문데이터베이스, 대만역사디지털도서관 · 고계약문서.</li>
+            <li><strong>베트남(1):</strong> Việt Điện 한놈 OCR 말뭉치.</li>
           </ul>
         </article>
       </div>
@@ -112,7 +125,8 @@
         <ul>
           <li>결과가 없다고 해서 그 문형이 쓰이지 않았다는 뜻은 아닙니다.</li>
           <li>용례를 인용하기 전에는 제공되는 출처 링크를 열어 전체 원문과 문맥을 확인하세요.</li>
-          <li>NDL의 OCR 텍스트에는 인식 오류가 있을 수 있으니, 인용하기 전에 쪽 이미지를 확인하세요.</li>
+          <li>NDL 및 Việt Điển의 OCR 텍스트에는 인식 오류가 있을 수 있으니, 인용하기 전에 원본 이미지를 확인하세요.</li>
+          <li>온라인 검색은 제공처의 건수 상한 내에서 제한된 발췌문이나 서지 정보만 가져오며, 대량 크롤링이나 전문 다운로드는 수행하지 않습니다.</li>
         </ul>
         <h3>자료 이용 안내</h3>
         <ul>
@@ -128,11 +142,11 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>v2.0 릴리스에서 cpe-gui.exe를 내려받아 두 번 클릭하면 됩니다. Python은 필요 없습니다. <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 런타임</a>으로 실행되므로, 창이 열리지 않으면 런타임을 설치하세요.</p>
+          <p>v3.0.0 릴리스에서 cpe-gui.exe를 내려받아 두 번 클릭하면 됩니다. Python은 필요 없습니다. <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 런타임</a>으로 실행되므로, 창이 열리지 않으면 런타임을 설치하세요.</p>
         </div>
         <div class="platform-item">
           <h3>macOS와 Linux</h3>
-          <p>v2.0 릴리스에서 소스 패키지를 내려받아 압축을 풀고 cpe-gui.command(macOS)나 cpe-gui.sh(Linux)를 실행합니다. 처음 실행할 때 동의하면 uv를 설치하고 Python 환경을 내려받으므로 인터넷 연결이 필요합니다.</p>
+          <p>v3.0.0 릴리스에서 소스 패키지를 내려받아 압축을 풀고 cpe-gui.command(macOS)나 cpe-gui.sh(Linux)를 실행합니다. 처음 실행할 때 동의하면 uv를 설치하고 Python 환경을 내려받으므로 인터넷 연결이 필요합니다.</p>
         </div>
         <div class="platform-item">
           <h3>명령줄</h3>
@@ -142,7 +156,7 @@
     </section>
   </main>
   <footer class="site-foot">
-    <p>버전 2.0(태그 v2.0). MIT 라이선스. 연결하는 기관이나 데이터베이스와 관계없는 개인 프로젝트입니다. 데이터베이스의 원문 묶음, 현대 번역, API 원본 응답은 들어 있지 않습니다.</p>
+    <p>버전 3.0.0(태그 v3.0.0). MIT 라이선스. 연결하는 기관이나 데이터베이스와 관계없는 개인 프로젝트입니다. 데이터베이스의 원문 묶음, 현대 번역, API 원본 응답은 들어 있지 않습니다.</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub의 소스와 릴리스</a></p>
   </footer>
 </body>

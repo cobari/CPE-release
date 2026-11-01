@@ -199,6 +199,7 @@ class Text:
         for fixed in record["fixed"]:
             mapped = self.span(*fixed["norm"])
             fixed["src"], fixed["src_exact"] = mapped["src"], mapped["src_exact"]
+            fixed["src_deleted"] = mapped["src_deleted"]
         for slot in record["slots"]:
             slot.update(self.span(*slot["norm"]))
         opened = record["open_slot"]

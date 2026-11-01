@@ -400,6 +400,7 @@ def _placement_record(
             "norm": [position, position + len(literal)],
             "src": [position, position + len(literal)],
             "src_exact": [True, True],
+            "src_deleted": [],
         }
         for position, literal in zip(positions, literals, strict=True)
     ]

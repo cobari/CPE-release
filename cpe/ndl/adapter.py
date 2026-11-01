@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint, pause
 from cpe.local.txt import LocalText
 
 API_URL = "https://lab.ndl.go.jp/dl/api/book/search"
@@ -98,7 +99,7 @@ class NdlClient:
         if self._last is not None:
             delay = self.min_interval - (self.clock() - self._last)
             if delay > 0:
-                (wait or self.sleep)(delay)
+                pause(delay, wait or self.sleep, checkpoint)
         # A queued import may have been cancelled while a search held the lock
         # or while the interval elapsed; it must not spend a call or send next.
         if checkpoint:
@@ -110,7 +111,9 @@ class NdlClient:
         except (OSError, http.client.HTTPException) as error:
             raise NdlError(str(error)) from None
 
-    def search(self, phrase: str, start: int = 0) -> dict[str, Any]:
+    def search(
+        self, phrase: str, start: int = 0, checkpoint: Checkpoint = None
+    ) -> dict[str, Any]:
         params = {
             "keyword": phrase,
             "fc-isClassic": "true",
@@ -118,7 +121,9 @@ class NdlClient:
             "from": start,
         }
         try:
-            data = json.loads(self.request(API_URL, params))
+            data = json.loads(self.request(API_URL, params, checkpoint=checkpoint))
+        except InterruptedError:
+            raise
         except (OSError, ValueError) as error:
             raise NdlError(str(error)) from None
         if not isinstance(data, dict):
@@ -199,8 +204,14 @@ def book_era(book: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def fetch(phrase: str, client: NdlClient, start: int = 0) -> Fetched:
-    data = client.search(phrase, start)
+def fetch(
+    phrase: str, client: NdlClient, start: int = 0, checkpoint: Checkpoint = None
+) -> Fetched:
+    data = (
+        client.search(phrase, start, checkpoint=checkpoint)
+        if checkpoint
+        else client.search(phrase, start)
+    )
     books = data.get("list")
     if books is None:
         books = []

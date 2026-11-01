@@ -71,9 +71,9 @@ def load_variant_table(path: Path) -> VariantTable:
         data = tomllib.loads(path.read_bytes().decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         raise NormalizationError(f"{path}: not a UTF-8 TOML file ({error})") from None
-    if data.get("schema") != 1:
+    if type(data.get("schema")) is not int or data["schema"] != 1:
         raise NormalizationError(f"{path}: expected 'schema = 1'")
-    mapping = data.get("map", {})
+    mapping = data.get("map")
     if not isinstance(mapping, dict):
         raise NormalizationError(f"{path}: [map] must be a table")
     return variant_table(data.get("id"), data.get("version"), dict(mapping))

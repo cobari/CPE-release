@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
   <title>Classic Pattern Explorer: tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn</title>
   <meta name="description" content="Công cụ miễn phí giúp tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
@@ -20,13 +22,24 @@
   <meta property="og:description" content="Công cụ miễn phí giúp tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/vi/">
   <meta property="og:locale" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Giao diện ứng dụng máy tính Classic Pattern Explorer">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Classic Pattern Explorer: tìm kiếm mẫu câu Hán văn và kiểm tra ngữ cảnh">
+  <meta name="twitter:description" content="Công cụ hỗ trợ nghiên cứu nhân văn số giúp tìm kiếm các mẫu câu trong văn bản Hán văn cổ, đối chiếu ngữ cảnh và liên kết nguồn để học giả tự đánh giá.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image.png">
+  <meta name="twitter:image:alt" content="Giao diện ứng dụng máy tính Classic Pattern Explorer">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <a class="skip" href="#main">Chuyển đến nội dung chính</a>
   <header class="site-head">
-    <a class="brand" href="./"><img src="../assets/icon-192.png" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <a class="brand" href="./"><img src="../assets/icon-36.png" srcset="../assets/icon-36.png 1x, ../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
     <nav class="languages" aria-label="Ngôn ngữ">
       <ul>
         <li><a href="../" hreflang="en" lang="en">English</a></li>
@@ -44,17 +57,17 @@
       <p class="lead">Classic Pattern Explorer giúp tìm các đoạn có thể chứa mẫu câu như <span class="pattern" lang="lzh">以…爲</span> hoặc <span class="pattern" lang="lzh">雖…而</span> trong văn bản Hán văn. Bạn có thể đọc ngữ cảnh được cung cấp và mở liên kết nguồn khi có để tự đối chiếu.</p>
       <div class="actions">
         <div class="action-primary">
-          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v2.0/cpe-gui.exe">Tải xuống cho Windows<small>cpe-gui.exe, 64-bit</small></a>
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe">Tải xuống cho Windows<small>cpe-gui.exe, 64-bit</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v2.0">Danh sách tệp phát hành v2.0<small>Gói mã nguồn cho macOS và Linux</small></a>
-          <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.md">Đọc hướng dẫn sử dụng<small>Tài liệu chi tiết (tiếng Anh)</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.0.0">Danh sách tệp phát hành v3.0.0<small>Gói mã nguồn cho macOS và Linux</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.vi.md">Đọc hướng dẫn sử dụng<small>Tài liệu chi tiết (README)</small></a>
         </div>
-        <p class="action-note">Bản phát hành v2.0 công khai hiện tại là phiên bản trước khi bổ sung tiếng Việt.</p>
+        <p class="action-note"><strong>Thông tin bản phát hành v3.0.0:</strong> Người dùng Windows có thể chạy trực tiếp tệp <code>cpe-gui.exe</code> độc lập (yêu cầu Microsoft Edge WebView2 Runtime). Trên macOS và Linux, vui lòng tải gói mã nguồn và chạy <code>cpe-gui.command</code> hoặc <code>cpe-gui.sh</code> (cần có Python và uv). Tìm kiếm 18 nguồn trực tuyến thuộc 5 khu vực yêu cầu kết nối Internet và trả về các đoạn trích hoặc thư mục giới hạn theo hạn mức của từng nguồn cung cấp.</p>
       </div>
       <figure class="hero-preview">
-        <img src="../assets/interface-preview.png" alt="Giao diện ứng dụng máy tính (bản phát triển; có thể khác với bản phát hành v2.0 công khai)" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Giao diện ứng dụng máy tính (bản phát triển; có thể khác với bản phát hành v2.0 công khai)</figcaption>
+        <img src="../assets/interface-preview.png" srcset="../assets/interface-preview.png 1180w, ../assets/interface-preview-2x.png 2360w, ../assets/interface-preview-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="Giao diện tìm kiếm Classic Pattern Explorer (hiển thị tiếng Hàn, gồm thanh điều hướng, chế độ tìm kiếm và các ô nhập từ khóa)." width="1180" height="560" loading="eager" decoding="async">
+        <figcaption>Giao diện tìm kiếm Classic Pattern Explorer (minh họa tiếng Hàn; v3.0.0 hỗ trợ sáu ngôn ngữ giao diện).</figcaption>
       </figure>
     </section>
 
@@ -93,14 +106,14 @@
 
         <article class="scope-col">
           <h3>Tìm kiếm nguồn trực tuyến</h3>
-          <div class="scope-sub">Đoạn trích và thông tin do nguồn trả về; cần kết nối Internet</div>
-          <p>Ứng dụng gửi truy vấn đến nguồn hỗ trợ và kiểm tra văn bản trả về.</p>
+          <div class="scope-sub">Đoạn trích và thư mục từ 18 nguồn; yêu cầu kết nối Internet</div>
+          <p>Gửi từ khóa đến các nguồn được hỗ trợ và xem đoạn trích hoặc thông tin thư mục được trả về. Các nguồn được chia theo 5 khu vực tìm kiếm:</p>
           <ul>
-            <li>CSDL Kinh điển Hàn Quốc (ITKC): các bộ sưu tập nguyên tác là Văn bản kinh điển, Tuyển tập văn của các tác gia Hàn Quốc (韓國文集叢刊) và Ilseongnok (日省錄) (trích đoạn khoảng 150 ký tự). Không tìm kiếm các bộ dịch thuật như Thực lục triều Joseon.</li>
-            <li>Thư viện Quốc hội Nhật Bản (NDL): văn bản OCR của sách cổ điển; ít nhất một thành tố tìm kiếm phải có từ hai ký tự trở lên.</li>
-            <li>Đại tạng kinh điện tử CBETA: trích đoạn khoảng 40 ký tự trước và sau vị trí khớp.</li>
-            <li>CSDL Kinh điển phương Đông (Cyber Seodang): cung cấp đoạn trích hoặc thông tin tài liệu và liên kết xuất xứ. Các mục không kiểm tra được trong văn bản trả về sẽ được ghi là chưa xác minh.</li>
-            <li>DocuSky: giới hạn trong các câu chuyện được chọn lọc từ 普陀洛迦新志靈應故事 và 清涼山志靈應故事 thuộc cơ sở dữ liệu 佛寺志靈應故事, không phải toàn bộ sách.</li>
+            <li><strong>Hàn Quốc (8):</strong> CSDL Kinh điển Hàn Quốc (ITKC), Cyber Seodang (CSDL Kinh điển phương Đông), Tra cứu tổng hợp CSDL Lịch sử Hàn Quốc, Thực lục triều Joseon, tìm kiếm NIKH, Tra cứu Mạng Lịch sử Đông Bắc Á của NAHF, Thẻ gỗ NRICH, Hàn Quốc, Lưu trữ bản thảo lịch sử Hàn Quốc AKS, Tài liệu lịch sử Kyujanggak · nguyên văn.</li>
+            <li><strong>Nhật Bản (4):</strong> Thư viện Quốc hội Nhật Bản (NDL), CSDL văn bản Đại tạng kinh SAT, Nhật ký cổ Nhật Bản, Đại học Tokyo · tìm kiếm chính thức, Thơ Trung Quốc và Nhật Bản CanD · tham chiếu.</li>
+            <li><strong>Trung Quốc (1):</strong> CSDL văn bia Trung Quốc, Đại học Chiết Giang · tìm bản phiên văn.</li>
+            <li><strong>Đài Loan (4):</strong> Đại tạng kinh Hán văn CBETA, DocuSky · 佛寺志靈應故事, CSDL toàn văn Đài Loan ITH, Academia Sinica, Thư viện số Lịch sử Đài Loan · Văn khế cổ.</li>
+            <li><strong>Việt Nam (1):</strong> Kho OCR Hán-Nôm Việt Điện.</li>
           </ul>
         </article>
       </div>
@@ -112,7 +125,8 @@
         <ul>
           <li>Không có kết quả không có nghĩa là mẫu câu đó chưa từng được dùng.</li>
           <li>Trước khi trích dẫn, hãy mở liên kết xuất xứ khi có để kiểm tra toàn bộ văn bản và ngữ cảnh.</li>
-          <li>Văn bản OCR của NDL có thể chứa lỗi nhận dạng; vui lòng kiểm tra hình ảnh trang trước khi trích dẫn.</li>
+          <li>Văn bản OCR của NDL và đoạn trích OCR của Việt Điện có thể chứa lỗi nhận dạng; vui lòng kiểm tra hình ảnh trang trước khi trích dẫn.</li>
+          <li>Tìm kiếm trực tuyến chỉ lấy các đoạn trích hoặc thư mục giới hạn trong phạm vi cho phép của nguồn cung cấp; công cụ không tải toàn bộ kho dữ liệu hay cào dữ liệu toàn văn.</li>
         </ul>
         <h3>Hướng dẫn sử dụng tài liệu</h3>
         <ul>
@@ -128,21 +142,21 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>Tải cpe-gui.exe từ bản phát hành v2.0 và nhấp đúp để chạy; không cần cài đặt Python. Ứng dụng chạy trên <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; nếu cửa sổ không mở, hãy cài đặt WebView2 Runtime này.</p>
+          <p>Tải cpe-gui.exe từ bản phát hành v3.0.0 và nhấp đúp để chạy; không cần cài đặt Python. Ứng dụng chạy trên <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; nếu cửa sổ không mở, hãy cài đặt WebView2 Runtime này.</p>
         </div>
         <div class="platform-item">
           <h3>macOS và Linux</h3>
-          <p>Tải gói mã nguồn từ bản phát hành v2.0, giải nén và chạy cpe-gui.command (macOS) hoặc cpe-gui.sh (Linux). Lần chạy đầu tiên sẽ đề xuất cài đặt uv và tải về môi trường Python nên cần có kết nối Internet.</p>
+          <p>Tải gói mã nguồn từ bản phát hành v3.0.0, giải nén và chạy cpe-gui.command (macOS) hoặc cpe-gui.sh (Linux). Lần chạy đầu tiên sẽ đề xuất cài đặt uv và tải về môi trường Python nên cần có kết nối Internet.</p>
         </div>
         <div class="platform-item">
           <h3>Dòng lệnh</h3>
-          <p>Gói mã nguồn cũng bao gồm lệnh cpe để ghi kết quả ra tệp CSV, JSONL và nhật ký thực thi. Xem chi tiết trong <a href="https://github.com/cobari/CPE-release/blob/main/README.md">hướng dẫn sử dụng</a> (tiếng Anh).</p>
+          <p>Gói mã nguồn cũng bao gồm lệnh cpe để ghi kết quả ra tệp CSV, JSONL và nhật ký thực thi. Xem chi tiết trong <a href="https://github.com/cobari/CPE-release/blob/main/README.vi.md">hướng dẫn sử dụng</a>.</p>
         </div>
       </div>
     </section>
   </main>
   <footer class="site-foot">
-    <p>Phiên bản 2.0 (tag v2.0). Giấy phép MIT. Dự án cá nhân độc lập, không liên kết với các cơ quan hoặc cơ sở dữ liệu được kết nối. Không đính kèm kho ngữ liệu, bản dịch hiện đại hoặc phản hồi API gốc.</p>
+    <p>Phiên bản 3.0.0 (tag v3.0.0). Giấy phép MIT. Dự án cá nhân độc lập, không liên kết với các cơ quan hoặc cơ sở dữ liệu được kết nối. Không đính kèm kho ngữ liệu, bản dịch hiện đại hoặc phản hồi API gốc.</p>
     <p><a href="https://github.com/cobari/CPE-release">Mã nguồn và các bản phát hành trên GitHub</a></p>
   </footer>
 </body>

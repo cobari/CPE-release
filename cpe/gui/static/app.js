@@ -3,7 +3,7 @@
 // whatever the language, so choosing zh-Hans never converts characters.
 "use strict";
 
-const PAGE = 100; // cards rendered per group before "show more"
+const PAGE = 100; // bounded cards per result page
 let catalog = {};
 
 // Base styles are always readable. The viewport observer also clips against each
@@ -74,18 +74,95 @@ if (typeof ResizeObserver === "function") new ResizeObserver(reserveDock).observ
 else window.addEventListener("resize", reserveDock);
 reserveDock();
 
+// These are the only catalog strings that other copy may name. Resolve a
+// reference from the raw catalog value, never through t(), so a label cannot
+// recurse into itself; call-site variables still win. Keep this map closed:
+// allowing arbitrary catalog references would turn copy into a template language.
+const UI_REF_KEYS = Object.freeze({
+  single_search: "search.single",
+  compound_search: "search.compound",
+  sources_page: "nav.sources",
+});
+
+function uiRefs() {
+  const refs = {};
+  for (const [name, key] of Object.entries(UI_REF_KEYS)) {
+    refs[name] = catalog[key] ?? key;
+  }
+  return refs;
+}
+
 function t(key, vars = {}) {
   const text = catalog[key] ?? key;
-  return text.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+  const values = { ...uiRefs(), ...vars };
+  // Leave an unresolved token visible rather than hiding a catalog drift as a
+  // blank label; tests and rendering checks can then point at the missing value.
+  return text.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(values, name) ? String(values[name] ?? "") : match);
+}
+
+function errorText(code, vars = {}) {
+  const key = `error.${code}`;
+  return t(Object.prototype.hasOwnProperty.call(catalog, key) ? key : "error.source_internal", vars);
+}
+
+async function openSourceLink(url) {
+  try {
+    if (await api().open_link(url) === true) return true;
+  } catch { /* The bridge and the OS opener have the same recovery action. */ }
+  const dialog = document.getElementById("link-error-dialog");
+  document.getElementById("link-error-address").value = String(url);
+  if (!dialog.open) dialog.showModal();
+  return false;
 }
 
 function numberText(value) {
   return Number(value).toLocaleString(document.documentElement?.lang || "en");
 }
 
+// Only marked interface copy groups these closed label references. Keep every
+// character literal: neither catalog text nor a control label becomes HTML.
+function uiCopyRuns(key) {
+  const text = catalog[key] ?? key;
+  const refs = uiRefs();
+  const runs = [];
+  let cursor = 0;
+  // Quote marks and an attached Korean particle belong to the same inline
+  // unit; otherwise the new span introduces a break before the particle.
+  for (const match of text.matchAll(/([\p{Ps}\p{Pi}]?)\{(\w+)\}([\p{Pe}\p{Pf}]?)([\p{Script=Hangul}]*)/gu)) {
+    if (!Object.prototype.hasOwnProperty.call(UI_REF_KEYS, match[2])) continue;
+    if (match.index > cursor) runs.push({ text: text.slice(cursor, match.index), control: false });
+    runs.push({ text: match[1] + refs[match[2]] + match[3] + match[4], control: true,
+      reference: match[2], prefix: match[1], label: refs[match[2]], suffix: match[3] + match[4] });
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < text.length) runs.push({ text: text.slice(cursor), control: false });
+  return runs;
+}
+
 // Catalog text for every marked element under root (the page, or a new panel).
 function translate(root) {
-  root.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n]").forEach(el => {
+    if (!el.hasAttribute("data-ui-copy")) { el.textContent = t(el.dataset.i18n); return; }
+    const fragment = document.createDocumentFragment();
+    for (const run of uiCopyRuns(el.dataset.i18n)) {
+      if (!run.control) { fragment.append(document.createTextNode(run.text)); continue; }
+      const label = document.createElement("span");
+      label.className = "ui-control-name";
+      if (el.dataset.uiCopyAction === "sources" && run.reference === "sources_page") {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.id = "welcome-sources";
+        action.className = "inline-view-link";
+        action.textContent = run.label;
+        action.setAttribute("aria-label", t("sources.choose"));
+        action.addEventListener("click", () => showView("sources"));
+        label.append(run.prefix, action, run.suffix);
+      } else label.textContent = run.text;
+      fragment.append(label);
+    }
+    el.replaceChildren(fragment);
+  });
   root.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
   root.querySelectorAll("[data-i18n-placeholder]").forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   root.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
@@ -93,13 +170,19 @@ function translate(root) {
 
 function applyCatalog() {
   translate(document);
+  labelDocuskyOptions();
   updateHint();
   showLibrary();
   updateSource();
-  renderAll();
+  if (currentView === "search") renderAll();
+  else resultsNeedTranslation = true;
+  updateSelectionNotice();
   updateExternalProvider();
   updateExternal();
   updateLanguageList();
+  updateSortStatus();
+  refreshSourceGuide();
+  placeSourceGuide();
 }
 
 // The window's in-process bridge to cpe.gui.app.Api (no network involved).
@@ -121,12 +204,14 @@ async function setLanguage(code) {
 
 const VIEW_NAMES = ["search", "sources", "import", "language"];
 let currentView = "search";
+let resultsNeedTranslation = false;
 function viewElement(name) { return document.getElementById(`view-${name}`); }
 function showView(name, { focus = true } = {}) {
   if (!VIEW_NAMES.includes(name)) return;
   // A native dialog owns Escape and focus while it is open. Do not move the
   // screen underneath it.
   if (document.querySelector("dialog[open]") && name !== currentView) return;
+  if (name !== "sources" && typeof closeSourceGuide === "function") closeSourceGuide({ restoreFocus: false });
   currentView = name;
   VIEW_NAMES.forEach(code => {
     viewElement(code)?.classList.toggle("is-hidden", code !== name);
@@ -137,6 +222,7 @@ function showView(name, { focus = true } = {}) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
+  if (name === "search" && resultsNeedTranslation) { renderAll(); resultsNeedTranslation = false; }
   if (name === "sources") autoLoadSavedSlots();
   if (name === "import") {
     showImportProviders(false);
@@ -152,7 +238,14 @@ function showView(name, { focus = true } = {}) {
   }
 }
 document.addEventListener("keydown", event => {
+  // IME cancellation belongs to the input, and a held Escape must not traverse
+  // several screens. A child control may already own this key as well.
+  if (event.isComposing || event.keyCode === 229 || event.repeat || event.defaultPrevented) return;
   if (event.key !== "Escape" || document.querySelector("dialog[open]")) return;
+  if (currentView === "sources" && closeSourceGuide()) {
+    event.preventDefault();
+    return;
+  }
   if (currentView === "import" && !document.getElementById("import-providers").classList.contains("is-hidden")) {
     event.preventDefault();
     showImportProviders(false);
@@ -219,7 +312,11 @@ function localLabel(code) {
   return parent ? `${name} · ${parent}` : name;
 }
 function sourceName(code) {
-  return LOCAL_SOURCES.includes(code) ? localLabel(code) : t(`source.${code}`);
+  if (LOCAL_SOURCES.includes(code)) return localLabel(code);
+  if (code.startsWith("docusky:")) {
+    return `${code.slice("docusky:".length)} (${t("source.docusky.unreviewed")})`;
+  }
+  return t(`source.${code}`);
 }
 function showLocalControls() {
   const busy = isLocalBusy() || localState.busy || savingSources;
@@ -229,7 +326,7 @@ function showLocalControls() {
     title.textContent = localLabel(code);
     path.textContent = info?.folder || t("local.unset");
     detail.textContent = info?.load_error
-      ? t(`error.${info.load_error}`, { path: info.folder })
+      ? errorText(info.load_error, { path: info.folder })
       : info?.configured
         ? info.loaded === false
           ? loadingSlots.has(code)
@@ -245,8 +342,11 @@ function showLocalControls() {
       info?.load_error
       || (info?.configured && info.loaded === false && autoLoadTried.has(code) && !loadingSlots.has(code)),
     );
-    load.textContent = t(info?.load_error ? "sources.retry" : "local.load");
-    load.classList.toggle("is-hidden", !canRetry);
+    const canReload = Boolean(info?.loaded && info.folder && !info.load_error);
+    load.textContent = t(loadingSlots.has(code) ? "sources.loading" : canReload ? "local.reload" : info?.load_error ? "sources.retry" : "local.load");
+    load.classList.toggle("is-hidden", !canRetry && !canReload);
+    load.title = t(canReload ? "local.reload_hint" : "local.load");
+    load.setAttribute("aria-label", t("local.folder_action", { name: localLabel(code), action: load.textContent }));
     load.disabled = busy || loadingSlots.has(code);
     choose.textContent = t(info?.folder ? "local.change" : "library.open");
     choose.setAttribute("aria-label", t("local.folder_action", { name: localLabel(code), action: choose.textContent }));
@@ -327,21 +427,27 @@ document.getElementById("remove-confirm").addEventListener("click", async () => 
   const code = pendingRemove;
   pendingRemove = "";
   removeDialog.close();
-  await removeLocal(code);
+  // The removed row held focus, so native dialog restoration has nowhere to
+  // land. Move to the view heading only after a successful removal; a failed
+  // removal leaves the row and its focus alone.
+  if (await removeLocal(code)) {
+    requestAnimationFrame(() => document.getElementById("sources-title").focus());
+  }
 });
 removeDialog.addEventListener("close", () => { pendingRemove = ""; });
 async function removeLocal(code) {
   const task = beginLocalBusy();
   try {
     const answer = await api().remove_local(code);
-    if (answer.error) { localError(answer); return; }
+    if (answer.error) { localError(answer); return false; }
     localState = answer;
     autoLoadTried.delete(code);
     loadingSlots.delete(code);
     library = await api().library();
     clearResults();
     refreshHistoryAvailability();
-  } catch { localError({ error: "network" }); }
+    return true;
+  } catch { localError({ error: "network" }); return false; }
   finally { endLocalBusy(task); }
 }
 async function ensureTargetFolder(statusId = "status") {
@@ -375,29 +481,55 @@ async function acceptLibrary(answer) {
   showLibrary(); updateSource();
   refreshHistoryAvailability();
 }
+async function refreshFailedImport(error) {
+  if (!["load_failed", "preferences_write_failed"].includes(error)) return;
+  try { localState = await api().local_libraries(); } catch {}
+  clearResults();
+  updateSource();
+}
 function localError(answer, statusId = "local-status") {
   const status = document.getElementById(statusId);
-  status.textContent = t(`error.${answer.error}`, answer);
+  status.textContent = errorText(answer.error, answer);
   const section = status.closest("details");
   if (section) section.open = true;
   status.scrollIntoView({ block: "nearest" });
 }
 function settingsError(answer) {
   const status = document.getElementById("settings-status");
-  status.textContent = t(`error.${answer.error}`, answer);
+  status.textContent = errorText(answer.error, answer);
 }
 async function saveSources() {
   if (savingSources) return;
   savingSources = true; updateSource();
   try {
-    const answer = await api().set_sources(sources());
+    const answer = await api().set_sources(sources(), {
+      historydb_site: historydbSite,
+      historydb_item: historydbItem,
+      nahf_item: nahfItem,
+    });
     if (answer.error) { localError(answer); restoreSources(); }
     else localState.selected = answer.sources;
   } catch { localError({ error: "network" }); restoreSources(); }
   finally { savingSources = false; updateSource(); }
 }
 function restoreSources() {
+  const saved = localState.selected.find(code => code.startsWith("docusky:"));
+  if (saved) {
+    if (![...docuskySelect.options].some(option => option.value === saved)) {
+      docuskyOption(saved, saved.slice("docusky:".length));
+    }
+    docuskySelect.value = saved;
+    docuskyBox.value = saved;
+  }
   allSourceBoxes().forEach(box => { box.checked = localState.selected.includes(box.value); });
+  docuskyProfiles.classList.toggle("is-hidden", !docuskyBox.checked);
+  // Checking the box here fires no change event, so the database list is asked
+  // for now; otherwise the dropdown keeps only the reviewed database until the
+  // researcher toggles the chip.
+  if (docuskyBox.checked && !docuskyCatalogLoaded) {
+    docuskyCatalogLoaded = true;
+    loadDocuskyDatabases();
+  }
 }
 async function chooseLocalFolder(code = "", statusId = "local-status") {
   const task = beginLocalBusy();
@@ -414,18 +546,23 @@ async function chooseLocalFolder(code = "", statusId = "local-status") {
   finally { endLocalBusy(task); }
 }
 async function loadLocalSlot(code, { auto = false } = {}) {
+  if (loadingSlots.has(code)) return;
+  const info = localInfo(code);
+  const reload = !auto && info?.loaded && info.folder && !info.load_error;
   autoLoadTried.add(code);
   if (!auto) autoLoadTried.delete(code);
   loadingSlots.add(code);
   const task = beginLocalBusy();
   document.getElementById("local-status").textContent = "";
   try {
-    const answer = await api().load_local(code);
+    const answer = reload ? await api().reload_local(code) : await api().load_local(code);
     if (answer.error) {
       localError(answer);
       try { localState = await api().local_libraries(); } catch {}
     } else {
       localState = answer;
+      if (code === answer.active) library = await api().library();
+      clearResults();
     }
   } catch { localError({ error: "network" }); }
   finally {
@@ -514,6 +651,21 @@ document.getElementById("ctp-open").addEventListener("click", async () => {
     status.textContent = t("error.network");
   }
 });
+// A single Enter key inside these non-form address fields runs the same action as
+// the visible button. IME composition, held keys and disabled buttons stay inert.
+function activateOnEnter(inputId, buttonId) {
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  if (!input || !button) return;
+  input.addEventListener("keydown", event => {
+    if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.repeat) return;
+    event.preventDefault();
+    button.click();
+  });
+}
+activateOnEnter("ctp-url", "ctp-import");
+activateOnEnter("external-address", "external-fetch");
+
 document.getElementById("ctp-key-save").addEventListener("click", async () => {
   const input = document.getElementById("ctp-key");
   const status = document.getElementById("ctp-status");
@@ -551,11 +703,12 @@ document.getElementById("ctp-import").addEventListener("click", async () => {
     const answer = await api().import_ctp(document.getElementById("ctp-url").value);
     if (answer.error) {
       status.classList.add("is-error");
-      status.textContent = t(`error.${answer.error}`, answer);
+      status.textContent = errorText(answer.error, answer);
     } else {
       if (answer.library?.error) {
+        await refreshFailedImport(answer.library.error);
         status.classList.add("is-error");
-        status.textContent = t("ctp.done", answer.imported) + " " + t("import.reload_failed") + " " + t(`error.${answer.library.error}`, answer.library);
+        status.textContent = t("ctp.done", answer.imported) + " " + t("import.reload_failed") + " " + errorText(answer.library.error, answer.library);
       } else if (answer.library) {
         status.textContent = t("ctp.done", answer.imported);
         await acceptLibrary(answer.library);
@@ -600,7 +753,7 @@ function showRiseError(answer, retryCallback) {
   const errEl = document.getElementById("external-rise-error");
   const retryBtn = document.getElementById("external-rise-retry");
   if (!stateEl || !errEl) return;
-  errEl.textContent = t(`error.${answer.error}`, answer);
+  errEl.textContent = errorText(answer.error, answer);
   if (retryBtn) {
     retryBtn.classList.remove("is-hidden");
     riseRetryAction = retryCallback;
@@ -813,6 +966,7 @@ async function loadRiseSections(bookUuid) {
   }
 }
 function updateExternal() {
+  externalDialog.setAttribute("aria-busy", String(external.busy));
   const provider = document.getElementById("external-provider").value;
   const offlineFile = document.getElementById("external-file-name");
   const offline = ["cbeta", "nikh-partial"].includes(provider);
@@ -994,7 +1148,7 @@ function showExternalExclusions(details = {}) {
 function externalError(answer) {
   const status = document.getElementById("external-status");
   status.classList.add("is-error");
-  status.textContent = t(`error.${answer.error}`, answer);
+  status.textContent = errorText(answer.error, answer);
 }
 function clearExternalPreview() {
   const oldToken = external.token;
@@ -1116,46 +1270,48 @@ document.querySelectorAll("[data-external-provider]").forEach(button => {
 document.getElementById("external-find-link").addEventListener("click", event => {
   event.preventDefault();
   const link = event.currentTarget.getAttribute("href");
-  if (link) api().open_link(link);
+  if (link) openSourceLink(link);
 });
 const externalRevisionLink = document.getElementById("external-revision-link");
 if (externalRevisionLink) {
   externalRevisionLink.addEventListener("click", event => {
     event.preventDefault();
     const link = event.currentTarget.getAttribute("href");
-    if (link) api().open_link(link);
+    if (link) openSourceLink(link);
   });
 }
 document.getElementById("ctp-find-link").addEventListener("click", event => {
   event.preventDefault();
   const link = event.currentTarget.getAttribute("href");
-  if (link) api().open_link(link);
+  if (link) openSourceLink(link);
 });
-externalDialog.addEventListener("keydown", event => {
+document.querySelectorAll("dialog").forEach(dialog => {
+dialog.addEventListener("keydown", event => {
   if (event.key !== "Tab") return;
-  const focusable = [...externalDialog.querySelectorAll('button:not(:disabled), select:not(:disabled), input:not(:disabled), summary, textarea, a[href]')]
+  const focusable = [...dialog.querySelectorAll('button:not(:disabled), select:not(:disabled), input:not(:disabled), summary, textarea, a[href]')]
     .filter(el => el.getClientRects().length && !el.disabled && el.tabIndex >= 0);
   if (!focusable.length) return;
   const first = focusable[0];
   const last = focusable[focusable.length - 1];
   if (event.shiftKey) {
-    if (document.activeElement === first || !externalDialog.contains(document.activeElement)) {
+    if (document.activeElement === first || !dialog.contains(document.activeElement)) {
       event.preventDefault();
       last.focus();
       last.scrollIntoView({ block: "nearest" });
     }
   } else {
-    if (document.activeElement === last || !externalDialog.contains(document.activeElement)) {
+    if (document.activeElement === last || !dialog.contains(document.activeElement)) {
       event.preventDefault();
       first.focus();
       first.scrollIntoView({ block: "nearest" });
     }
   }
 });
-externalDialog.addEventListener("focusin", event => {
+dialog.addEventListener("focusin", event => {
   if (event.target && typeof event.target.scrollIntoView === "function") {
     event.target.scrollIntoView({ block: "nearest" });
   }
+});
 });
 externalDialog.addEventListener("cancel", event => { if (external.busy) event.preventDefault(); });
 externalDialog.querySelector("form").addEventListener("submit", event => { if (external.busy) event.preventDefault(); });
@@ -1331,7 +1487,7 @@ document.getElementById("external-range-select").addEventListener("click", () =>
   updateExternal();
 });
 ["external-reviewed", "external-edition"].forEach(id => document.getElementById(id).addEventListener("input", updateExternal));
-document.getElementById("external-source").addEventListener("click", event => { event.preventDefault(); const link = event.currentTarget.getAttribute("href"); if (link) api().open_link(link); });
+document.getElementById("external-source").addEventListener("click", event => { event.preventDefault(); const link = event.currentTarget.getAttribute("href"); if (link) openSourceLink(link); });
 document.getElementById("external-import").addEventListener("click", async () => {
   if (!await ensureTargetFolder("external-status")) return;
   external.busy = true; updateExternal();
@@ -1342,7 +1498,7 @@ document.getElementById("external-import").addEventListener("click", async () =>
     if (answer.error) { externalError(answer); return; }
     external.token = ""; status.textContent = t("external.done", answer.imported);
     if (answer.library && !answer.library.error) { await acceptLibrary(answer.library); clearResults(); }
-    else if (answer.library) externalError(answer.library);
+    else if (answer.library) { await refreshFailedImport(answer.library.error); externalError(answer.library); }
   } catch { externalError({ error: "external_network" }); }
   finally { external.busy = false; updateExternal(); }
 });
@@ -1353,7 +1509,7 @@ function showExternalHistory() {
   const book = externalHistory.books[document.getElementById("external-history-book").selectedIndex];
   if (!book) return;
   const status = document.getElementById("external-history-status");
-  if (book.error) { status.textContent = t(`error.${book.error}`); return; }
+  if (book.error) { status.textContent = errorText(book.error); return; }
   status.textContent = "";
   for (const [key, value] of [["external.edition", book.edition], ["external.history.folder", book.folder], ["external.history.count", book.units]]) {
     const term = document.createElement("dt"), definition = document.createElement("dd");
@@ -1370,7 +1526,7 @@ function showExternalHistory() {
     receipt.downloads.forEach(download => {
       const link = document.createElement("a"), hash = document.createElement("code"), line = document.createElement("p");
       link.textContent = download.url; link.href = download.url;
-      link.addEventListener("click", event => { event.preventDefault(); api().open_link(download.url); });
+      link.addEventListener("click", event => { event.preventDefault(); openSourceLink(download.url); });
       hash.textContent = t("external.history.checksum", { sha256: download.sha256 });
       line.append(link, document.createElement("br"), hash); item.append(line);
     });
@@ -1411,7 +1567,7 @@ document.getElementById("external-history-open").addEventListener("click", async
   document.getElementById("external-history-book").replaceChildren(); status.textContent = t("external.history.loading");
   try {
     const answer = await api().external_history();
-    if (answer.error) { status.textContent = t(`error.${answer.error}`); return; }
+    if (answer.error) { status.textContent = errorText(answer.error); return; }
     externalHistory.books = answer.books;
     document.getElementById("external-history-book").replaceChildren(...answer.books.map(book => new Option(book.title || book.book, book.book)));
     if (answer.books.length) showExternalHistory(); else status.textContent = t("external.history.empty");
@@ -1467,7 +1623,7 @@ function renderDatasets() {
     page.type = "button";
     page.className = "link-button";
     page.textContent = t("release.page");
-    page.addEventListener("click", event => { event.preventDefault(); api().open_link(d.page); });
+    page.addEventListener("click", event => { event.preventDefault(); openSourceLink(d.page); });
     meta.append(rights, page);
     const label = choice("release-dataset", d.pk, t(`release.ds.${d.pk}`), t(`release.ds.${d.pk}.desc`), meta);
     const input = label.querySelector("input");
@@ -1504,8 +1660,14 @@ document.getElementById("release-open").addEventListener("click", async () => {
 async function runRelease(taskText, call, name) {
   showView("search");
   const task = beginLocalBusy();
+  releaseDialog.setAttribute("aria-busy", "true");
+  batchDialog.setAttribute("aria-busy", "true");
   try { await runReleaseTask(taskText, call, name); }
-  finally { endLocalBusy(task); }
+  finally {
+    releaseDialog.setAttribute("aria-busy", "false");
+    batchDialog.setAttribute("aria-busy", "false");
+    endLocalBusy(task);
+  }
 }
 async function runReleaseTask(taskText, call, name) {
   const status = document.getElementById("status");
@@ -1529,13 +1691,13 @@ async function runReleaseTask(taskText, call, name) {
   if (answer.cancelled) return;
   if (answer.error) {
     status.classList.add("is-error");
-    status.textContent = t(`error.${answer.error}`, answer);
+    status.textContent = errorText(answer.error, answer);
     syncResultsBar();
     return;
   }
-  // The texts are saved even when the folder cannot be read afterwards; that is
-  // said as an error, and the library on screen stays as it was.
+  // Saved texts need a fresh folder snapshot before they can be searched.
   const unopened = answer.library && answer.library.error ? answer.library : null;
+  if (unopened) await refreshFailedImport(unopened.error);
   if (answer.library && !unopened) {
     await acceptLibrary(answer.library);
     clearResults();
@@ -1546,7 +1708,7 @@ async function runReleaseTask(taskText, call, name) {
   }
   if (unopened) {
     status.classList.add("is-error");
-    status.textContent = t("release.unopened", unopened) + " " + t(`error.${unopened.error}`, unopened);
+    status.textContent = t("release.unopened", unopened) + " " + errorText(unopened.error, unopened);
     syncResultsBar();
     return;
   }
@@ -1573,7 +1735,7 @@ function batchItem(item) {
   head.append(file, state);
   li.append(head);
   const lines = [];
-  if (item.status === "failed") lines.push(t(`error.${item.code}`, item));
+  if (item.status === "failed") lines.push(errorText(item.code, item));
   else lines.push(t("batch.item.saved", item));
   if (item.skipped_articles) lines.push(t("batch.item.excluded", item));
   for (const text of lines) {
@@ -1627,14 +1789,53 @@ const form = document.getElementById("search");
 function mode() { return form.querySelector("input[name=mode]:checked").value; }
 // Every searchable source, in menu order. "local" is the text folder; the others are
 // online and each has a catalog name source.<code> and an explanation source.<code>.note.
-// Adding a source here adds its chip and its footer link.
-const SOURCES = ["local", "itkc", "ndl", "cbeta", "cyberseodang", "docusky"];
+// Adding a source here adds its selection and contextual guide controls.
+const SOURCES = ["local", "itkc", "ndl", "cbeta", "cyberseodang", "docusky", "historydb", "sillok", "ith", "nahf", "nrich", "vietdien", "sat", "aksarchive", "ships", "thdl", "csid", "cand", "kyudb"];
 const ONLINE = SOURCES.filter(code => code !== "local");
+// Browsing groups follow source/service context, not operator addresses or script.
+// Keep SOURCES order stable for saved choices and result-panel ordering.
+const SOURCE_REGIONS = Object.freeze([
+  { id: "korea", label: "sources.region.korea", sources: ["itkc", "cyberseodang", "historydb", "sillok", "nahf", "nrich", "aksarchive", "kyudb"] },
+  { id: "japan", label: "sources.region.japan", sources: ["ndl", "sat", "ships", "cand"] },
+  { id: "china", label: "sources.region.china", sources: ["csid"] },
+  { id: "taiwan", label: "sources.region.taiwan", sources: ["cbeta", "docusky", "ith", "thdl"] },
+  { id: "vietnam", label: "sources.region.vietnam", sources: ["vietdien"] },
+]);
 
 // Several sources can be searched at once, each in its own panel (at most four: 田).
 const MAX_SOURCES = 4;
 const sourceChips = document.getElementById("source-chips");
+const sourceOptions = new Map();
+const sourceHelpButtons = new Map();
+const sourceRegionGrids = new Map();
+for (const region of SOURCE_REGIONS) {
+  const section = document.createElement("section");
+  section.className = "source-region";
+  section.dataset.sourceRegion = region.id;
+  const heading = document.createElement("h4");
+  heading.id = `source-region-${region.id}`;
+  heading.dataset.i18n = region.label;
+  section.setAttribute("aria-labelledby", heading.id);
+  const grid = document.createElement("div");
+  grid.className = "source-region-grid";
+  section.append(heading, grid);
+  sourceChips.appendChild(section);
+  for (const code of region.sources) sourceRegionGrids.set(code, grid);
+}
+function sourceInfoIcon() {
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("focusable", "false");
+  const mark = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  mark.setAttribute("d", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 6v.01M12 12v5");
+  icon.append(mark);
+  return icon;
+}
 const sourceBoxes = ONLINE.map(code => {
+  const option = document.createElement("div");
+  option.className = "source-option";
+  option.dataset.source = code;
   const label = document.createElement("label");
   label.className = "chip";
   const box = document.createElement("input");
@@ -1644,9 +1845,329 @@ const sourceBoxes = ONLINE.map(code => {
   const name = document.createElement("span");
   name.dataset.i18n = `source.${code}`;
   label.append(box, " ", name);
-  sourceChips.appendChild(label);
+  const help = document.createElement("button");
+  help.type = "button";
+  help.className = "source-help";
+  help.dataset.i18nTitle = "source.help";
+  help.append(sourceInfoIcon());
+  help.setAttribute("aria-controls", "source-guide");
+  help.setAttribute("aria-expanded", "false");
+  help.addEventListener("click", () => showSourceGuide(code));
+  option.append(label, help);
+  sourceOptions.set(code, option);
+  sourceHelpButtons.set(code, help);
+  sourceRegionGrids.get(code).appendChild(option);
   return box;
 });
+const localFilesHelp = document.getElementById("local-files-help");
+localFilesHelp.append(sourceInfoIcon());
+localFilesHelp.addEventListener("click", () => showSourceGuide("local"));
+sourceHelpButtons.set("local", localFilesHelp);
+sourceOptions.set("local", document.getElementById("local-files-help-row"));
+
+// The integrated NIKH search is one source with an era and a database-item choice.
+// The provider counts the whole integrated search but serves rows only from one era
+// item, so the window asks for both before sending the one-page query.
+const historydbBox = sourceBoxes[ONLINE.indexOf("historydb")];
+const historydbSites = ["diachronic", "ancient", "goryeo", "joseon", "modern", "contemp"];
+const historydbControls = document.createElement("span");
+historydbControls.className = "historydb-controls is-hidden";
+const historydbSiteSelect = document.createElement("select");
+historydbSiteSelect.className = "historydb-site";
+historydbSiteSelect.dataset.i18nAria = "source.historydb.site_label";
+for (const site of historydbSites) {
+  const option = document.createElement("option");
+  option.value = site;
+  option.dataset.i18n = `source.historydb.site.${site}`;
+  historydbSiteSelect.appendChild(option);
+}
+historydbSiteSelect.value = "joseon";
+const historydbItemSelect = document.createElement("select");
+historydbItemSelect.className = "historydb-item";
+historydbItemSelect.dataset.i18nAria = "source.historydb.item";
+const historydbPrompt = document.createElement("option");
+historydbPrompt.value = "";
+historydbPrompt.dataset.i18n = "source.historydb.item_prompt";
+historydbItemSelect.appendChild(historydbPrompt);
+historydbControls.append(historydbSiteSelect, historydbItemSelect);
+sourceOptions.get("historydb").appendChild(historydbControls);
+let historydbSite = "joseon";
+let historydbItem = "";
+const historydbCatalog = new Map();
+// The era whose catalogue request is in flight, or "" when none is. An era chosen
+// meanwhile is queued instead of dropped, so the dropdown never keeps the old
+// era's "loading" row.
+let historydbLoadingSite = "";
+let historydbReload = false;
+
+function fillHistorydbItems(items) {
+  const keep = historydbItem;
+  historydbItemSelect.replaceChildren();
+  const prompt = document.createElement("option");
+  prompt.value = "";
+  prompt.dataset.i18n = items.length ? "source.historydb.item_prompt" : "source.historydb.no_item";
+  prompt.textContent = t(prompt.dataset.i18n);
+  historydbItemSelect.appendChild(prompt);
+  for (const entry of items) {
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent = entry.label || entry.id;
+    historydbItemSelect.appendChild(option);
+  }
+  historydbItem = items.some(entry => entry.id === keep) ? keep : "";
+  historydbItemSelect.value = historydbItem;
+}
+
+async function loadHistorydbItems() {
+  const site = historydbSite;
+  if (historydbCatalog.has(site)) {
+    fillHistorydbItems(historydbCatalog.get(site));
+    return;
+  }
+  if (historydbLoadingSite) {
+    if (historydbLoadingSite !== site) historydbReload = true;
+    return;
+  }
+  historydbLoadingSite = site;
+  historydbItem = "";
+  historydbItemSelect.replaceChildren();
+  const loading = document.createElement("option");
+  loading.value = "";
+  loading.textContent = t("source.historydb.catalog_loading");
+  historydbItemSelect.appendChild(loading);
+  try {
+    const answer = await api().historydb_catalog(site);
+    // Another era was chosen while this answered: the queued reload words the
+    // dropdown, so this answer is only kept for when that era is chosen again.
+    if (answer.error || !Array.isArray(answer.items)) {
+      if (historydbSite !== site) return;
+      const failed = document.createElement("option");
+      failed.value = "";
+      failed.disabled = true;
+      failed.textContent = t("source.historydb.catalog_failed");
+      historydbItemSelect.replaceChildren(failed);
+      return;
+    }
+    historydbCatalog.set(site, answer.items);
+    if (historydbSite === site) fillHistorydbItems(answer.items);
+  } catch {
+    if (historydbSite !== site) return;
+    const failed = document.createElement("option");
+    failed.value = "";
+    failed.disabled = true;
+    failed.textContent = t("source.historydb.catalog_failed");
+    historydbItemSelect.replaceChildren(failed);
+  } finally {
+    historydbLoadingSite = "";
+    if (historydbReload) {
+      historydbReload = false;
+      if (historydbBox.checked) loadHistorydbItems();
+    }
+  }
+}
+
+historydbSiteSelect.addEventListener("change", async () => {
+  historydbSite = historydbSiteSelect.value;
+  historydbBox.checked = true;
+  updateSource();
+  loadHistorydbItems();
+  await saveSources();
+});
+historydbItemSelect.addEventListener("change", async () => {
+  historydbItem = historydbItemSelect.value;
+  historydbBox.checked = true;
+  updateSource();
+  await saveSources();
+});
+historydbBox.addEventListener("change", () => {
+  historydbControls.classList.toggle("is-hidden", !historydbBox.checked);
+  if (historydbBox.checked) loadHistorydbItems();
+});
+
+// NAHF returns rows only for one source-library collection at a time. The
+// collection catalog is local metadata; the selected id is sent with the query.
+const nahfBox = sourceBoxes[ONLINE.indexOf("nahf")];
+const nahfControls = document.createElement("span");
+nahfControls.className = "nahf-controls is-hidden";
+const nahfItemSelect = document.createElement("select");
+nahfItemSelect.className = "nahf-item";
+nahfItemSelect.dataset.i18nAria = "source.nahf.item";
+const nahfPrompt = document.createElement("option");
+nahfPrompt.value = "";
+nahfPrompt.dataset.i18n = "source.nahf.item_prompt";
+nahfItemSelect.appendChild(nahfPrompt);
+let nahfItem = "";
+let nahfCatalogLoaded = false;
+let nahfLoading = false;
+// The sub-option choices are saved beside the source list. They are applied
+// before the catalogues load, so the historydb item and NAHF collection can be
+// restored once their options arrive.
+function applySourceOptions(options) {
+  if (!options || typeof options !== "object") return;
+  if (
+    typeof options.historydb_site === "string"
+    && historydbSites.includes(options.historydb_site)
+  ) {
+    historydbSite = options.historydb_site;
+    historydbSiteSelect.value = historydbSite;
+  }
+  if (typeof options.historydb_item === "string") historydbItem = options.historydb_item;
+  if (typeof options.nahf_item === "string") nahfItem = options.nahf_item;
+}
+nahfControls.append(nahfItemSelect);
+sourceOptions.get("nahf").appendChild(nahfControls);
+
+function fillNahfItems(items) {
+  const keep = nahfItem;
+  nahfItemSelect.replaceChildren();
+  const prompt = document.createElement("option");
+  prompt.value = "";
+  prompt.dataset.i18n = "source.nahf.item_prompt";
+  prompt.textContent = t(prompt.dataset.i18n);
+  nahfItemSelect.appendChild(prompt);
+  for (const entry of items) {
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent = entry.label || entry.id;
+    nahfItemSelect.appendChild(option);
+  }
+  nahfItem = items.some(entry => entry.id === keep) ? keep : "";
+  nahfItemSelect.value = nahfItem;
+}
+
+async function loadNahfItems() {
+  if (nahfCatalogLoaded || nahfLoading) return;
+  nahfLoading = true;
+  const loading = document.createElement("option");
+  loading.value = "";
+  loading.textContent = t("source.nahf.catalog_loading");
+  nahfItemSelect.replaceChildren(loading);
+  try {
+    const answer = await api().nahf_catalog();
+    if (answer.error || !Array.isArray(answer.items)) {
+      const failed = document.createElement("option");
+      failed.value = "";
+      failed.disabled = true;
+      failed.textContent = t("source.nahf.catalog_failed");
+      nahfItemSelect.replaceChildren(failed);
+      return;
+    }
+    nahfCatalogLoaded = true;
+    fillNahfItems(answer.items);
+  } catch {
+    const failed = document.createElement("option");
+    failed.value = "";
+    failed.disabled = true;
+    failed.textContent = t("source.nahf.catalog_failed");
+    nahfItemSelect.replaceChildren(failed);
+  } finally {
+    nahfLoading = false;
+  }
+}
+
+nahfItemSelect.addEventListener("change", async () => {
+  nahfItem = nahfItemSelect.value;
+  nahfBox.checked = true;
+  updateSource();
+  await saveSources();
+});
+nahfBox.addEventListener("change", () => {
+  nahfControls.classList.toggle("is-hidden", !nahfBox.checked);
+  if (nahfBox.checked) loadNahfItems();
+});
+
+// DocuSky searches one public database at a time. The dropdown offers the reviewed
+// database plus every database the provider's public catalogue lists; those are
+// labelled unreviewed, because their body layers have not been inspected.
+const docuskyBox = sourceBoxes[ONLINE.indexOf("docusky")];
+const docuskyProfiles = document.createElement("span");
+docuskyProfiles.className = "docusky-profiles is-hidden";
+const docuskyLabel = document.createElement("span");
+docuskyLabel.dataset.i18n = "source.docusky.database";
+const docuskySelect = document.createElement("select");
+docuskySelect.className = "docusky-database";
+const reviewedOption = document.createElement("option");
+reviewedOption.value = "docusky";
+reviewedOption.dataset.i18n = "source.docusky";
+docuskySelect.appendChild(reviewedOption);
+const docuskyUnreviewed = new Map();
+function docuskyOption(source, database, reviewed = false) {
+  const option = document.createElement("option");
+  option.value = source;
+  option.textContent = reviewed
+    ? database
+    : `${database} (${t("source.docusky.unreviewed")})`;
+  docuskySelect.appendChild(option);
+  if (!reviewed) docuskyUnreviewed.set(option, database);
+  return option;
+}
+function labelDocuskyOptions() {
+  for (const [option, database] of docuskyUnreviewed) {
+    option.textContent = `${database} (${t("source.docusky.unreviewed")})`;
+  }
+  const failed = docuskySelect.querySelector("option[data-failed]");
+  if (failed) failed.textContent = t("source.docusky.catalog_failed");
+}
+docuskyProfiles.append(docuskyLabel, docuskySelect);
+sourceOptions.get("docusky").appendChild(docuskyProfiles);
+
+docuskySelect.addEventListener("change", async () => {
+  docuskyBox.value = docuskySelect.value;
+  docuskyBox.checked = true;
+  updateSource();
+  await saveSources();
+});
+let docuskyCatalogLoaded = false;
+function docuskyCatalogFailed() {
+  docuskyCatalogLoaded = false;
+  if ([...docuskySelect.options].some(option => option.dataset.failed)) return;
+  const option = document.createElement("option");
+  option.disabled = true;
+  option.dataset.failed = "1";
+  option.textContent = t("source.docusky.catalog_failed");
+  docuskySelect.appendChild(option);
+}
+async function loadDocuskyDatabases() {
+  try {
+    const answer = await api().docusky_catalog();
+    if (answer.error || !Array.isArray(answer.databases)) {
+      docuskyCatalogFailed();
+      return;
+    }
+    const keep = docuskySelect.value;
+    docuskySelect.querySelectorAll("option[data-failed]").forEach(option => option.remove());
+    for (const entry of answer.databases) {
+      if (!entry.source || !entry.database) continue;
+      if (entry.database === answer.default) continue;
+      const existing = [...docuskySelect.options].find(option => option.value === entry.source);
+      if (existing) {
+        if (entry.reviewed) {
+          docuskyUnreviewed.delete(existing);
+          existing.textContent = entry.database;
+        }
+        continue;
+      }
+      docuskyOption(entry.source, entry.database, Boolean(entry.reviewed));
+    }
+    if ([...docuskySelect.options].some(option => option.value === keep)) {
+      docuskySelect.value = keep;
+    }
+  } catch { docuskyCatalogFailed(); }
+}
+docuskyBox.addEventListener("change", () => {
+  docuskyProfiles.classList.toggle("is-hidden", !docuskyBox.checked);
+  if (docuskyBox.checked && !docuskyCatalogLoaded) {
+    docuskyCatalogLoaded = true;
+    loadDocuskyDatabases();
+  }
+});
+const nrichBox = sourceBoxes[ONLINE.indexOf("nrich")];
+const nrichHint = document.getElementById("nrich-hint");
+if (nrichBox && nrichHint) {
+  nrichBox.addEventListener("change", () => {
+    nrichHint.classList.toggle("is-hidden", !nrichBox.checked);
+  });
+}
 
 // Each local slot keeps its own library, selection and result panel identity.
 const localRows = LOCAL_SOURCES.map(code => {
@@ -1685,20 +2206,122 @@ document.getElementById("add-local-folder").addEventListener("click", () => {
   if (code) chooseLocalFolder(code);
 });
 
-const dialog = document.getElementById("source-dialog");
-const sourceNotes = document.getElementById("source-notes-list");
-ONLINE.forEach(code => {
-  const link = document.createElement("button");
-  link.type = "button";
-  link.className = "source-link";
-  link.dataset.i18n = `source.${code}`;
-  link.addEventListener("click", () => {
-    dialog.querySelector(".dialog-title").textContent = t(`source.${code}`);
-    dialog.querySelector(".dialog-body").textContent = t(`source.${code}.note`);
-    dialog.showModal();
-  });
-  sourceNotes.appendChild(link);
+const sourceGuide = document.getElementById("source-guide");
+const sourceGuideLayout = document.getElementById("source-guide-layout");
+const sourceWorkspace = document.getElementById("source-workspace");
+const sourceGuideTitle = document.getElementById("source-guide-title");
+const sourceGuideBody = document.getElementById("source-guide-body");
+const sourceOfficial = document.getElementById("source-guide-official");
+const sourceOfficialLink = document.getElementById("source-guide-link");
+const NRICH_OFFICIAL = "https://portal.nrich.go.kr/kor/mokganList.do?menuIdx=891";
+const SOURCE_OFFICIAL = {
+  nrich: NRICH_OFFICIAL,
+  cand: "https://tool.hankeidou.jp/cand/kanshi_search1.php",
+  kyudb: "https://kyudb.snu.ac.kr/main.do?mid=GMS",
+};
+let sourceOfficialUrl = "";
+sourceOfficialLink.addEventListener("click", event => {
+  event.preventDefault();
+  if (sourceOfficialUrl) openSourceLink(sourceOfficialUrl);
 });
+function updateSourceOfficial(code) {
+  sourceOfficialUrl = SOURCE_OFFICIAL[code] || "";
+  sourceOfficial.classList.toggle("is-hidden", !sourceOfficialUrl);
+  if (sourceOfficialUrl) sourceOfficialLink.href = sourceOfficialUrl;
+  else sourceOfficialLink.removeAttribute("href");
+}
+
+let sourceGuideCode = "";
+function refreshSourceGuide() {
+  for (const [code, button] of sourceHelpButtons) {
+    button.setAttribute("aria-label", code === "local" ? t("library.help.summary")
+      : t("source.help_for", { source: t(`source.${code}`) }));
+    button.setAttribute("aria-expanded", String(code === sourceGuideCode));
+  }
+  if (!sourceGuideCode) return;
+  const code = sourceGuideCode;
+  sourceGuideTitle.textContent = code === "local" ? t("library.help.summary") : t(`source.${code}`);
+  sourceGuideBody.textContent = code === "local" ? t("library.help") : t(`source.${code}.note`);
+  updateSourceOfficial(code);
+}
+
+function placeSourceGuide() {
+  if (!sourceGuideCode) return;
+  const button = sourceHelpButtons.get(sourceGuideCode);
+  let trigger = button.getBoundingClientRect();
+  if (trigger.bottom < 0 || trigger.top > window.innerHeight) {
+    button.scrollIntoView({ block: "nearest" });
+    trigger = button.getBoundingClientRect();
+  }
+  const owner = sourceOptions.get(sourceGuideCode).getBoundingClientRect();
+  const viewport = window.visualViewport;
+  const bounds = { x: viewport?.offsetLeft || 0, y: viewport?.offsetTop || 0,
+    width: viewport?.width || window.innerWidth, height: viewport?.height || window.innerHeight };
+  const gutter = 12, gap = 8;
+  const room = Math.max(1, bounds.width - gutter * 2);
+  const font = parseFloat(getComputedStyle(sourceGuide).fontSize) || 14;
+  const width = Math.min(room, Math.max(owner.width, Math.min(bounds.width * .42, font * 44)));
+  const left = Math.max(bounds.x + gutter, Math.min(owner.left, bounds.x + bounds.width - gutter - width));
+  sourceGuide.style.width = `${width}px`;
+  sourceGuide.style.maxHeight = `${Math.max(1, bounds.height - gutter * 2)}px`;
+  const desired = sourceGuide.getBoundingClientRect().height;
+  const below = bounds.y + bounds.height - gutter - trigger.bottom - gap;
+  const above = trigger.top - bounds.y - gutter - gap;
+  let top, height = desired;
+  if (desired <= below) top = trigger.bottom + gap;
+  else if (desired <= above) top = trigger.top - gap - desired;
+  else if (Math.max(above, below) >= Math.min(desired, font * 12)) {
+    height = Math.max(above, below);
+    top = below >= above ? trigger.bottom + gap : bounds.y + gutter;
+  } else {
+    // A short window needs usable reading space, not a tiny anchored sliver.
+    // Keep this overlay out of flow even when it must overlap its trigger.
+    top = Math.max(bounds.y + gutter, Math.min(trigger.bottom + gap, bounds.y + bounds.height - gutter - desired));
+  }
+  height = Math.min(height, Math.max(1, bounds.height - gutter * 2));
+  top = Math.max(bounds.y + gutter, Math.min(top, bounds.y + bounds.height - gutter - height));
+  sourceGuide.style.maxHeight = `${height}px`;
+  sourceGuide.style.left = `${left}px`;
+  sourceGuide.style.top = `${top}px`;
+}
+
+function closeSourceGuide({ restoreFocus = true } = {}) {
+  if (!sourceGuideCode) return false;
+  const trigger = sourceHelpButtons.get(sourceGuideCode);
+  sourceGuideCode = "";
+  if (typeof sourceGuide.hidePopover === "function" && sourceGuide.matches(":popover-open")) sourceGuide.hidePopover();
+  sourceGuide.classList.add("is-hidden");
+  refreshSourceGuide();
+  if (restoreFocus) trigger.focus({ preventScroll: true });
+  return true;
+}
+
+function showSourceGuide(code) {
+  if (!sourceHelpButtons.has(code)) return;
+  if (sourceGuideCode === code) { closeSourceGuide(); return; }
+  sourceGuideCode = code;
+  sourceGuide.classList.remove("is-hidden");
+  refreshSourceGuide();
+  if (typeof sourceGuide.showPopover === "function") {
+    if (!sourceGuide.matches(":popover-open")) sourceGuide.showPopover({ source: sourceHelpButtons.get(code) });
+  } else sourceGuide.removeAttribute("popover");
+  placeSourceGuide();
+  sourceGuideTitle.focus({ preventScroll: true });
+}
+document.getElementById("source-guide-close").addEventListener("click", () => closeSourceGuide());
+document.addEventListener("pointerdown", event => {
+  if (!sourceGuideCode || sourceGuide.contains(event.target) || event.target.closest(".source-help")) return;
+  closeSourceGuide({ restoreFocus: false });
+});
+window.addEventListener("resize", placeSourceGuide);
+window.visualViewport?.addEventListener("resize", placeSourceGuide);
+window.visualViewport?.addEventListener("scroll", placeSourceGuide);
+document.addEventListener("scroll", event => {
+  if (!sourceGuideCode || sourceGuide.contains(event.target)) return;
+  const rect = sourceHelpButtons.get(sourceGuideCode).getBoundingClientRect();
+  if (rect.bottom < 0 || rect.top > window.innerHeight) closeSourceGuide({ restoreFocus: false });
+  else placeSourceGuide();
+}, true);
 function allSourceBoxes() { return [...localRows.map(row => row.box), ...sourceBoxes]; }
 function sources() { return allSourceBoxes().filter(box => box.checked).map(box => box.value); }
 function selectedLocalReady(code) {
@@ -1709,8 +2332,8 @@ function hasUsableSources() {
   return sources().some(code => LOCAL_SOURCES.includes(code) ? selectedLocalReady(code) : true);
 }
 function updateWelcome() {
-  const welcome = document.getElementById("welcome");
-  welcome.classList.toggle("is-hidden", hasUsableSources());
+  const help = document.getElementById("welcome-help");
+  help.classList.toggle("is-hidden", hasUsableSources());
 }
 function updateSource() {
   const chosen = sources();
@@ -1720,7 +2343,24 @@ function updateSource() {
     box.disabled = savingSources || missing || (!box.checked && chosen.length >= MAX_SOURCES);
   });
   showLocalControls();
+  docuskyProfiles.classList.toggle("is-hidden", !docuskyBox.checked);
+  if (historydbControls) {
+    historydbControls.classList.toggle("is-hidden", !historydbBox.checked);
+    if (
+      historydbBox.checked
+      && !historydbCatalog.has(historydbSite)
+      && historydbLoadingSite !== historydbSite
+    ) {
+      loadHistorydbItems();
+    }
+  }
+  if (nahfControls) {
+    nahfControls.classList.toggle("is-hidden", !nahfBox.checked);
+    if (nahfBox.checked && !nahfCatalogLoaded && !nahfLoading) loadNahfItems();
+  }
+  if (nrichBox && nrichHint) nrichHint.classList.toggle("is-hidden", !nrichBox.checked);
   updateWelcome();
+  updateSelectionNotice();
   syncSearchButton();
 }
 const homeButton = document.getElementById("home");
@@ -1728,7 +2368,6 @@ homeButton.addEventListener("click", () => showView("search"));
 document.querySelectorAll(".top-nav [data-view]").forEach(button => {
   button.addEventListener("click", () => showView(button.dataset.view));
 });
-document.getElementById("welcome-sources").addEventListener("click", () => showView("sources"));
 document.getElementById("import-originals").addEventListener("click", () => showImportProviders(true));
 document.getElementById("import-providers-back")?.addEventListener("click", () => showImportProviders(false));
 document.getElementById("sources-import-route")?.addEventListener("click", () => showView("import"));
@@ -1739,8 +2378,11 @@ const reserveTop = () => {
     topFrame = null;
     const topEl = document.querySelector(".top");
     if (!topEl) return;
-    const space = `${Math.ceil(topEl.getBoundingClientRect().height) + 12}px`;
+    const height = getComputedStyle(topEl).position === "static" ? 0 : Math.ceil(topEl.getBoundingClientRect().height);
+    const space = `${height + 12}px`;
     const style = document.documentElement.style;
+    if (style.getPropertyValue("--top-h") !== `${height}px`)
+      style.setProperty("--top-h", `${height}px`);
     if (style.getPropertyValue("--top-space") !== space) style.setProperty("--top-space", space);
   });
 };
@@ -1752,7 +2394,7 @@ if (topHeader) {
 }
 allSourceBoxes().forEach(box => box.addEventListener("change", async () => {
   updateSource();
-  clearResults();
+  updateSelectionNotice();
   await saveSources();
 }));
 let searchVersion = 0;
@@ -1769,10 +2411,27 @@ function syncResultsBar() {
 function syncSearchButton() {
   const button = document.querySelector("#search .go");
   if (!button) return;
-  button.disabled = searchBusy || !hasUsableSources();
+  // An empty source selection is routed to the source view by the submit
+  // handler; disabling the button here would make that feedback unreachable.
+  button.disabled = searchBusy;
+  document.querySelectorAll("#panels .source-retry").forEach(retry => { retry.disabled = searchBusy; });
   form.setAttribute("aria-busy", String(searchBusy));
   syncResultsBar();
 }
+function updateSelectionNotice() {
+  const notice = document.getElementById("selection-notice");
+  if (!notice) return;
+  const submitted = lastAnswers.map(entry => entry.source);
+  const selected = sources();
+  const changed = submitted.length > 0 && (submitted.length !== selected.length
+    || submitted.some((source, index) => source !== selected[index])
+    || lastAnswers.some(({ source, request }) => source === "historydb"
+      ? request?.site !== historydbSite || request?.item !== historydbItem
+      : source === "nahf" && request?.item !== nahfItem));
+  notice.classList.toggle("is-hidden", !changed);
+  notice.textContent = changed ? t("results.selection_changed") : "";
+}
+
 function clearResults() {
   searchVersion++;
   api().invalidate_searches?.(searchVersion)?.catch(() => {});
@@ -1781,6 +2440,7 @@ function clearResults() {
   document.getElementById("status").textContent = searchBusy ? t("results.searching") : "";
   document.getElementById("panels").replaceChildren();
   updateWelcome();
+  updateSelectionNotice();
   syncSearchButton();
 }
 document.getElementById("results-clear").addEventListener("click", clearResults);
@@ -1818,8 +2478,47 @@ function marked(text) {
   return out;
 }
 
+const CITATION_FIELDS = Object.freeze([
+  ["item_id", "source.vietdien.citation_item"],
+  ["title_han", "source.vietdien.citation_title"],
+  ["page", "source.vietdien.citation_page"],
+  ["number", "source.sat.citation_no"],
+  ["pages", "source.sat.citation_pages"],
+  ["hits", "source.sat.citation_hits"],
+  ["uci", "source.aksarchive.citation_uci"],
+  ["date", "source.aksarchive.citation_date"],
+  ["report", "source.nrich.citation_report"],
+  ["institution", "source.nrich.citation_institution"],
+  ["rights", "source.nrich.citation_rights"],
+  ["thdl_reference", "source.thdl.citation_reference"],
+  ["thdl_file", "source.thdl.citation_file"],
+  ["cand_collection", "source.cand.citation_collection"],
+  ["kyudb_number", "source.kyudb.citation_number"],
+  ["kyudb_parties", "source.kyudb.citation_parties"],
+  ["kyudb_volume", "source.kyudb.citation_volume"],
+  ["kyudb_date", "source.kyudb.citation_date"],
+  ["kyudb_type", "source.kyudb.citation_type"],
+  ["kyudb_classification", "source.kyudb.citation_classification"],
+  ["csid_dynasty", "source.csid.citation_dynasty"],
+  ["csid_date", "source.csid.citation_date"],
+  ["csid_kind", "source.csid.citation_kind"],
+  ["csid_number", "source.csid.citation_number"],
+]);
+
 function card(row, number) {
   const node = document.getElementById("card").content.firstElementChild.cloneNode(true);
+  if (typeof row.id === "string" && (row.id.startsWith("csid:") || row.id.startsWith("cand:") || (row.id.startsWith("kyudb:") && !row.segment))) {
+    node.querySelector(".text").hidden = true;
+  }
+  if (typeof row.id === "string" && (row.id.indexOf("nrich:") === 0 || row.id.indexOf("vietdien:") === 0 || row.id.indexOf("aksarchive:") === 0 || row.id.indexOf("kyudb:") === 0)) {
+    // Mixed Hanja/Idu (NRICH), Hán/Nôm OCR (Việt Điện) or Korean/Han manuscripts
+    // (AKS archive, Kyujanggak): no determined language. Keep the supplied text
+    // without assigning a reading language from its characters.
+    for (const part of [".text", ".before", ".seg", ".after"]) {
+      const span = node.querySelector(part);
+      if (span) span.setAttribute("lang", "und");
+    }
+  }
   // The position in its group, so a result can be found again by number.
   node.dataset.number = String(number);
   node.querySelector(".num").textContent = String(number);
@@ -1828,8 +2527,7 @@ function card(row, number) {
   if (row.link) {
     // Opens the source's own page in the system browser, not inside the window.
     src.dataset.link = row.link;
-    src.title = row.link;
-    src.addEventListener("click", event => { event.preventDefault(); api().open_link(row.link); });
+    src.addEventListener("click", event => { event.preventDefault(); openSourceLink(row.link); });
   } else {
     src.removeAttribute("href");
   }
@@ -1847,6 +2545,17 @@ function card(row, number) {
   node.querySelector(".before").appendChild(marked(row.before));
   node.querySelector(".seg").appendChild(marked(row.segment));
   node.querySelector(".after").appendChild(marked(row.after));
+  const citation = node.querySelector(".citation");
+  if (citation && row.citation) {
+    const parts = [];
+    for (const [field, label] of CITATION_FIELDS) {
+      if (row.citation[field]) parts.push(t(label, { value: row.citation[field] }));
+    }
+    if (parts.length) {
+      citation.textContent = parts.join(" · ");
+      citation.classList.remove("is-hidden");
+    }
+  }
   const footer = node.querySelector("footer");
   if (row.kind === "occurrence") {
     footer.classList.add("is-hidden");
@@ -1861,51 +2570,80 @@ function card(row, number) {
   return node;
 }
 
-function fill(section, rows, labelKey) {
+function pageStartFor(number) {
+  return Math.max(0, Math.floor((number - 1) / PAGE) * PAGE);
+}
+
+function fill(section, rows, labelKey, keepVisibleWhenEmpty = false) {
   const list = section.querySelector(".list");
-  const remembered = Number(section.dataset.shown || PAGE);
-  const scroll = list.scrollTop;
+  const navigation = section.querySelector(".result-pages");
+  if (navigation) {
+    navigation.hidden = true;
+    navigation.querySelector(".page-previous").onclick = null;
+    navigation.querySelector(".page-next").onclick = null;
+    navigation.querySelector(".page-range").textContent = "";
+  }
+  let startValue = Number(section.dataset.start || 0);
+  if (!Number.isFinite(startValue)) startValue = 0;
+  let start = Math.max(0, Math.floor(startValue / PAGE) * PAGE);
+  if (start >= rows.length) start = 0;
   resultMotion.forget(list);
   list.replaceChildren();
   section.querySelector(".label").textContent = t(labelKey);
   section.querySelector(".n").textContent = t("results.count", { n: rows.length });
-  section.classList.toggle("is-hidden", rows.length === 0 && section.classList.contains("less"));
+  section.classList.toggle("is-hidden", !keepVisibleWhenEmpty && rows.length === 0 && section.classList.contains("less"));
   if (!rows.length) {
     section.querySelector(".jump").hidden = true;
+    section.dataset.start = "0";
+    section.dataset.shown = String(PAGE);
     const empty = document.createElement("p");
     empty.className = "card none";
     empty.textContent = t("results.none");
     list.appendChild(empty);
     return;
   }
-  let shown = 0;
-  const more = document.createElement("button");
-  more.type = "button";
-  more.className = "more";
-  const next = () => {
-    rows.slice(shown, shown + PAGE).forEach((row, i) => {
-      const node = card(row, shown + i + 1);
-      list.insertBefore(node, more);
-      resultMotion.observe(node, row, i < 6 ? i * 20 : 0);
+  let shown = start;
+  const syncPages = () => {
+    if (!navigation) return;
+    navigation.hidden = rows.length <= PAGE;
+    navigation.querySelector(".page-previous").disabled = start === 0;
+    navigation.querySelector(".page-next").disabled = shown >= rows.length;
+    navigation.querySelector(".page-range").textContent = t("results.page_range", {
+      from: numberText(start + 1), to: numberText(shown), total: numberText(rows.length),
     });
-    shown = Math.min(shown + PAGE, rows.length);
-    section.dataset.shown = String(shown);
-    more.textContent = t("results.more", { n: Math.min(PAGE, rows.length - shown) });
-    more.hidden = shown >= rows.length;
   };
-  list.appendChild(more);
-  more.addEventListener("click", next);
-  next();
-  while (shown < Math.min(remembered, rows.length)) next();
-  list.scrollTop = scroll;
+  const showPage = (targetStart, move = false) => {
+    start = targetStart;
+    shown = Math.min(start + PAGE, rows.length);
+    resultMotion.forget(list);
+    list.replaceChildren(...rows.slice(start, shown).map((row, i) => card(row, start + i + 1)));
+    section.dataset.start = String(start);
+    section.dataset.shown = String(shown);
+    syncPages();
+    if (move) section.scrollIntoView?.({ block: "start" });
+  };
+  if (navigation) {
+    navigation.querySelector(".page-previous").onclick = () => {
+      if (start > 0) showPage(Math.max(0, start - PAGE), true);
+    };
+    navigation.querySelector(".page-next").onclick = () => {
+      if (shown < rows.length) showPage(shown, true);
+    };
+  }
+  showPage(start);
   setupJump(section, rows.length, number => {
-    // Render up to the asked card first: groups show PAGE cards at a time.
-    while (shown < number) next();
+    const targetStart = pageStartFor(number);
+    // A number inside the rendered window only needs scrolling. A distant
+    // number replaces the window with its page instead of building every card
+    // from the first result to the target.
+    if (targetStart < start || targetStart >= shown) {
+      showPage(targetStart);
+    }
     const target = list.querySelector(`.card[data-number="${number}"]`);
     if (!target) return;
     // Measured on screen (offsetTop depends on which ancestor is positioned), and
     // again once newly rendered cards and late fonts have settled their heights.
-    const align = () => { list.scrollTop += target.getBoundingClientRect().top - list.getBoundingClientRect().top; };
+    const align = () => { target.scrollIntoView?.({ block: "start" }); };
     align();
     requestAnimationFrame(() => requestAnimationFrame(align));
     document.fonts.ready.then(align);
@@ -1930,8 +2668,9 @@ function setupJump(section, total, go) {
   }));
   section.querySelector(".jump").hidden = total <= 1;
   const jump = () => {
-    const number = Math.min(Math.max(Math.trunc(Number(box.value)), 1), total);
-    if (!Number.isFinite(number) || number < 1) return;
+    const entered = Number(box.value);
+    if (!box.value.trim() || !Number.isFinite(entered)) return;
+    const number = Math.min(Math.max(Math.trunc(entered), 1), total);
     box.value = String(number);
     // A closed group hides its list, so scrolling it would move an invisible node
     // and the requested result would never appear. Open the group before `go`.
@@ -1940,7 +2679,11 @@ function setupJump(section, total, go) {
     go(number);
   };
   box.onchange = jump;
-  box.onkeydown = event => { if (event.key === "Enter") { event.preventDefault(); jump(); } };
+  box.onkeydown = event => {
+    if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.repeat || event.defaultPrevented) return;
+    event.preventDefault();
+    jump();
+  };
   // Typing in the box must not fold the group.
   box.onclick = event => event.stopPropagation();
 }
@@ -1951,12 +2694,22 @@ function yearText(value) {
   return value < 0 ? t("era.bce", { n: -value }) : String(value);
 }
 // When a result dates from, as its source records it (cpe.gui.service rows: era).
+// An online row may carry its provider's era name instead of a date
+// (cpe.gui.online historydb rows: era is the subsite code).
 function eraText(era) {
   if (!era) return "";
+  if (typeof era === "string") return t(`source.historydb.site.${era}`);
   const year = value => yearText(value) || "?";
   if (era.kind === "author_life") return t("era.author_life", { from: year(era.from), to: year(era.to) });
-  if (era.kind === "published") return t("era.published", { year: era.year, text: era.text });
-  if (era.kind === "dynasty") return t("era.dynasty", { dynasty: era.dynasty, from: year(era.from), to: year(era.to) });
+  if (era.kind === "published") {
+    const sourceText = String(era.text ?? "").trim();
+    // Some sources repeat the numeric year as their date label. Suppress only
+    // that exact duplicate; a source era name or qualified date stays intact.
+    const text = sourceText === String(era.year) ? "" : sourceText;
+    return t("era.published", { year: era.year, text }).trim();
+  }
+  if (era.kind === "dynasty") return t("era.dynasty", { dynasty: era.dynasty, from: year(era.from), to: year(era.to) }).trim();
+  if (era.kind === "source_date") return String(era.label || "");
   if (era.kind === "manifest") {
     // The researcher's own label and years, shown as written: no catalog words.
     const years = yearText(era.from) && (yearText(era.to) && era.to !== era.from
@@ -1966,12 +2719,54 @@ function eraText(era) {
   return "";
 }
 function sorted(rows) {
-  if (document.getElementById("sort").value !== "era") return rows;
-  // Oldest first; results without a date keep their order at the end.
-  const key = row => (row.era && Number.isFinite(row.era.year) ? row.era.year : Infinity);
+  const order = document.getElementById("sort").value;
+  if (order !== "era" && order !== "era-desc") return rows;
+  // Unknown dates stay last in both directions; equal dates keep source order.
+  const direction = order === "era-desc" ? -1 : 1;
+  const key = row => (row.era && Number.isFinite(row.era.year) ? direction * row.era.year : Infinity);
   return rows.map((row, index) => [row, index]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map(pair => pair[0]);
 }
-document.getElementById("sort").addEventListener("change", () => renderAll());
+let sortSaveVersion = 0;
+let sortSaveQueue = Promise.resolve();
+let sortSaveError = false;
+function updateSortStatus() {
+  const status = document.getElementById("sort-status");
+  if (!status) return;
+  status.textContent = sortSaveError ? t("sort.not_saved") : "";
+  status.classList.toggle("is-hidden", !sortSaveError);
+}
+async function restoreSort() {
+  const version = sortSaveVersion;
+  try {
+    const order = await api().saved_sort();
+    if (version !== sortSaveVersion || !["source", "era", "era-desc"].includes(order)) return;
+    document.getElementById("sort").value = order;
+    renderAll();
+  } catch {
+    // An unavailable optional preference must not prevent startup or searching.
+  }
+}
+function saveSort() {
+  const order = document.getElementById("sort").value;
+  const version = ++sortSaveVersion;
+  sortSaveError = false;
+  updateSortStatus();
+  // Serialize writes so an earlier selection cannot win after a later one.
+  // Queued selections that are already obsolete need not be written.
+  sortSaveQueue = sortSaveQueue.then(async () => {
+    if (version !== sortSaveVersion) return;
+    let saved = false;
+    try { saved = await api().save_sort(order); } catch {}
+    if (version !== sortSaveVersion) return;
+    sortSaveError = !saved;
+    updateSortStatus();
+  });
+  return sortSaveQueue;
+}
+document.getElementById("sort").addEventListener("change", () => {
+  renderAll();
+  return saveSort();
+});
 
 // What an online source returned, so the researcher knows how much was checked.
 function sourceSummary(info) {
@@ -1983,14 +2778,53 @@ function sourceSummary(info) {
   if (info.name === "ndl") return t("source.ndl.summary", info);
   if (info.name === "cbeta") return t("source.cbeta.summary", info);
   if (info.name === "cyberseodang") return t("source.cyberseodang.summary", info);
-  if (info.name === "docusky") return t("source.docusky.summary", info);
+  if (info.name === "historydb") {
+    const summary = t("source.historydb.summary", info);
+    const parts = [t(`source.historydb.site.${info.site}`)];
+    if (info.item_label) parts.push(info.item_label);
+    return `${summary} · ${parts.join(" · ")}`;
+  }
+  if (info.name === "sillok") return t("source.sillok.summary", info);
+  if (info.name === "ith") return t("source.ith.summary", info);
+  if (info.name === "nahf") {
+    const summary = t("source.nahf.summary", info);
+    return info.item_name ? `${summary} · ${info.item_name}` : summary;
+  }
+  if (info.name === "vietdien") return t("source.vietdien.summary", info);
+  if (info.name === "sat") return t("source.sat.summary", info);
+  if (info.name === "aksarchive") return t("source.aksarchive.summary", info);
+  if (info.name === "ships") return t("source.ships.summary", info);
+  if (info.name === "thdl") return t("source.thdl.summary", info);
+  if (info.name === "csid") return t("source.csid.summary", info);
+  if (info.name === "cand") return t("source.cand.summary", info);
+  if (info.name === "kyudb") return t("source.kyudb.summary", info);
+  if (info.name === "nrich") {
+    const coverage = info.coverage || {};
+    const key = coverage.capped
+      ? "source.nrich.summary_capped"
+      : coverage.stopped_short
+        ? "source.nrich.summary_short"
+        : "source.nrich.summary";
+    return t(key, {
+      items: info.items,
+      rows: coverage.rows ?? info.rows,
+      cap: coverage.row_cap ?? 600,
+      phrase: info.phrase,
+    });
+  }
+  if (info.name === "docusky") {
+    const summary = t("source.docusky.summary", info);
+    return info.database && info.reviewed === false
+      ? `${summary} · ${info.database} (${t("source.docusky.unreviewed")})`
+      : summary;
+  }
   return "";
 }
 
-let lastAnswers = []; // [{source, answer}] in panel order; answer is null while searching
+let lastAnswers = []; // [{source, answer, request}] in panel order; null answers are pending
 function makePanels(names) {
   resultMotion.reset();
-  document.getElementById("welcome").classList.add("is-hidden");
+  document.getElementById("welcome-help").classList.add("is-hidden");
   const box = document.getElementById("panels");
   box.className = `panels n${names.length}`;
   box.replaceChildren(...names.map(name => {
@@ -2011,11 +2845,46 @@ function makePanels(names) {
     return panel;
   }));
 }
-function renderPanel(panel, name, answer) {
+const REFERENCE_SOURCES = Object.freeze({
+  nrich: { label: "source.nrich.candidates", note: "source.nrich.candidate_note" },
+  csid: { label: "source.csid.candidates", note: "source.csid.candidate_note" },
+  cand: { label: "source.cand.candidates", note: "source.cand.candidate_note" },
+  kyudb: { label: "source.kyudb.candidates", note: "source.kyudb.candidate_note" },
+});
+
+function renderPanel(panel, name, answer, request) {
   panel.querySelector(".panel-title").textContent = sourceName(name);
+  // Reading the live form here would relabel old results after an input edit.
+  const query = panel.querySelector(".panel-query");
+  if (query) {
+    let modeKey = "", value = "";
+    if (request?.mode === "words" && typeof request.query === "string") {
+      modeKey = "search.single";
+      value = request.query;
+    } else if (request?.mode === "pair" && typeof request.first === "string" && typeof request.second === "string") {
+      modeKey = "search.compound";
+      value = t("results.query_pair", request);
+    }
+    query.classList.toggle("is-hidden", !modeKey);
+    query.querySelector(".query-mode").textContent = modeKey ? t(modeKey) : "";
+    query.querySelector(".query-value").textContent = value;
+  }
   const status = panel.querySelector(".panel-status");
   const likely = panel.querySelector(".likely");
   const less = panel.querySelector(".less");
+  const retry = panel.querySelector(".source-retry");
+  if (retry) {
+    retry.classList.toggle("is-hidden", !retryableSourceError(answer));
+    retry.disabled = searchBusy;
+    retry.onclick = () => retrySource(lastAnswers.findIndex(entry => entry.source === name));
+  }
+  const external = panel.querySelector(".external-source");
+  if (external) {
+    external.classList.add("is-hidden");
+    const link = external.querySelector("a");
+    link.removeAttribute("href");
+    link.onclick = null;
+  }
   status.classList.toggle("is-error", Boolean(answer && answer.error));
   panel.classList.toggle("is-loading", !answer);
   if (!answer) {
@@ -2025,7 +2894,7 @@ function renderPanel(panel, name, answer) {
     return;
   }
   if (answer.error) {
-    status.textContent = t(`error.${answer.error}`, answer);
+    status.textContent = errorText(answer.error, answer);
     likely.classList.add("is-hidden");
     less.classList.add("is-hidden");
     return;
@@ -2033,25 +2902,50 @@ function renderPanel(panel, name, answer) {
   status.textContent = LOCAL_SOURCES.includes(name)
     ? t("library.folder", { n: numberText(textCount(localInfo(name))), folder: localInfo(name)?.folder || "" })
     : sourceSummary(answer.source);
+  if (name === "ships" && answer.source?.external_only === true && external) {
+    likely.classList.add("is-hidden");
+    less.classList.add("is-hidden");
+    const link = external.querySelector("a");
+    link.textContent = t("source.external.open");
+    link.href = answer.external_search_url;
+    link.onclick = event => {
+      event.preventDefault();
+      openSourceLink(answer.external_search_url);
+    };
+    external.classList.remove("is-hidden");
+    return;
+  }
   likely.classList.remove("is-hidden");
   let likelyLabel = answer.mode === "pair" ? "results.likely" : "results.all";
   let lessLabel = "results.less";
+  if (name === "thdl") likelyLabel = "source.thdl.candidates";
   if (name === "cyberseodang") {
     likelyLabel = "source.cyberseodang.checked";
     lessLabel = "source.cyberseodang.unchecked";
     if (!panel.dataset.received) less.classList.remove("is-closed");
+  }
+  const referenceOnly = Object.prototype.hasOwnProperty.call(REFERENCE_SOURCES, name);
+  if (referenceOnly) {
+    lessLabel = REFERENCE_SOURCES[name].label;
+    if (!panel.dataset.received) less.classList.remove("is-closed");
+  }
+  const lessNote = less.querySelector(".group-note");
+  if (lessNote) {
+    lessNote.textContent = referenceOnly ? t(REFERENCE_SOURCES[name].note) : "";
+    lessNote.classList.toggle("is-hidden", !referenceOnly);
   }
   panel.querySelectorAll(".group").forEach(group => {
     group.querySelector(".group-toggle").setAttribute("aria-expanded", String(!group.classList.contains("is-closed")));
   });
   panel.dataset.received = "true";
   fill(likely, sorted(answer.likely), likelyLabel);
-  fill(less, sorted(answer.less), lessLabel);
+  fill(less, sorted(answer.less), lessLabel, referenceOnly);
+  if (referenceOnly) likely.classList.add("is-hidden");
 }
 function renderAll() {
   const panels = [...document.querySelectorAll("#panels > .panel")];
-  lastAnswers.forEach(({ source, answer }, index) => {
-    if (panels[index]) renderPanel(panels[index], source, answer);
+  lastAnswers.forEach(({ source, answer, request }, index) => {
+    if (panels[index]) renderPanel(panels[index], source, answer, request);
   });
 }
 
@@ -2060,11 +2954,68 @@ form.addEventListener("keydown", event => {
   // IME composition confirms with Enter; do not submit the search mid-composition.
   if (event.isComposing || event.keyCode === 229) event.preventDefault();
 });
+function retryableSourceError(answer) {
+  return ["network", "source_failed", "source_internal"].includes(answer?.error);
+}
+async function receiveSource(entry, index, version) {
+  const source = entry.source;
+  let answer;
+  try {
+    answer = await api().search(entry.request);
+  } catch {
+    answer = { error: "network" };
+  }
+  if (version !== searchVersion) return;
+  // A first search may have loaded this saved slot; refresh its count before
+  // the panel words the source line.
+  if (LOCAL_SOURCES.includes(source)) {
+    try {
+      const refreshed = await api().local_libraries();
+      if (version !== searchVersion) return;
+      localState = refreshed;
+      updateSource();
+    } catch {
+      // Keep the counts already on screen; the search answer is still valid.
+    }
+  }
+  if (version !== searchVersion) return;
+  entry.answer = answer;
+  const panel = document.querySelectorAll("#panels > .panel")[index];
+  if (panel) renderPanel(panel, source, answer, entry.request);
+}
+async function retrySource(index) {
+  const entry = lastAnswers[index];
+  if (searchBusy || !entry?.request || !retryableSourceError(entry.answer)) return;
+  const version = searchVersion;
+  searchBusy = true;
+  syncSearchButton();
+  try {
+    entry.answer = null;
+    const panel = document.querySelectorAll("#panels > .panel")[index];
+    if (panel) renderPanel(panel, entry.source, null, entry.request);
+    await receiveSource(entry, index, version);
+  } finally {
+    searchBusy = false;
+    if (version !== searchVersion) document.getElementById("status").textContent = "";
+    syncSearchButton();
+  }
+}
 form.addEventListener("submit", async event => {
   event.preventDefault();
   if (searchBusy) return;
   if (!hasUsableSources()) {
     showView("sources");
+    return;
+  }
+  const fields = mode() === "pair" ? ["first", "second"] : ["query"];
+  fields.forEach(id => document.getElementById(id).removeAttribute?.("aria-invalid"));
+  const missing = fields.find(id => !document.getElementById(id).value.trim());
+  if (missing) {
+    document.getElementById("status").textContent = t("error.empty");
+    document.getElementById("status").classList?.add("is-error");
+    document.getElementById(missing).setAttribute?.("aria-invalid", "true");
+    document.getElementById("results-bar").classList.remove("is-hidden");
+    document.getElementById(missing).focus?.();
     return;
   }
   searchBusy = true;
@@ -2076,40 +3027,28 @@ form.addEventListener("submit", async event => {
       : { mode: "words", query: document.getElementById("query").value };
     const names = sources();
     document.getElementById("status").textContent = "";
+    document.getElementById("status").classList?.remove("is-error");
     makePanels(names);
-    lastAnswers = names.map(source => ({ source, answer: null }));
+    lastAnswers = names.map(source => {
+      const extra = source === "historydb"
+        ? { site: historydbSite, item: historydbItem }
+        : source === "nahf"
+          ? { item: nahfItem }
+          : {};
+      return { source, answer: null, request: { ...body, ...extra, source, generation: version } };
+    });
     renderAll();
+    updateSelectionNotice();
     document.getElementById("results-bar").classList.remove("is-hidden");
     // Each source answers on its own; a slow one does not hold back the others.
     // A panel rendering failure must not release the guard while another source
     // still has a request in flight.
-    await Promise.allSettled(names.map(async (source, index) => {
-      let answer;
-      try {
-        answer = await api().search({ ...body, source, generation: version });
-      } catch {
-        answer = { error: "network" };
-      }
-      if (version !== searchVersion) return;
-      // A first search may have loaded this saved slot; refresh its count before
-      // the panel words the source line.
-      if (LOCAL_SOURCES.includes(source)) {
-        try {
-          localState = await api().local_libraries();
-          updateSource();
-        } catch {
-          // Keep the counts already on screen; the search answer is still valid.
-        }
-      }
-      lastAnswers[index] = { source, answer };
-      const panel = document.querySelectorAll("#panels > .panel")[index];
-      if (panel) renderPanel(panel, source, answer);
-    }));
+    await Promise.allSettled(lastAnswers.map((entry, index) => receiveSource(entry, index, version)));
   } finally {
     searchBusy = false;
-    syncSearchButton();
     // A cleared or replaced search leaves no panel to report its own end.
     if (version !== searchVersion) document.getElementById("status").textContent = "";
+    syncSearchButton();
   }
 });
 
@@ -2167,7 +3106,11 @@ function languageKeydown(event, code) {
   else if (event.key === "End") next = languages.length - 1;
   else if (event.key === "ArrowDown" || event.key === "ArrowRight") next = (index + 1) % languages.length;
   else next = (index - 1 + languages.length) % languages.length;
-  if (next !== index) chooseLanguage(languages[next].code);
+  if (next !== index) {
+    const target = [...document.querySelectorAll("#language-list .language-row")].find(item => item.dataset.code === languages[next].code);
+    document.querySelectorAll("#language-list .language-row").forEach(item => { item.tabIndex = item === target ? 0 : -1; });
+    target?.focus();
+  }
 }
 function languageRow(code, name) {
   const button = document.createElement("button");
@@ -2248,10 +3191,9 @@ async function loadHomeIcon() {
   }
 }
 async function initialize() {
-  languages = await api().languages();
+  const [available, saved] = await Promise.all([api().languages(), api().saved_language()]);
+  languages = available;
   if (!languages.length) throw new Error("no interface language");
-  // The language chosen last time; the first start follows the OS language.
-  const saved = await api().saved_language();
   const browser = navigator.language || "en";
   const guess = languages.find(l => browser.startsWith(l.code))?.code
     ?? (browser.startsWith("zh") ? (/TW|HK|Hant/.test(browser) ? "zh-Hant" : "zh-Hans") : "en");
@@ -2260,9 +3202,15 @@ async function initialize() {
   // Load the catalog first: a later failure can then word its error in the chosen
   // language instead of leaving every label empty.
   await setLanguage(currentLanguage);
+  void restoreSort();
   void loadHomeIcon();
-  library = await api().library();
-  localState = await api().local_libraries();
+  const [generation, loaded, locals, options] = await Promise.all([
+    api().search_generation(), api().library(), api().local_libraries(), api().source_options(),
+  ]);
+  searchVersion = Math.max(searchVersion, generation);
+  library = loaded;
+  localState = locals;
+  applySourceOptions(options);
   restoreSources();
   showLibrary();
   updateSource();

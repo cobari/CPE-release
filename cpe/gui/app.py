@@ -14,21 +14,38 @@ import sys
 import threading
 import uuid
 from base64 import b64encode
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from cpe.docusky.adapter import valid_database_name
+from cpe.gui.cand import search_cand
+from cpe.gui.csid import search_csid
+from cpe.gui.external import search_ships
+from cpe.gui.kyudb import search_kyudb
 from cpe.gui.online import (
+    docusky_catalog as docusky_database_list,
+)
+from cpe.gui.online import (
+    search_aksarchive,
     search_cbeta,
     search_cyberseodang,
     search_docusky,
+    search_historydb,
+    search_ith,
     search_itkc,
+    search_nahf,
     search_ndl,
+    search_nrich,
+    search_sat,
+    search_sillok,
+    search_vietdien,
 )
 from cpe.gui.preferences import Preferences, config_dir
 from cpe.gui.service import Library, search_pair, search_words
+from cpe.gui.thdl import search_thdl
 from cpe.local.txt import InputError
 from cpe.match.engine import Settings
 from cpe.normalize.options import NormalizationError
@@ -37,9 +54,40 @@ HERE = Path(__file__).resolve().parent
 STATIC = HERE / "static"
 I18N = HERE / "i18n"
 # English is the source catalog (AGENTS.md "Language"); this order is the menu order.
-LANGUAGES = ("ko", "ja", "zh-Hans", "zh-Hant", "en")
+LANGUAGES = ("ko", "ja", "zh-Hans", "zh-Hant", "vi", "en")
+SORT_ORDERS = ("source", "era", "era-desc")
 LOCAL_SOURCES = ("local", "local2", "local3", "local4")
-ONLINE_SOURCES = ("itkc", "ndl", "cbeta", "cyberseodang", "docusky")
+ONLINE_SOURCES = (
+    "itkc",
+    "ndl",
+    "cbeta",
+    "cyberseodang",
+    "docusky",
+    "historydb",
+    "sillok",
+    "nrich",
+    "ith",
+    "nahf",
+    "vietdien",
+    "sat",
+    "aksarchive",
+    "ships",
+    "thdl",
+    "csid",
+    "cand",
+    "kyudb",
+)
+
+
+def online_source(code: Any) -> bool:
+    """A built-in online source, or a DocuSky catalogue database `docusky:<name>`."""
+    if not isinstance(code, str):
+        return False
+    if code in ONLINE_SOURCES:
+        return True
+    if not code.startswith("docusky:"):
+        return False
+    return valid_database_name(code[len("docusky:") :])
 
 
 def _same_folder(first: Path, second: Path) -> bool:
@@ -57,6 +105,12 @@ def _catalog(code: str) -> dict[str, str]:
         (I18N / f"{code}.json").read_text(encoding="utf-8")
     )
     return data
+
+
+@lru_cache(maxsize=1)
+def _home_icon(path: Path) -> str:
+    icon = b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{icon}"
 
 
 class Api:
@@ -89,7 +143,7 @@ class Api:
             and 0 <= len(saved_sources) <= 4
             and all(
                 isinstance(code, str)
-                and (self._local_configured(code) or code in ONLINE_SOURCES)
+                and (self._local_configured(code) or online_source(code))
                 for code in saved_sources
             )
             else [self._active_local]
@@ -103,6 +157,18 @@ class Api:
         self._cbeta: Any = None
         self._cyberseodang: Any = None
         self._docusky: Any = None
+        self._nrich: Any = None
+        self._sillok: Any = None
+        self._historydb: Any = None
+        self._ith: Any = None
+        self._nahf: Any = None
+        self._vietdien: Any = None
+        self._sat: Any = None
+        self._thdl: Any = None
+        self._csid: Any = None
+        self._cand: Any = None
+        self._kyudb: Any = None
+        self._aksarchive: Any = None
         # Tests replace CTP's transport here; None means the real network.
         self._ctp_transport: Any = None
         self._ctp: Any = None
@@ -319,8 +385,16 @@ class Api:
                     # An unexpected parser failure must retire the job instead of
                     # leaving the window polling a permanently running task.
                     answer = {"error": "external_format"}
-                with self._external_job_lock:
-                    job["result"] = answer
+                # A cancellation accepted after the last download checkpoint must
+                # still win before the result and its preview token are published.
+                with self._external_lock:
+                    with self._external_job_lock:
+                        if task.cancel.is_set():
+                            if answer.get("token") == self._external_token:
+                                self._external_pending = None
+                                self._external_token = ""
+                            answer = {"error": "external_cancelled"}
+                        job["result"] = answer
 
             thread = threading.Thread(target=work, daemon=True)
             job["thread"] = thread
@@ -411,6 +485,20 @@ class Api:
             return False
         try:
             self._preferences.set("language", code)
+        except OSError:
+            return False
+        return True
+
+    def saved_sort(self) -> str:
+        """Restore supported orders; old or corrupt values use source order."""
+        order = self._preferences.get("result_sort")
+        return order if order in SORT_ORDERS else "source"
+
+    def save_sort(self, order: Any) -> bool:
+        if not isinstance(order, str) or order not in SORT_ORDERS:
+            return False
+        try:
+            self._preferences.set("result_sort", order)
         except OSError:
             return False
         return True
@@ -518,7 +606,10 @@ class Api:
             revision = self._local_revisions.get(code, 0)
         try:
             library = Library.load([Path(path)], settings)
-        except (InputError, OSError):
+        except (InputError, OSError, NormalizationError):
+            # A variant table that touches this folder's delimiters fails the read
+            # like a bad manifest (cpe.match.engine check_variants); escaping as an
+            # exception would leave the slot with no recorded error to retry from.
             with self._local_lock:
                 if self._local_paths.get(code) == path and not self._local_busy:
                     if code not in self._local_libraries:
@@ -541,6 +632,8 @@ class Api:
                 return current
             self._local_libraries[code] = library
             self._local_errors.pop(code, None)
+            if code == self._active_local:
+                self._library = library
             return library
 
     def _destination_error(self, folder: str) -> dict[str, Any] | None:
@@ -672,6 +765,47 @@ class Api:
             return {"error": "bad_request"}
         return self.local_libraries()
 
+    def reload_local(self, source: str) -> dict[str, Any]:
+        """Rescan a saved folder, retaining the current snapshot on failure.
+
+        This replaces only one library. Selection, import target and preferences
+        stay unchanged, and disk work never holds the status snapshot lock.
+        """
+        with self._local_lock:
+            if source not in LOCAL_SOURCES or not self._local_paths.get(source):
+                return {"error": "bad_request"}
+            if self._local_busy:
+                return {"error": "local_busy"}
+            path = self._local_paths[source]
+            previous = self._local_libraries.get(source)
+            revision = self._local_revisions.get(source, 0)
+            settings = self._library.settings
+        try:
+            if not Path(path).is_dir():
+                return {"error": "load_failed", "path": path}
+            library = Library.load([Path(path)], settings)
+            if "." in library.skipped:
+                return {"error": "load_failed", "path": path}
+        except (InputError, OSError, NormalizationError):
+            return {"error": "load_failed", "path": path}
+        with self._local_lock:
+            # A slow rescan must not overwrite a newer open, retry or import,
+            # including removal followed by re-adding the same folder path.
+            if (
+                self._local_busy
+                or self._local_paths.get(source) != path
+                or self._local_libraries.get(source) is not previous
+                or self._local_revisions.get(source, 0) != revision
+                or self._library.settings is not settings
+            ):
+                return {"error": "local_busy"}
+            self._local_libraries[source] = library
+            self._local_errors.pop(source, None)
+            self._local_revisions[source] = revision + 1
+            if source == self._active_local:
+                self._library = library
+            return self.local_libraries()
+
     def remove_local(self, source: str) -> dict[str, Any]:
         """Remove one saved slot from search and import without touching its files."""
         with self._local_lock:
@@ -708,14 +842,17 @@ class Api:
             self._local_paths = paths
             self._local_libraries.pop(source, None)
             self._local_errors.pop(source, None)
-            self._local_revisions.pop(source, None)
+            # Keep a monotonic per-slot epoch across removal so a read that
+            # started before this removal cannot install after a later re-add
+            # of the same path (the ABA case).
+            self._local_revisions[source] = self._local_revisions.get(source, 0) + 1
             self._selected_sources = selected
             self._active_local = active
             self._folder = paths.get(active, "")
             self._library = self._local_libraries.get(active) or Library([], settings)
             return self.local_libraries()
 
-    def set_sources(self, sources: Any) -> dict[str, Any]:
+    def set_sources(self, sources: Any, options: Any = None) -> dict[str, Any]:
         with self._local_lock:
             if (
                 not isinstance(sources, list)
@@ -723,17 +860,45 @@ class Api:
                 or not all(isinstance(code, str) for code in sources)
                 or len(set(sources)) != len(sources)
                 or any(
-                    not self._local_configured(code) and code not in ONLINE_SOURCES
+                    not self._local_configured(code) and not online_source(code)
                     for code in sources
                 )
+                or sum(
+                    1
+                    for code in sources
+                    if code == "docusky" or code.startswith("docusky:")
+                )
+                > 1
             ):
                 return {"error": "bad_request"}
+            values: dict[str, Any] = {"sources": sources}
+            if options is not None:
+                if not isinstance(options, dict):
+                    return {"error": "bad_request"}
+                clean: dict[str, str] = {}
+                for key in ("historydb_site", "historydb_item", "nahf_item"):
+                    value = options.get(key, "")
+                    if not isinstance(value, str) or len(value) > 64:
+                        return {"error": "bad_request"}
+                    clean[key] = value
+                values["source_options"] = clean
             try:
-                self._preferences.update({"sources": sources})
+                self._preferences.update(values)
             except OSError:
                 return {"error": "preferences_write_failed"}
             self._selected_sources = sources.copy()
             return {"sources": sources.copy()}
+
+    def source_options(self) -> dict[str, str]:
+        """The last selected history database and NAHF collection, if saved."""
+        saved = self._preferences.load().get("source_options")
+        if not isinstance(saved, dict):
+            return {}
+        return {
+            key: value
+            for key in ("historydb_site", "historydb_item", "nahf_item")
+            if isinstance(value := saved.get(key), str) and 0 < len(value) <= 64
+        }
 
     @contextmanager
     def _local_operation(self) -> Iterator[None]:
@@ -758,38 +923,66 @@ class Api:
                     (code for code in LOCAL_SOURCES if code not in self._local_paths),
                     "local",
                 )
-            return self._open_folder(folder, chosen)
+        return self._open_folder(folder, chosen)
 
     def _open_folder(self, folder: str, source: str) -> dict[str, Any]:
         if source not in LOCAL_SOURCES or not isinstance(folder, str) or not folder:
             return {"error": "bad_request"}
+        stored = str(Path(folder).absolute())
         try:
-            target = Path(folder).resolve()
+            target = Path(stored).resolve()
             if not target.is_dir():
                 return {"error": "load_failed", "path": folder}
+        except OSError:
+            return {"error": "load_failed", "path": folder}
+        with self._local_lock:
+            if self._local_busy:
+                return {"error": "local_busy"}
             if any(
                 code != source and path and _same_folder(Path(path), target)
                 for code, path in self._local_paths.items()
             ):
                 return {"error": "local_duplicate", "path": folder}
-            library = Library.load([Path(folder)], self._library.settings)
+            prior_path = self._local_paths.get(source)
+            revision = self._local_revisions.get(source, 0)
+            settings = self._library.settings
+        try:
+            # Reading a large folder must not hold the lock used by status snapshots.
+            library = Library.load([Path(stored)], settings)
         except (InputError, OSError, NormalizationError):
             # The path is data, not text: the page words the error from its catalog.
             return {"error": "load_failed", "path": folder}
-        paths = {**self._local_paths, source: folder}
-        selected = self._selected_sources.copy()
-        if not selected:
-            selected = [source]
-        if not self._remember_local(paths, source, selected):
-            return {"error": "preferences_write_failed"}
-        self._local_libraries[source] = library
-        self._local_paths = paths
-        self._local_errors.pop(source, None)
-        self._local_revisions[source] = self._local_revisions.get(source, 0) + 1
-        self._selected_sources = selected
-        self._active_local = source
-        self._library, self._folder = library, folder
-        return self.library()
+        with self._local_lock:
+            if self._local_busy:
+                return {"error": "local_busy"}
+            if (
+                self._local_paths.get(source) != prior_path
+                or self._local_revisions.get(source, 0) != revision
+                or self._library.settings is not settings
+            ):
+                # Another open changed this slot or the active library while the
+                # folder was read; do not install a stale result.
+                return {"error": "local_busy"}
+            if any(
+                code != source and path and _same_folder(Path(path), target)
+                for code, path in self._local_paths.items()
+            ):
+                return {"error": "local_duplicate", "path": folder}
+            # Re-read paths and selection at commit: another slot may have changed.
+            paths = {**self._local_paths, source: stored}
+            selected = self._selected_sources.copy()
+            if not selected:
+                selected = [source]
+            if not self._remember_local(paths, source, selected):
+                return {"error": "preferences_write_failed"}
+            self._local_libraries[source] = library
+            self._local_paths = paths
+            self._local_errors.pop(source, None)
+            self._local_revisions[source] = self._local_revisions.get(source, 0) + 1
+            self._selected_sources = selected
+            self._active_local = source
+            self._library, self._folder = library, stored
+            return self.library()
 
     def _reload_local_folder(self, folder: str) -> dict[str, Any]:
         """Refresh an import's destination slot without replacing another folder."""
@@ -809,7 +1002,16 @@ class Api:
             settings = self._library.settings
         try:
             library = Library.load([Path(folder)], settings)
-        except (InputError, OSError):
+        except (InputError, OSError, NormalizationError):
+            # The same failure set as _load_local_slot: an import's own destination
+            # that cannot be read back must answer the caller, not raise.
+            with self._local_lock:
+                if (
+                    self._local_revisions.get(source, 0) == revision
+                    and self._local_paths.get(source)
+                    and _same_folder(Path(self._local_paths[source]), target)
+                ):
+                    self._local_errors[source] = "load_failed"
             return {"error": "load_failed", "path": folder}
         with self._local_lock:
             if self._local_revisions.get(source, 0) != revision or not _same_folder(
@@ -817,6 +1019,7 @@ class Api:
             ):
                 return {"error": "local_busy"}
             if not self._remember_local(self._local_paths, source):
+                self._local_errors[source] = "load_failed"
                 return {"error": "preferences_write_failed"}
             self._local_libraries[source] = library
             self._local_errors.pop(source, None)
@@ -1009,8 +1212,7 @@ class Api:
 
     def home_icon(self) -> str:
         """Send the image separately from WebView2's size-limited initial HTML."""
-        icon = b64encode((HERE / "assets" / "icon.png").read_bytes()).decode("ascii")
-        return f"data:image/png;base64,{icon}"
+        return _home_icon(HERE / "assets" / "home-icon.png")
 
     def languages(self) -> list[dict[str, str]]:
         return [
@@ -1077,6 +1279,135 @@ class Api:
                 self._docusky = DocuskyClient()
             return self._docusky
 
+    def nrich_client(self) -> Any:
+        with self._client_lock:
+            if self._nrich is None:
+                from cpe.nrich.adapter import NrichClient
+
+                self._nrich = NrichClient()
+            return self._nrich
+
+    def sillok_client(self) -> Any:
+        with self._client_lock:
+            if self._sillok is None:
+                from cpe.nikh.search import SillokClient
+
+                self._sillok = SillokClient()
+            return self._sillok
+
+    def historydb_client(self) -> Any:
+        with self._client_lock:
+            if self._historydb is None:
+                from cpe.historydb.search import HistoryDbClient
+
+                self._historydb = HistoryDbClient()
+            return self._historydb
+
+    def ith_client(self) -> Any:
+        with self._client_lock:
+            if self._ith is None:
+                from cpe.ith.search import IthClient
+
+                self._ith = IthClient()
+            return self._ith
+
+    def nahf_client(self) -> Any:
+        with self._client_lock:
+            if self._nahf is None:
+                from cpe.nahf.search import NahfClient
+
+                self._nahf = NahfClient()
+            return self._nahf
+
+    def nahf_catalog(self) -> dict[str, Any]:
+        """Source-library collections for the NAHF selector; no provider request."""
+        from cpe.nahf.search import ITEMS
+
+        return {"items": [{"id": item_id, "label": label} for item_id, label in ITEMS]}
+
+    def vietdien_client(self) -> Any:
+        with self._client_lock:
+            if self._vietdien is None:
+                from cpe.vietdien.adapter import VietDienClient
+
+                self._vietdien = VietDienClient()
+            return self._vietdien
+
+    def sat_client(self) -> Any:
+        with self._client_lock:
+            if self._sat is None:
+                from cpe.sat.search import SatClient
+
+                self._sat = SatClient()
+            return self._sat
+
+    def kyudb_client(self) -> Any:
+        with self._client_lock:
+            if self._kyudb is None:
+                from cpe.kyudb.search import KyudbClient
+
+                self._kyudb = KyudbClient()
+            return self._kyudb
+
+    def cand_client(self) -> Any:
+        with self._client_lock:
+            if self._cand is None:
+                from cpe.cand.search import CandClient
+
+                self._cand = CandClient()
+            return self._cand
+
+    def csid_client(self) -> Any:
+        with self._client_lock:
+            if self._csid is None:
+                from cpe.csid.search import CsidClient
+
+                self._csid = CsidClient()
+            return self._csid
+
+    def thdl_client(self) -> Any:
+        with self._client_lock:
+            if self._thdl is None:
+                from cpe.thdl.search import ThdlClient
+
+                self._thdl = ThdlClient()
+            return self._thdl
+
+    def aksarchive_client(self) -> Any:
+        with self._client_lock:
+            if self._aksarchive is None:
+                from cpe.aks.archive import AksArchiveClient
+
+                self._aksarchive = AksArchiveClient()
+            return self._aksarchive
+
+    def historydb_catalog(self, site: Any) -> dict[str, Any]:
+        """Era database items for the integrated-search item selector."""
+        if not isinstance(site, str):
+            return {"error": "historydb_site"}
+        try:
+            entries = self.historydb_client().catalog(site)
+        except Exception as error:
+            from cpe.historydb.search import HistoryDbCapReached
+
+            if isinstance(error, HistoryDbCapReached):
+                return {"error": "source_cap"}
+            code = str(error)
+            if code == "search_site":
+                return {"error": "historydb_site"}
+            return {"error": "source_failed"}
+        return {
+            "site": site,
+            "items": [{"id": entry.item_id, "label": entry.label} for entry in entries],
+        }
+
+    def docusky_catalog(self) -> dict[str, Any]:
+        """The public DocuSky database list the window offers as profile choices."""
+        try:
+            return docusky_database_list(self.docusky_client())
+        except Exception:
+            return {"error": "source_internal"}
+
     def invalidate_searches(self, generation: int) -> bool:
         if isinstance(generation, bool) or not isinstance(generation, int):
             return False
@@ -1084,9 +1415,16 @@ class Api:
             self._search_generation = max(self._search_generation, generation)
         return True
 
+    def search_generation(self) -> int:
+        """Resume the current search generation when the window page reloads."""
+        with self._client_lock:
+            return self._search_generation
+
     def search(self, request: Any) -> dict[str, Any]:
         try:
             return self._search(request)
+        except InterruptedError:
+            return {"error": "search_cancelled"}
         except Exception:
             # The bridge must return an explicit failure instead of letting an
             # adapter exception masquerade as a disconnected desktop bridge.
@@ -1095,37 +1433,59 @@ class Api:
     def _search(self, request: Any) -> dict[str, Any]:
         if not isinstance(request, dict):
             return {"error": "bad_request"}
-        if request.get("source") == "itkc":
-            return search_itkc(request, self.itkc_client(), self._library.settings)
-        if request.get("source") == "cbeta":
-            return search_cbeta(request, self.cbeta_client(), self._library.settings)
-        if request.get("source") == "ndl":
-            return search_ndl(request, self.ndl_client(), self._library.settings)
-        if request.get("source") in ("cyberseodang", "docusky"):
-            generation = request.get("generation")
-            if isinstance(generation, int) and not isinstance(generation, bool):
-                self.invalidate_searches(generation)
+        generation = request.get("generation")
+        if generation is not None:
+            if not isinstance(generation, int) or isinstance(generation, bool):
+                return {"error": "bad_request"}
+            self.invalidate_searches(generation)
 
-            def checkpoint() -> None:
-                if generation is not None and generation != self._search_generation:
-                    raise InterruptedError("superseded search")
+        def checkpoint() -> None:
+            if generation is not None and generation != self.search_generation():
+                raise InterruptedError("superseded search")
 
-            try:
-                if request.get("source") == "docusky":
-                    return search_docusky(
-                        request,
-                        self.docusky_client(),
-                        self._library.settings,
-                        checkpoint,
-                    )
-                return search_cyberseodang(
-                    request,
-                    self.cyberseodang_client(),
-                    self._library.settings,
-                    checkpoint,
-                )
-            except InterruptedError:
-                return {"error": "search_cancelled"}
+        checkpoint()
+        answer = self._dispatch_search(request, checkpoint)
+        checkpoint()
+        return answer
+
+    def _dispatch_search(
+        self, request: dict[str, Any], checkpoint: Callable[[], None]
+    ) -> dict[str, Any]:
+        source = request.get("source")
+        if source == "ships":
+            return search_ships(request)
+        routes: dict[
+            str, tuple[Callable[..., dict[str, Any]], Callable[[], Any], bool]
+        ] = {
+            "itkc": (search_itkc, self.itkc_client, True),
+            "cbeta": (search_cbeta, self.cbeta_client, True),
+            "ndl": (search_ndl, self.ndl_client, True),
+            "cyberseodang": (search_cyberseodang, self.cyberseodang_client, True),
+            "docusky": (search_docusky, self.docusky_client, True),
+            "nrich": (search_nrich, self.nrich_client, True),
+            "sillok": (search_sillok, self.sillok_client, True),
+            "historydb": (search_historydb, self.historydb_client, True),
+            "ith": (search_ith, self.ith_client, True),
+            "nahf": (search_nahf, self.nahf_client, True),
+            "vietdien": (search_vietdien, self.vietdien_client, True),
+            "sat": (search_sat, self.sat_client, True),
+            "aksarchive": (search_aksarchive, self.aksarchive_client, True),
+            "thdl": (search_thdl, self.thdl_client, False),
+            "csid": (search_csid, self.csid_client, False),
+            "cand": (search_cand, self.cand_client, False),
+            "kyudb": (search_kyudb, self.kyudb_client, False),
+        }
+        route = (
+            "docusky"
+            if isinstance(source, str) and source.startswith("docusky:")
+            else source
+        )
+        if isinstance(route, str) and route in routes:
+            run, client, uses_settings = routes[route]
+            checkpoint()
+            if uses_settings:
+                return run(request, client(), self._library.settings, checkpoint)
+            return run(request, client(), checkpoint)
         source = request.get("source", self._active_local)
         if source not in LOCAL_SOURCES:
             return {"error": "bad_request"}
@@ -1161,14 +1521,17 @@ class Api:
                 library,
                 str(request.get("first", "")),
                 str(request.get("second", "")),
+                checkpoint=checkpoint,
             )
         if request.get("mode") == "words":
-            return search_words(library, str(request.get("query", "")))
+            return search_words(
+                library, str(request.get("query", "")), checkpoint=checkpoint
+            )
         return {"error": "bad_request"}
 
 
 def page() -> str:
-    """Inline CSS and script; the image arrives separately through the bridge."""
+    """Inline diagnostic snapshot; the runtime opens the local asset entrypoint."""
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     style = (STATIC / "style.css").read_text(encoding="utf-8")
     script = (STATIC / "app.js").read_text(encoding="utf-8")
@@ -1176,7 +1539,7 @@ def page() -> str:
         '<link rel="stylesheet" href="style.css">', f"<style>\n{style}</style>"
     )
     # NavigateToString rejects oversized HTML before the page or bridge starts.
-    html = html.replace('src="../assets/icon.png"', "")
+    html = html.replace('src="../assets/home-icon.png"', "")
     return html.replace(
         '<script src="app.js"></script>', f"<script>\n{script}</script>"
     )
@@ -1202,7 +1565,10 @@ def start_library(
     if folder:
         try:
             return Library.load([Path(folder)], settings), folder
-        except (InputError, OSError):
+        except (InputError, NormalizationError, OSError):
+            # A remembered folder that now conflicts with the settings starts empty,
+            # like an unreadable one. Explicit paths above stay strict so cpe.cli can
+            # report the invalid text and exit instead of opening an empty window.
             pass
     return Library([], settings), ""
 
@@ -1211,9 +1577,14 @@ def open_window(library: Library, folder: str = "", debug: bool = False) -> None
     import webview
 
     api = Api(library, folder=folder)
-    # The page replaces this placeholder title with the catalog's once it loads.
+    # A local asset URL keeps fonts, CSS and script outside NavigateToString.
     api._window = webview.create_window(
-        "cpe", html=page(), js_api=api, width=1180, height=860, min_size=(360, 480)
+        api.catalog(api.saved_language() or "en")["app.title"],
+        url=(STATIC / "index.html").as_uri(),
+        js_api=api,
+        width=1180,
+        height=860,
+        min_size=(360, 480),
     )
     # Only Linux (Qt) takes the PNG as window icon. On Windows pywebview builds a
     # System.Drawing.Icon from it, which accepts only .ico and crashed the window at

@@ -49,11 +49,11 @@ def _literal(value: str) -> str:
 def _tokens(expr: str) -> list[str]:
     tokens: list[str] = []
     position = 0
+    while position < len(expr) and expr[position] == " ":
+        position += 1
     while position < len(expr):
         start = position
         char = expr[position]
-        if char == " ":
-            raise ValueError("syntax: unexpected space")
         if char in "{(":
             closing = "}" if char == "{" else ")"
             end = expr.find(closing, position + 1)
@@ -69,8 +69,6 @@ def _tokens(expr: str) -> list[str]:
                 raise ValueError("syntax: elements require ASCII spaces")
             while position < len(expr) and expr[position] == " ":
                 position += 1
-            if position == len(expr):
-                raise ValueError("syntax: trailing space")
     if not tokens:
         raise ValueError("syntax: empty pattern")
     return tokens
@@ -86,17 +84,19 @@ def _element(token: str) -> Fixed | Slot | Gap:
         return Fixed(tuple(_literal(option) for option in options))
     if not token.startswith("{"):
         return Fixed((_literal(token),))
-    body = token[1:-1]
-    if body.startswith(".."):
-        if "not" in body:
+    raw = token[1:-1]
+    if raw.startswith(".."):
+        if "not" in raw:
             raise ValueError("R8: gaps cannot contain not constraints")
-        if re.fullmatch(r"\.\.[0-9]+", body) is None:
+        if re.fullmatch(r"\.\.[0-9]+", raw) is None:
             raise ValueError("syntax: invalid gap")
-        maximum = int(body[2:])
+        maximum = int(raw[2:])
         if maximum < 1:
             raise ValueError("R6: gap maximum must be positive")
         return Gap(maximum)
-    parts = re.split(" +", body)
+    # Layout spaces just inside the braces do not change the slot; the production
+    # parser skips them, so both readers must accept the same patterns.
+    parts = re.split(" +", raw.strip(" "))
     head = re.fullmatch(r"([A-Za-z][A-Za-z0-9_]*)(?::([0-9]+)\.\.([0-9]+))?", parts[0])
     if head is None:
         raise ValueError("syntax: invalid slot")

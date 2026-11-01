@@ -7,9 +7,11 @@ import csv
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from functools import cache, partial
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint
 from cpe.export.csv_out import TextView, context, display, escape, shown, text_view
 from cpe.export.run_file import (
     LOCAL_ITKC,
@@ -17,7 +19,7 @@ from cpe.export.run_file import (
     normalization_section,
     settings_section,
 )
-from cpe.export.safe import check_outputs, staged
+from cpe.export.safe import check_input_collisions, check_outputs, staged
 from cpe.itkc.query import (
     And,
     Near,
@@ -133,6 +135,7 @@ def search_text(
     normalized: NormalizedText,
     settings: Settings,
     mode: str = "sentence",
+    checkpoint: Checkpoint = None,
 ) -> list[dict[str, Any]]:
     """One record per segment of `text` that satisfies the query (spec 14.2)."""
     segments = _segments(text, normalized, settings, mode)
@@ -141,6 +144,8 @@ def search_text(
     leaves = positive_leaves(tree)
     records = []
     for segment in segments:
+        if checkpoint:
+            checkpoint()
         body = normalized.text[segment.start : segment.end]
 
         def allowed(start: int, end: int, offset: int = segment.start) -> bool:
@@ -149,13 +154,15 @@ def search_text(
             index = bisect.bisect_right(barriers, offset + start)
             return index >= len(barriers) or barriers[index] >= offset + end
 
-        if not evaluate(tree, body, allowed):
+        find_spans = cache(partial(leaf_spans, text=body, allowed=allowed))
+
+        if not evaluate(tree, body, allowed, find_spans=find_spans):
             continue
         found = sorted(
             {
                 (segment.start + start, segment.start + end)
                 for leaf in leaves
-                for start, end in leaf_spans(leaf, body, allowed)
+                for start, end in find_spans(leaf)
             }
         )
         # Spec 3.5 applies to the grading of word-search records as well.
@@ -201,13 +208,11 @@ def _hit(normalized: NormalizedText, start: int, end: int) -> dict[str, Any]:
         # Notes joined inside the hit (notes = "join"); empty under a barrier.
         "joined_notes": [
             {"norm": q, "src": [s, e]}
-            for q, s, e in normalized.notes
-            if start < q < end
+            for q, s, e in normalized.removals_between("notes", start, end)
         ],
         "joined_annotations": [
             {"norm": q, "src": [s, e]}
-            for q, s, e in normalized.annotations
-            if start < q < end
+            for q, s, e in normalized.removals_between("annotations", start, end)
         ],
     }
 
@@ -229,6 +234,7 @@ def search_files(
         prefix.with_name(prefix.name + ".jsonl"),
         prefix.with_name(prefix.name + ".run.json"),
     )
+    check_input_collisions([outputs.csv, outputs.jsonl, outputs.run], inputs)
     check_outputs([outputs.csv, outputs.jsonl, outputs.run], force=force)
     tree = normalize_query(parse(query), options)
     texts = read_inputs(inputs)
@@ -296,7 +302,7 @@ def search_files(
     run_text = json.dumps(run, ensure_ascii=False, indent=2) + "\n"
     # All content is built before any file is opened, and each target is
     # replaced only after its writer returns.
-    with staged([outputs.jsonl, outputs.csv, outputs.run]) as (
+    with staged([outputs.jsonl, outputs.csv, outputs.run], force=force) as (
         jsonl_path,
         csv_path,
         run_path,
@@ -325,6 +331,7 @@ def csv_row(
     marks: list[list[int]] = []
     for hit in record["hits"]:
         s, e = hit["src"]
+        # Spec 14.2: touching spans share one bracket, unlike the match CSV (11).
         if marks and s <= marks[-1][1]:
             marks[-1][1] = max(marks[-1][1], e)
         else:

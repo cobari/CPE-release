@@ -131,6 +131,15 @@ def inputs_section(texts: Sequence[LocalText]) -> list[dict[str, Any]]:
 
 
 def normalization_section(options: Options) -> dict[str, Any]:
+    variant_digest = None
+    if options.variants is not None:
+        mapping = json.dumps(
+            options.variants.map,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        variant_digest = hashlib.sha256(mapping).hexdigest()
     return {
         "name": options.name,
         "variation_selectors": options.variation_selectors,
@@ -145,6 +154,7 @@ def normalization_section(options: Options) -> dict[str, Any]:
         "variant_table_version": None
         if options.variants is None
         else options.variants.version,
+        "variant_table_sha256": variant_digest,
     }
 
 

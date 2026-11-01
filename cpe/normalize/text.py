@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
+from functools import cached_property
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,22 @@ class NormalizedText:
     def __post_init__(self) -> None:
         if len(self.spans) != len(self.text):
             raise ValueError("every normalized code point needs one source span")
+
+    @cached_property
+    def _removal_index(self) -> dict[str, tuple[tuple[int, int, int], ...]]:
+        return {
+            name: tuple(sorted(getattr(self, name)))
+            for name in ("notes", "annotations")
+        }
+
+    def removals_between(
+        self, name: str, start: int, end: int
+    ) -> tuple[tuple[int, int, int], ...]:
+        """Removed metadata strictly inside a normalized span, including ties."""
+        items = self._removal_index[name]
+        first = bisect_right(items, start, key=lambda item: item[0])
+        last = bisect_left(items, end, key=lambda item: item[0])
+        return items[first:last]
 
     def src_start(self, position: int) -> int:
         """Source position of a normalized boundary used as a start (spec 1.7)."""

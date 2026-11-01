@@ -22,10 +22,11 @@ full stop (the manifest default), unlike the 句讀 。 of ITKC's database origi
 
 from __future__ import annotations
 
+import json
 import re
 import xml.etree.ElementTree as ET
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,7 @@ from cpe.itkc.search_cli import make_link
 from cpe.local.releases import ReleaseError, parse, save_bundles
 
 NOTE_OPEN, NOTE_CLOSE = "〘", "〙"
+REPORT_NAME = "import-report.json"
 _INDENT = re.compile(r"[ \t\r\n]*\n[ \t\r\n]*")
 _LEVEL = re.compile(r"레벨\d+$")
 # Skipped inside a paragraph: page markers and line breaks carry no text.
@@ -43,7 +45,12 @@ HALFWIDTH_MARKS = frozenset(",｡")
 
 
 class _UnknownElementError(ValueError):
-    """Raised when an unrecognized inline XML element is encountered."""
+    """An unrecognized element; `reason` is the code the import report records."""
+
+    def __init__(self, tag: str, reason: str = "unsupported_inline") -> None:
+        super().__init__(f"{reason}: {tag}")
+        self.tag = tag
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -61,6 +68,16 @@ class Piece:
     author: Author | None
     # The volume (레벨2) id; one bundle file is written per volume.
     volume: str
+
+
+@dataclass(frozen=True)
+class Release:
+    work_id: str
+    book: str
+    collection: str
+    pieces: list[Piece]
+    # Pieces left out whole, with the reason and element that excluded them.
+    skipped: list[dict[str, str]] = field(default_factory=list)
 
 
 def _title(level: ET.Element, kind: str | None = None) -> str:
@@ -105,7 +122,7 @@ def _inline(element: ET.Element) -> str:
         elif child.tag in _ALLOWED_CONTAINERS:
             parts.append(_inline(child))
         else:
-            raise _UnknownElementError(f"unrecognized inline element: {child.tag}")
+            raise _UnknownElementError(child.tag)
         parts.append(child.tail or "")
     return _INDENT.sub("", "".join(parts))
 
@@ -115,6 +132,7 @@ def _pieces(
     titles: list[str],
     author: Author | None,
     out: list[Piece],
+    skipped: list[dict[str, str]],
     volume: str,
 ) -> None:
     title = _title(level)
@@ -126,29 +144,41 @@ def _pieces(
     body = level.find("본문정보/내용")
     if body is not None:
         try:
-            paragraphs = [
-                _inline(p).strip(" \t\r\n")
-                for p in body
-                if p.tag in ("단락", "단락제목")
+            # Only paragraphs are body text. An unrecognized child could hold text
+            # or join neighbors, so the piece is left out whole rather than read
+            # around it, and the report says why.
+            unknown = [
+                child.tag for child in body if child.tag not in ("단락", "단락제목")
             ]
+            if unknown:
+                raise _UnknownElementError(unknown[0], "unsupported_body_element")
+            paragraphs = [_inline(p).strip(" \t\r\n") for p in body]
             text = "\n".join(p for p in paragraphs if p)
             if text:
                 out.append(
                     Piece(level.get("id", ""), here, text, own or author, volume)
                 )
-        except _UnknownElementError:
-            # Articles with unresolved or unknown inline elements are excluded
-            # whole to prevent silent deletion and joining of distinct characters.
-            pass
+        except _UnknownElementError as error:
+            # Articles with unresolved or unknown elements are excluded whole to
+            # prevent silent deletion and joining of distinct characters; the
+            # import report counts them instead of reporting a clean run.
+            skipped.append(
+                {
+                    "id": level.get("id", ""),
+                    "reason": error.reason,
+                    "element": error.tag,
+                }
+            )
     for child in level:
         if _LEVEL.match(child.tag):
-            _pieces(child, here, own or author, out, volume)
+            _pieces(child, here, own or author, out, skipped, volume)
 
 
-def read_documents(found: Iterable[bytes]) -> tuple[str, str, str, list[Piece]]:
-    """The work id, book title, collection name and pieces of a release."""
+def read_documents(found: Iterable[bytes]) -> Release:
+    """The work, titles and pieces of a release, and the pieces left out."""
     works: dict[str, tuple[str, Author | None]] = {}
     pieces: list[Piece] = []
+    skipped: list[dict[str, str]] = []
     collection = ""
     for document in found:
         root = parse(document)
@@ -167,17 +197,36 @@ def read_documents(found: Iterable[bytes]) -> tuple[str, str, str, list[Piece]]:
             book, author = works.setdefault(work_id, ("", None))
             for volume in work:
                 if _LEVEL.match(volume.tag):
-                    _pieces(volume, [], author, pieces, volume.get("id", ""))
+                    _pieces(
+                        volume,
+                        [],
+                        author,
+                        pieces,
+                        skipped,
+                        volume.get("id", ""),
+                    )
     if len(works) > 1:
         raise ReleaseError("release_multiple_works")
     if not pieces:
         raise ReleaseError("release_empty")
     work_id = next(iter(works), "itkc")
-    return work_id, works.get(work_id, ("", None))[0], collection, pieces
+    return Release(
+        work_id,
+        works.get(work_id, ("", None))[0],
+        collection,
+        pieces,
+        skipped,
+    )
 
 
 def save(
-    work_id: str, book: str, collection: str, pieces: list[Piece], folder: Path
+    work_id: str,
+    book: str,
+    collection: str,
+    pieces: list[Piece],
+    folder: Path,
+    *,
+    report: str | None = None,
 ) -> Path:
     """One text bundle per volume under folder/itkc-<work>/ (spec 7.1)."""
     slug = re.sub(r"[^a-z0-9]+", "-", work_id.removeprefix("ITKC_").lower()).strip("-")
@@ -209,11 +258,45 @@ def save(
                 record["year_end"] = author.died
         record["text"] = piece.text
         groups.setdefault(piece.volume, []).append(record)
-    save_bundles(target, groups, "itkc:")
+    save_bundles(target, groups, "itkc:", report=report)
     return target
 
 
+def _report_content(release: Release) -> str:
+    """The import report beside the bundles: counts and the pieces left out.
+
+    It holds no source text, absolute path or time, so importing the same release
+    again writes the same bytes.
+    """
+    report = {
+        "schema": 1,
+        "importer": "itkc",
+        "book": release.book,
+        "accepted": len(release.pieces),
+        "skipped": len(release.skipped),
+        "skipped_articles": [
+            {**item, "source": make_link({FIELD_DATA_ID: item["id"]})}
+            for item in release.skipped
+        ],
+    }
+    return json.dumps(report, ensure_ascii=False, indent=1) + "\n"
+
+
 def import_documents(found: Iterable[bytes], folder: Path) -> dict[str, object]:
-    work_id, book, collection, pieces = read_documents(found)
-    target = save(work_id, book, collection, pieces, folder)
-    return {"book": book, "articles": len(pieces), "folder": str(target)}
+    release = read_documents(found)
+    target = save(
+        release.work_id,
+        release.book,
+        release.collection,
+        release.pieces,
+        folder,
+        report=_report_content(release),
+    )
+    return {
+        "book": release.book,
+        "articles": len(release.pieces),
+        "folder": str(target),
+        # Pieces left out; distinct from a batch's count of files skipped.
+        "skipped_articles": len(release.skipped),
+        "report": str(target / REPORT_NAME),
+    }

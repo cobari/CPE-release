@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="app.title"></title>
+<title data-i18n="app.title">Classic Pattern Explorer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,8 +15,9 @@
 <a class="skip-link" href="#main" data-i18n="a11y.skip"></a>
 <header class="top">
   <div class="top-inner">
-    <h1><button type="button" class="brand" id="home" data-i18n-aria="home.label" data-i18n-title="home.label"><img class="brand-icon" src="../assets/icon.png" alt="" aria-hidden="true"><span data-i18n="app.title"></span></button></h1>
+    <h1><button type="button" class="brand" id="home" data-i18n-aria="home.label" data-i18n-title="home.label"><img class="brand-icon" src="../assets/home-icon.png" alt="" aria-hidden="true"><span data-i18n="app.title"></span></button></h1>
     <nav class="top-nav" data-i18n-aria="nav.label">
+      <button type="button" class="is-active" data-view="search" data-i18n="nav.search" aria-current="page"></button>
       <button type="button" data-view="sources" data-i18n="nav.sources"></button>
       <button type="button" data-view="import" data-i18n="nav.import"></button>
       <button type="button" data-view="language" data-i18n="nav.language"></button>
@@ -31,7 +32,11 @@
     <button type="button" class="open" id="startup-retry" data-i18n="error.start_retry"></button>
   </section>
 
-  <section class="view" id="view-search">
+  <section class="view" id="view-search" aria-labelledby="search-title">
+    <section class="welcome search-intro" id="welcome">
+      <h2 id="search-title" data-i18n="welcome.title"></h2>
+      <p id="welcome-help" data-i18n="welcome.help" data-ui-copy data-ui-copy-action="sources"></p>
+    </section>
     <form class="search is-compound" id="search">
       <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
         <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
@@ -64,20 +69,17 @@
         <select id="sort">
           <option value="source" data-i18n="sort.source"></option>
           <option value="era" data-i18n="sort.era"></option>
+          <option value="era-desc" data-i18n="sort.era_desc"></option>
         </select>
       </label>
+      <p class="status is-error is-hidden" id="sort-status" role="status" aria-live="polite"></p>
     </div>
+    <p id="selection-notice" class="selection-notice is-hidden" role="status" aria-live="polite"></p>
     <!-- One panel per searched source: two side by side, three in a row, four as 田. -->
     <div class="panels" id="panels"></div>
-    <section class="welcome is-hidden" id="welcome">
-      <span class="welcome-symbol" aria-hidden="true"></span>
-      <h2 data-i18n="welcome.title"></h2>
-      <p data-i18n="welcome.help"></p>
-      <button type="button" class="open" id="welcome-sources" data-i18n="sources.choose"></button>
-    </section>
   </section>
 
-  <section class="view view-narrow is-hidden" id="view-sources" aria-labelledby="sources-title">
+  <section class="view view-workspace is-hidden" id="view-sources" aria-labelledby="sources-title">
     <div class="view-head">
       <h2 id="sources-title" tabindex="-1" data-i18n="nav.sources"></h2>
     </div>
@@ -93,19 +95,37 @@
       <p class="view-empty is-hidden" id="local-empty" data-i18n="sources.empty"></p>
       <button type="button" class="open add-local-folder" id="add-local-folder" data-i18n="local.add_folder"></button>
       <p class="local-status" id="local-status" role="status" aria-live="polite"></p>
+      <div class="source-help-row" id="local-files-help-row">
+        <span data-i18n="library.help.summary"></span>
+        <button type="button" class="source-help" id="local-files-help" data-i18n-title="library.help.summary" aria-controls="source-guide" aria-expanded="false"></button>
+      </div>
     </section>
     <section class="view-section">
       <h3 data-i18n="sources.online"></h3>
-      <div class="source-chips" id="source-chips"></div>
+      <p class="source-region-note" data-i18n="sources.region_note"></p>
+      <div class="source-workspace" id="source-workspace">
+        <div class="source-guide-layout" id="source-guide-layout">
+          <div class="source-chips" id="source-chips"></div>
+          <aside class="source-guide is-hidden" id="source-guide" popover="manual" role="region" aria-labelledby="source-guide-title">
+            <header class="source-guide-head">
+              <p data-i18n="source.help"></p>
+              <button type="button" class="open source-guide-close" id="source-guide-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button>
+            </header>
+            <div class="source-guide-scroll">
+              <h4 id="source-guide-title" tabindex="-1"></h4>
+              <div class="source-guide-content">
+              <p class="source-guide-body" id="source-guide-body"></p>
+              <p class="external-find is-hidden" id="source-guide-official"><a class="link-button" id="source-guide-link" href="#" target="_blank" rel="noopener" data-i18n="source.official_link"></a></p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+      <p class="source-hint is-hidden" id="nrich-hint" data-i18n="source.nrich.query_hint"></p>
     </section>
-    <details class="source-notes">
-      <summary data-i18n="source.notes"></summary>
-      <div id="source-notes-list"></div>
-      <p data-i18n="library.help"></p>
-    </details>
   </section>
 
-  <section class="view view-narrow is-hidden" id="view-import" aria-labelledby="import-title">
+  <section class="view view-workspace is-hidden" id="view-import" aria-labelledby="import-title">
     <div class="view-head">
       <h2 id="import-title" tabindex="-1" data-i18n="nav.import"></h2>
     </div>
@@ -170,7 +190,7 @@
     </section>
   </section>
 
-  <section class="view view-narrow is-hidden" id="view-language" aria-labelledby="language-title">
+  <section class="view view-workspace is-hidden" id="view-language" aria-labelledby="language-title">
     <div class="view-head">
       <h2 id="language-title" tabindex="-1" data-i18n="nav.language"></h2>
     </div>
@@ -390,26 +410,25 @@
     </span>
   </div>
 </dialog>
-<dialog class="source-dialog" id="source-dialog" aria-labelledby="source-title">
-  <div class="dialog-head">
-    <h2 class="dialog-title" id="source-title"></h2>
-    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
-  </div>
-  <div class="dialog-scroll">
-  <p class="dialog-body"></p>
-  </div>
+<dialog class="source-dialog" id="link-error-dialog" aria-labelledby="link-error-title">
+  <div class="dialog-head"><h2 id="link-error-title" class="dialog-title" data-i18n="error.open_link"></h2><form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close">×</button></form></div>
+  <div class="dialog-scroll"><p data-i18n="link.copy_hint"></p><input id="link-error-address" class="link-error-address" readonly data-i18n-aria="link.address"></div>
 </dialog>
 <template id="panel">
   <section class="panel">
-    <header class="panel-head"><h2 class="panel-title"></h2><p class="panel-status" role="status"></p></header>
+    <header class="panel-head"><h2 class="panel-title"></h2><p class="panel-query is-hidden"><span class="query-mode"></span><span class="query-value" lang="und"></span></p><p class="panel-status" role="status"></p><button type="button" class="link-button source-retry is-hidden" data-i18n="search.retry_source" data-i18n-title="search.retry_source_hint"></button></header>
     <!-- Shown while this source is searching; the status line above says so in words. -->
     <div class="panel-loading" aria-hidden="true"><span class="spinner"></span></div>
+    <p class="external-find external-source is-hidden"><a class="link-button" href="#" target="_blank" rel="noopener" data-i18n="source.external.open"></a></p>
     <section class="group likely is-hidden">
-      <h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></h3>
+      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></div>
+      <nav class="result-pages" hidden data-i18n-aria="results.page_navigation" data-i18n-title="results.page_hint"><button type="button" class="link-button page-previous" data-i18n="results.previous_page"></button><span class="page-range" role="status" aria-live="polite"></span><button type="button" class="link-button page-next" data-i18n="results.next_page"></button></nav>
       <div class="list"></div>
     </section>
     <section class="group less is-closed is-hidden">
-      <h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></h3>
+      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></div>
+      <p class="group-note is-hidden"></p>
+      <nav class="result-pages" hidden data-i18n-aria="results.page_navigation" data-i18n-title="results.page_hint"><button type="button" class="link-button page-previous" data-i18n="results.previous_page"></button><span class="page-range" role="status" aria-live="polite"></span><button type="button" class="link-button page-next" data-i18n="results.next_page"></button></nav>
       <div class="list"></div>
     </section>
   </section>
@@ -418,6 +437,7 @@
   <article class="card">
     <header><span class="num"></span><a class="src" href="#"></a><span class="era"></span><span class="reasons"></span></header>
     <p class="text" lang="lzh"><span class="ctx before" lang="lzh"></span><span class="seg" lang="lzh"></span><span class="ctx after" lang="lzh"></span></p>
+    <p class="citation is-hidden"></p>
     <footer><span class="slot a"><b>A</b><span class="v" lang="lzh"></span></span><span class="slot b"><b>B</b><span class="v" lang="lzh"></span></span></footer>
   </article>
 </template>

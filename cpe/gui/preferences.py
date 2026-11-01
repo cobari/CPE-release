@@ -13,6 +13,7 @@ import sys
 import tempfile
 import threading
 import time
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -41,21 +42,45 @@ class Preferences:
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or config_dir() / "gui.json"
         self._write_lock = threading.Lock()
+        self._cache_lock = threading.RLock()
+        self._cache_signature: tuple[int, ...] | None = None
+        self._cache_data: dict[str, Any] = {}
 
     def load(self) -> dict[str, Any]:
-        return self._read(strict=False)
+        with self._cache_lock:
+            signature = self._signature()
+            if signature is not None and signature == self._cache_signature:
+                return deepcopy(self._cache_data)
+            try:
+                data = self._read(strict=False)
+            except OSError:
+                self._cache_signature = None
+                return {}
+            if signature is not None and signature == self._signature():
+                self._cache_signature = signature
+                self._cache_data = deepcopy(data)
+            return data
+
+    def _signature(self) -> tuple[int, ...] | None:
+        try:
+            info = self.path.stat()
+        except FileNotFoundError:
+            return ()
+        except OSError:
+            return None
+        return (info.st_mtime_ns, info.st_ctime_ns, info.st_size, info.st_ino)
 
     def _read(self, *, strict: bool) -> dict[str, Any]:
         """Stored values; a missing file means nothing remembered.
 
         A write must not treat a transient read failure as an empty file, or it
         would drop every other setting. `strict` re-raises that OSError for the
-        caller to report instead of overwriting. Undecodable bytes or invalid
-        JSON are a corrupt file: a write moves it aside first so the bytes are
-        kept, and starts from defaults.
+        caller to report instead of overwriting. Undecodable bytes, invalid JSON,
+        or a non-object root are corrupt: a write moves the file aside first so
+        the bytes are kept, and starts from defaults.
         """
         try:
-            text = self.path.read_text(encoding="utf-8")
+            text = self.path.read_text(encoding="utf-8-sig")
         except FileNotFoundError:
             return {}
         except UnicodeDecodeError:
@@ -63,25 +88,22 @@ class Preferences:
                 self._preserve_corrupt()
                 return {}
             return {}
-        except OSError:
-            if strict:
-                raise
-            return {}
         try:
             data = json.loads(text)
-        except ValueError:
+        except (ValueError, RecursionError):
             if strict:
                 self._preserve_corrupt()
             return {}
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            if strict:
+                self._preserve_corrupt()
+            return {}
+        return data
 
     def _preserve_corrupt(self) -> None:
         """Keep an unreadable file beside the new one instead of deleting it."""
         target = self.path.with_name(f"{self.path.name}.corrupt-{time.time_ns()}")
-        try:
-            self.path.rename(target)
-        except OSError:
-            pass
+        self.path.rename(target)
 
     def get(self, key: str) -> str:
         value = self.load().get(key, "")
@@ -96,6 +118,9 @@ class Preferences:
             self._update(values)
 
     def _update(self, values: dict[str, Any]) -> None:
+        # The lock file lives in this directory: create the directory before
+        # opening the lock, or a first save with no settings folder fails.
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         lock = self.path.with_name(self.path.name + ".lock")
         for _ in range(self._LOCK_TRIES):
             try:
@@ -111,7 +136,6 @@ class Preferences:
         data = self._read(strict=True)
         data.update(values)
         content = json.dumps(data, ensure_ascii=False, indent=1)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         # Written to a temporary file and moved into place, so a crash mid-write
         # leaves the old file instead of an empty one.
         handle, temporary = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
@@ -119,5 +143,10 @@ class Preferences:
             with os.fdopen(handle, "w", encoding="utf-8", newline="") as stream:
                 stream.write(content)
             os.replace(temporary, self.path)
+            # Writes always merge a fresh disk read under the cross-process
+            # lock. Cached snapshots may never overwrite another window's data.
+            with self._cache_lock:
+                self._cache_data = deepcopy(data)
+                self._cache_signature = self._signature()
         finally:
             Path(temporary).unlink(missing_ok=True)

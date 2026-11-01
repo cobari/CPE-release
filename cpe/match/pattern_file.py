@@ -95,7 +95,7 @@ def loads(content: bytes, path: str = "<input>") -> list[PatternSpec]:
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         raise PatternFileError(f"{path}: not a UTF-8 TOML file ({error})") from None
     _unknown(data, _TOP_KEYS, path)
-    if data.get("schema") != 1:
+    if type(data.get("schema")) is not int or data["schema"] != 1:
         raise PatternFileError(f"{path}: expected 'schema = 1'")
     entries = _array(data.get("pattern", []), path, "'pattern'")
     specs = [from_mapping(entry, str(path)) for entry in entries]

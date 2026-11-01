@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint, pause
+
 API_URL = "http://db.itkc.or.kr/openapi/search"
 
 # Field names are the API's own identifiers and must stay as the API spells them.
@@ -46,6 +48,7 @@ class LocalStorageError(RuntimeError):
 
 
 MAX_PAGES = 5
+MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -61,7 +64,9 @@ class Safeguards:
 def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
     query = urllib.parse.urlencode(params)
     with urllib.request.urlopen(f"{url}?{query}", timeout=timeout) as response:
-        data: bytes = response.read()
+        data: bytes = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(data) > MAX_RESPONSE_BYTES:
+            raise ApiError("ITKC response exceeds the size limit")
         return data
 
 
@@ -119,6 +124,8 @@ class ITKCClient:
 
     def __post_init__(self) -> None:
         guard = self.safeguards
+        if self.rows < 1:
+            raise ValueError("rows must be positive")
         if not 1 <= guard.max_pages <= MAX_PAGES:
             raise ValueError(f"max_pages must be between 1 and {MAX_PAGES}")
         if guard.max_calls < 1 or guard.min_interval < 0 or guard.retries < 0:
@@ -137,22 +144,32 @@ class ITKCClient:
     ) -> tuple[int, list[dict[str, str]]]:
         return self.fetch_params(self.params(keyword, start, rows))
 
-    def fetch_params(self, params: dict[str, Any]) -> tuple[int, list[dict[str, str]]]:
+    def fetch_params(
+        self, params: dict[str, Any], checkpoint: Checkpoint = None
+    ) -> tuple[int, list[dict[str, str]]]:
         """One request with explicit query parameters (probe experiments).
 
         Goes through the same retries, interval, cap and log as `fetch`.
         """
         with self._lock:
-            return self._fetch_params(dict(params))
+            return self._fetch_params(dict(params), checkpoint)
 
-    def _fetch_params(self, params: dict[str, Any]) -> tuple[int, list[dict[str, str]]]:
+    def _fetch_params(
+        self, params: dict[str, Any], checkpoint: Checkpoint = None
+    ) -> tuple[int, list[dict[str, str]]]:
+        if checkpoint:
+            checkpoint()
         last_error: Exception | None = None
         for attempt in range(self.safeguards.retries + 1):
             if attempt:
-                self.sleep(2.0 * attempt)
+                pause(2.0 * attempt, self.sleep, checkpoint)
             try:
-                content = self._call(params)
+                content = self._call(params, checkpoint)
+                if checkpoint:
+                    checkpoint()
                 total, docs = parse_response(content)
+            except InterruptedError:
+                raise
             except (OSError, http.client.HTTPException, ET.ParseError) as error:
                 # Only network and XML failures are retried. Local write failures
                 # raise LocalStorageError, which is not an OSError, so a response
@@ -187,7 +204,7 @@ class ITKCClient:
             total, docs = self.fetch(keyword, start, min(self.rows, limit - start))
             if not docs:
                 return
-            yield from docs
+            yield from docs[: limit - start]
             start += len(docs)
             if start >= total:
                 return
@@ -202,17 +219,23 @@ class ITKCClient:
                 break
         return docs
 
-    def _call(self, params: dict[str, Any]) -> bytes:
+    def _call(self, params: dict[str, Any], checkpoint: Checkpoint = None) -> bytes:
         with self._lock:
-            return self._call_locked(params)
+            return self._call_locked(params, checkpoint)
 
-    def _call_locked(self, params: dict[str, Any]) -> bytes:
+    def _call_locked(
+        self, params: dict[str, Any], checkpoint: Checkpoint = None
+    ) -> bytes:
+        if checkpoint:
+            checkpoint()
         if self.stopped or self.calls >= self.safeguards.max_calls:
             raise CallCapReached(f"call cap {self.safeguards.max_calls} reached")
         if self._last_start is not None:
             wait = self.safeguards.min_interval - (self.clock() - self._last_start)
             if wait > 0:
-                self.sleep(wait)
+                pause(wait, self.sleep, checkpoint)
+        if checkpoint:
+            checkpoint()
         self.calls += 1
         self._log({"event": "request", "call": self.calls, "params": params})
         # The start time is taken after logging, right before the request, so the

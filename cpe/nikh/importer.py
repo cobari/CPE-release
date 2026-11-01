@@ -63,10 +63,18 @@ ARTICLE_LINK = "https://db.history.go.kr/id/"
 # Interlinear-note markers written into the text and declared in each manifest; chosen
 # because they do not occur in these releases.
 NOTE_OPEN, NOTE_CLOSE = "〘", "〙"
+# Proofreading variants are shown inside note barriers with their source type label.
+# The bracket pair is project metadata, not source text; it is stripped before the
+# mixed-script check so a Korean type label cannot exclude an otherwise classical text.
+PROOF_OPEN, PROOF_CLOSE = "⟦", "⟧"
+# A note inside a note is flattened to these brackets so the text keeps one note
+# barrier level; the loader rejects nested note markers.
+NESTED_NOTE_OPEN, NESTED_NOTE_CLOSE = "〔", "〕"
 ORIGINAL_NOTE = "원주"
 # The Sillok construction rules identify small double-line text as original notes;
 # treating it as apparatus deletes source commentary (offline-editorial-options.md).
 ORIGINAL_NOTES = frozenset({ORIGINAL_NOTE, "소자쌍행"})
+SARYO_INLINE = frozenset({"pTitle", "emph", "link", "number"})
 # An unresolved glyph reference: a character the release writes only as a pointer to
 # the institute's glyph (<newChar href="KC04089"/>; whether Unicode has it is not
 # checked). It has no text, so dropping it would join the characters around it; the
@@ -142,16 +150,21 @@ class _Unsupported(Exception):
 
 
 def _strict_text(
-    element: ET.Element, in_note: bool = False, in_paragraph: bool = False
+    element: ET.Element,
+    in_note: bool = False,
+    in_paragraph: bool = False,
+    *,
+    saryo: bool = False,
 ) -> None:
-    """A partial import excludes editorial choices instead of flattening them.
+    """A partial import keeps editorial variants visible instead of merging them.
 
     docs/research/offline-editorial-options.md records why small double-line
-    annotations are original notes and proofreading needs a witness policy.
+    annotations are original notes and why proofreading variants are labelled in
+    notes rather than reconstructed into a single witness.
     """
-    if element.tag == "proofreading":
-        raise _Unsupported("proofreading_policy")
     if element.tag == "reference":
+        return
+    if saryo and element.tag == "number":
         return
     if element.tag == "annotation":
         if element.get("type") not in ORIGINAL_NOTES:
@@ -166,19 +179,28 @@ def _strict_text(
         ):
             raise _Unsupported("original_note_structure")
         in_note = True
-    if element.tag not in {
+    allowed = {
         "text",
         "content",
         "paragraph",
+        "quotation",
+        "proofreading",
         "postScript",
         "index",
         "annotation",
         "noteContent",
         "br",
         NEW_CHARACTER,
-    }:
+    }
+    if saryo:
+        allowed |= SARYO_INLINE
+    if element.tag not in allowed:
         raise _Unsupported("unsupported_inline")
-    if element.tag == "paragraph":
+    # history.dtd defines quotation as a body container (#PCDATA | inline | paragraph);
+    # the Sillok release carries quoted memorials in it. Read it like a paragraph so the
+    # text is not lost, and let the outer-paragraph scan collect it as one unit.
+    # proofreading is also a text container; its variants are written as labelled notes.
+    if element.tag in ("paragraph", "quotation", "proofreading"):
         in_paragraph = True
     if element.tag == NEW_CHARACTER and not in_paragraph:
         raise _Unresolved
@@ -189,7 +211,7 @@ def _strict_text(
     if not in_paragraph and (element.text or "").strip():
         raise _Unsupported("text_outside_paragraphs")
     for child in element:
-        _strict_text(child, in_note, in_paragraph)
+        _strict_text(child, in_note, in_paragraph, saryo=saryo)
         if not in_paragraph and (child.tail or "").strip():
             raise _Unsupported("text_outside_paragraphs")
 
@@ -225,36 +247,81 @@ def _flat(element: ET.Element | None) -> str:
 
 
 def _outer_paragraphs(element: ET.Element) -> list[ET.Element]:
-    """Paragraphs not inside another paragraph, in document order.
+    """Paragraphs and quotations not inside another paragraph, in document order.
 
     A paragraph may hold paragraphs (the 史論 of 조선왕조실록 sits in <postScript>
     inside one); its text already includes them, so listing them again would write
-    them twice. Annotations and <reference> blocks are not searched for paragraphs:
+    them twice. A quotation is a body container in history.dtd and is collected as
+    one unit; annotations and <reference> blocks are not searched for paragraphs:
     they are left out of the text.
     """
     found: list[ET.Element] = []
     for child in element:
-        if child.tag == "paragraph":
+        if child.tag in ("paragraph", "quotation"):
             found.append(child)
         elif child.tag not in ("annotation", "reference"):
             found += _outer_paragraphs(child)
     return found
 
 
-def _paragraph_text(element: ET.Element) -> str:
-    """Text of a paragraph: original notes between markers, editorial notes left out."""
+def _proofreading_text(element: ET.Element) -> str:
+    """Variant text inside a proofreading element, with nested variants labelled.
+
+    This is not a reconstructed witness: the caller wraps the result in a note
+    barrier, and nested proofreading labels stay visible without creating nested
+    note markers.
+    """
+    parts = [element.text or ""]
+    for child in element:
+        if child.tag == "proofreading":
+            inner = _proofreading_text(child)
+            if inner:
+                kind = child.get("type") or "proofreading"
+                parts.append(PROOF_OPEN + kind + PROOF_CLOSE + " " + inner)
+        elif child.tag == NEW_CHARACTER:
+            raise _Unresolved
+        elif child.tag in ("br", "reference"):
+            pass
+        elif child.tag == "annotation":
+            if child.get("type") in ORIGINAL_NOTES:
+                note = _note_text(child.find("noteContent"))
+                if note:
+                    parts.append(PROOF_OPEN + note + PROOF_CLOSE)
+        else:
+            parts.append(_proofreading_text(child))
+        parts.append(child.tail or "")
+    return _INDENT.sub("", "".join(parts)).strip(" \t\r\n")
+
+
+def _paragraph_text(element: ET.Element, *, saryo: bool = False) -> str:
+    """Text of a paragraph: original notes and proofreading variants between markers."""
     parts = [element.text or ""]
     for child in element:
         if child.tag == "annotation":
             if child.get("type") in ORIGINAL_NOTES:
                 note = child.find("noteContent")
                 parts.append(NOTE_OPEN + _note_text(note) + NOTE_CLOSE)
+        elif child.tag == "proofreading":
+            variant = _proofreading_text(child)
+            if variant:
+                kind = child.get("type") or "proofreading"
+                parts.append(
+                    NOTE_OPEN
+                    + PROOF_OPEN
+                    + kind
+                    + PROOF_CLOSE
+                    + " "
+                    + variant
+                    + NOTE_CLOSE
+                )
         elif child.tag in ("br", "reference"):
+            pass
+        elif saryo and child.tag == "number":
             pass
         elif child.tag == NEW_CHARACTER:
             raise _Unresolved
         else:
-            parts.append(_paragraph_text(child))
+            parts.append(_paragraph_text(child, saryo=saryo))
         parts.append(child.tail or "")
     return _INDENT.sub("", "".join(parts))
 
@@ -266,7 +333,12 @@ def _note_text(note: ET.Element | None) -> str:
     for child in note:
         if child.tag == NEW_CHARACTER:
             raise _Unresolved
-        if child.tag not in ("illustration", "annotation"):
+        if child.tag == "proofreading":
+            variant = _proofreading_text(child)
+            if variant:
+                kind = child.get("type") or "proofreading"
+                parts.append(PROOF_OPEN + kind + PROOF_CLOSE + " " + variant)
+        elif child.tag not in ("illustration", "annotation"):
             parts.append(_paragraph_text(child))
         parts.append(child.tail or "")
     text = _INDENT.sub("", "".join(parts)).strip(" \t\r\n")
@@ -274,7 +346,9 @@ def _note_text(note: ET.Element | None) -> str:
     # markers replace them.
     if text.startswith("【") and text.endswith("】"):
         text = text[1:-1]
-    return text
+    return text.replace(NOTE_OPEN, NESTED_NOTE_OPEN).replace(
+        NOTE_CLOSE, NESTED_NOTE_CLOSE
+    )
 
 
 def _articles(
@@ -283,6 +357,7 @@ def _articles(
     release: Release,
     document: str,
     strict: bool = False,
+    saryo: bool = False,
 ) -> None:
     """Collect the articles under level. `titles` is None when an enclosing title
     holds an unresolved character: every article below would carry that title."""
@@ -308,13 +383,22 @@ def _articles(
     if text is not None and not _EDITION_MATTER.search(level_id):
         try:
             if strict:
-                _strict_text(text)
+                _strict_text(text, saryo=saryo)
             paragraphs = [
-                _paragraph_text(p).strip(" \t\r\n") for p in _outer_paragraphs(text)
+                _paragraph_text(p, saryo=saryo).strip(" \t\r\n")
+                for p in _outer_paragraphs(text)
             ]
             body = _characters("\n".join(p for p in paragraphs if p))
+            # Proofreading type labels are project metadata, not source text. Strip
+            # them before the mixed-script check; source Hangul (if any) still counts.
+            script_body = re.sub(
+                re.escape(PROOF_OPEN) + r".*?" + re.escape(PROOF_CLOSE),
+                "",
+                body,
+                flags=re.S,
+            )
             if strict and re.search(
-                r"[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af□]", body
+                r"[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af□]", script_body
             ):
                 raise _Unsupported("mixed_script_or_placeholder_review")
         except _Unresolved:
@@ -345,7 +429,7 @@ def _articles(
                 )
     for child in level:
         if _LEVEL.match(child.tag):
-            _articles(child, here, release, document, strict)
+            _articles(child, here, release, document, strict, saryo)
 
 
 def read_release(path: Path) -> tuple[str, str, list[Article]]:
@@ -353,13 +437,19 @@ def read_release(path: Path) -> tuple[str, str, list[Article]]:
     return read_documents(documents(path))
 
 
-def read_documents(found: Iterable[bytes]) -> tuple[str, str, list[Article]]:
-    release = read_all(found)
+def read_documents(
+    found: Iterable[bytes], *, saryo: bool = False
+) -> tuple[str, str, list[Article]]:
+    release = read_all(found, saryo=saryo)
     return release.prefix, release.book, release.articles
 
 
 def read_all(
-    found: Iterable[bytes], strict: bool = True, *, allow_excluded_only: bool = False
+    found: Iterable[bytes],
+    strict: bool = True,
+    *,
+    saryo: bool = False,
+    allow_excluded_only: bool = False,
 ) -> Release:
     """The release's articles and the articles left out.
 
@@ -378,11 +468,11 @@ def read_all(
             book = root.get("name", "") or book
             for child in root:
                 if _LEVEL.match(child.tag):
-                    _articles(child, [], release, child.get("id", ""), strict)
+                    _articles(child, [], release, child.get("id", ""), strict, saryo)
             continue
         if not _LEVEL.match(root.tag):
             raise ReleaseError("release_unknown")
-        _articles(root, [], release, root.get("id", ""), strict)
+        _articles(root, [], release, root.get("id", ""), strict, saryo)
     if not release.articles and (not allow_excluded_only or not release.skipped):
         raise ReleaseError(
             "release_new_character" if release.skipped else "release_empty"
@@ -478,8 +568,10 @@ def _report_content(release: Release) -> str:
     return json.dumps(report, ensure_ascii=False, indent=1) + "\n"
 
 
-def import_documents(found: Iterable[bytes], folder: Path) -> dict[str, object]:
-    release = read_all(found)
+def import_documents(
+    found: Iterable[bytes], folder: Path, *, saryo: bool = False
+) -> dict[str, object]:
+    release = read_all(found, saryo=saryo)
     check_existing(target_folder(folder, release.prefix), release)
     target = save(
         release.prefix,

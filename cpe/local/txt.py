@@ -24,6 +24,15 @@ T = TypeVar("T", bound=str)
 _BOM = "\ufeff"
 
 
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key!r}")
+        result[key] = value
+    return result
+
+
 class InputError(ValueError):
     """An input file or manifest that cannot be used as evidence."""
 
@@ -105,8 +114,13 @@ def read_bundle(path: Path) -> list[LocalText]:
     Every line needs its own text_id; one bad line rejects the whole file, so a
     bundle is never half read.
     """
+    return parse_bundle(path, path.read_bytes())
+
+
+def parse_bundle(path: Path, content: bytes) -> list[LocalText]:
+    """Validate a captured bundle snapshot, using its path for diagnostics."""
     try:
-        lines = path.read_bytes().decode("utf-8", errors="strict").split("\n")
+        lines = content.decode("utf-8", errors="strict").split("\n")
     except UnicodeDecodeError as error:
         raise InputError(f"{path}: not valid UTF-8 ({error})") from None
     texts = []
@@ -115,7 +129,7 @@ def read_bundle(path: Path) -> list[LocalText]:
             continue
         where = Path(f"{path}:{number}")
         try:
-            entry = json.loads(line)
+            entry = json.loads(line, object_pairs_hook=_unique_object)
         except ValueError as error:
             raise InputError(f"{where}: not a JSON object ({error})") from None
         if not isinstance(entry, dict):

@@ -31,9 +31,12 @@ _SAVE_LOCK = threading.Lock()
 
 # A release ZIP is read into memory member by member. These bounds stop a damaged
 # or hostile archive from exhausting the window; they are well above the largest
-# inspected institute volume.
+# inspected institute volume. The Sillok release 15053647 is 143 MB compressed but
+# 853 MB of XML across 673 members, so the total bound is 1 GiB; members are still
+# read one at a time and each stays under the 32 MiB member bound.
 MAX_MEMBER_BYTES = 32 * 1024 * 1024
-MAX_TOTAL_BYTES = 256 * 1024 * 1024
+MAX_STANDALONE_BYTES = 32 * 1024 * 1024
+MAX_TOTAL_BYTES = 1024 * 1024 * 1024
 
 
 def _release_member(name: str) -> bool:
@@ -58,11 +61,22 @@ class ReleaseError(ValueError):
         self.code = code
 
 
+def _check_duplicate_members(members: Iterable[zipfile.ZipInfo]) -> None:
+    seen: set[str] = set()
+    for info in members:
+        if not _release_member(info.filename):
+            continue
+        if info.filename in seen:
+            raise ReleaseError("release_unreadable")
+        seen.add(info.filename)
+
+
 def documents(path: Path) -> Generator[bytes, None, None]:
     """The XML documents of a release ZIP in name order, or the one XML file."""
     try:
         if zipfile.is_zipfile(path):
             with zipfile.ZipFile(path) as archive:
+                _check_duplicate_members(archive.infolist())
                 members = [
                     info
                     for info in archive.infolist()
@@ -75,9 +89,13 @@ def documents(path: Path) -> Generator[bytes, None, None]:
                         raise ReleaseError("release_large")
                     yield archive.read(info)
         else:
-            if path.stat().st_size > MAX_TOTAL_BYTES:
+            if path.stat().st_size > MAX_STANDALONE_BYTES:
                 raise ReleaseError("release_large")
-            yield path.read_bytes()
+            with path.open("rb") as stream:
+                data = stream.read(MAX_STANDALONE_BYTES + 1)
+            if len(data) > MAX_STANDALONE_BYTES:
+                raise ReleaseError("release_large")
+            yield data
     except (
         OSError,
         zipfile.BadZipFile,
@@ -140,14 +158,19 @@ def save_bundles(
     id_prefix: str,
     *,
     report: str | None = None,
+    keep_existing: bool = False,
 ) -> None:
     """Stage and validate all volumes and the report before replacing the work.
 
     Existing unrelated files and volumes absent from this input are retained.
     Legacy article files have no ownership receipt, so conflicting IDs are refused.
+    `keep_existing` makes an existing target that already holds exactly these bytes
+    a no-op and any other existing target a conflict; the check runs under the same
+    lock as the install, so another process cannot publish between them.
     """
     contents: dict[str, str] = {}
     ids: set[str] = set()
+    group_ids: dict[str, set[str]] = {}
     for group, records in groups.items():
         name = bundle_name(group)
         if name in contents:
@@ -161,6 +184,7 @@ def save_bundles(
             ):
                 raise ReleaseError("release_existing_conflict")
             ids.add(text_id)
+        group_ids[name] = {record["text_id"] for record in records}
         contents[name] = "".join(
             json.dumps(record, ensure_ascii=False) + "\n" for record in records
         )
@@ -172,7 +196,8 @@ def save_bundles(
     with _SAVE_LOCK:
         try:
             with exclusive(target.with_name(f".{target.name}.lock")):
-                _install_bundles(target, contents, ids)
+                if not keep_existing or not _current(target, contents):
+                    _install_bundles(target, contents, ids, group_ids)
         except FileBusyError:
             # Another window or process is installing into this folder; its
             # half-written state stays untouched and the page can say so with
@@ -180,7 +205,42 @@ def save_bundles(
             raise ReleaseError("local_busy") from None
 
 
-def _install_bundles(target: Path, contents: dict[str, str], ids: set[str]) -> None:
+def _current(target: Path, contents: dict[str, str]) -> bool:
+    """Whether target already holds exactly `contents`, restoring a stopped install.
+
+    Called while the target's lock is held: another process publishing the same
+    folder renames the old one to `.previous` and back, so inspecting that fixed
+    name without the lock could move a folder still being published.
+    """
+    backup = target.with_name(f".{target.name}.previous")
+    if target.is_symlink() or backup.is_symlink():
+        raise ReleaseError("release_existing_conflict")
+    if backup.exists():
+        if target.exists():
+            raise ReleaseError("release_existing_conflict")
+        backup.rename(target)
+    if not target.exists():
+        return False
+    if (
+        not target.is_dir()
+        or {path.name for path in target.iterdir()} != contents.keys()
+        or any(
+            (target / name).is_symlink()
+            or not (target / name).is_file()
+            or (target / name).read_bytes() != value.encode("utf-8")
+            for name, value in contents.items()
+        )
+    ):
+        raise ReleaseError("release_existing_conflict")
+    return True
+
+
+def _install_bundles(
+    target: Path,
+    contents: dict[str, str],
+    ids: set[str],
+    group_ids: dict[str, set[str]],
+) -> None:
     backup = target.with_name(f".{target.name}.previous")
     if target.is_symlink() or backup.is_symlink():
         raise ReleaseError("release_existing_conflict")
@@ -217,7 +277,7 @@ def _install_bundles(target: Path, contents: dict[str, str], ids: set[str]) -> N
                 # A disjoint set is a different volume or split part and would drop
                 # every earlier article, so refuse it.
                 previous_ids = {text.text_id for text in previous}
-                if previous_ids and not previous_ids & ids:
+                if previous_ids and not previous_ids & group_ids[name]:
                     raise ReleaseError("release_existing_conflict")
             with path.open("w", encoding="utf-8", newline="") as stream:
                 stream.write(content)
@@ -289,6 +349,39 @@ def _check_article_files(target: Path, ids: set[str]) -> None:
 
 def import_release(path: Path, folder: Path) -> dict[str, object]:
     """Convert a release into folder; {book, articles, folder} for the status line."""
+    from cpe.local.titled_releases import NAHF_BY_ITEM
+
+    nahf_codes: set[str] = set()
+    if path.is_file() and zipfile.is_zipfile(path):
+        try:
+            with zipfile.ZipFile(path) as archive:
+                _check_duplicate_members(archive.infolist())
+                names = archive.namelist()
+        except (
+            OSError,
+            zipfile.BadZipFile,
+            NotImplementedError,
+            RuntimeError,
+            EOFError,
+            zlib.error,
+        ):
+            # is_zipfile() only reads the end record; a damaged archive that still
+            # passes it must reach the caller as an unreadable release, not as a
+            # raw ZIP exception the page does not translate.
+            raise ReleaseError("release_unreadable") from None
+        for name in names:
+            base = name.replace("\\", "/").rsplit("/", 1)[-1]
+            if not base.lower().endswith(".xml"):
+                continue
+            code = base.split(".", 1)[0]
+            if code in NAHF_BY_ITEM and base.startswith(f"{code}.d_"):
+                nahf_codes.add(code)
+        if nahf_codes and (
+            len(nahf_codes) > 1 or next(iter(nahf_codes)) not in {"dh", "jo", "jb"}
+        ):
+            from cpe.local.titled_releases import import_nahf_zip
+
+            return import_nahf_zip(path, folder)
     with closing(documents(path)) as reader:
         first = next(reader, None)
         if first is None:
@@ -300,6 +393,14 @@ def import_release(path: Path, folder: Path) -> dict[str, object]:
 
             return aks.import_documents(found, folder)
         if root.tag == "자료":
+            # Both inspected AKS releases share the escaped-article wrapper; the
+            # source identity prefix selects the reader. An unlisted prefix reaches
+            # the Jangyongyeong reader, which refuses it instead of reinterpreting it.
+            identity = (root.findtext("기사/AA20_NO") or "").strip()
+            if identity.startswith("23335_"):
+                from cpe.aks import sunmuyeong
+
+                return sunmuyeong.import_documents(found, folder)
             from cpe.aks import jangyongyeong
 
             return jangyongyeong.import_documents(found, folder)
@@ -310,11 +411,23 @@ def import_release(path: Path, folder: Path) -> dict[str, object]:
         if root.tag == "item" or re.match(r"level\d+$", root.tag):
             identity = root.get("id", "")
             if identity == "muds" or identity.startswith(
-                ("muds_", "dh.d_", "dh.k_", "dh.m_", "jb.", "jo.")
+                (
+                    "muds_",
+                    "dh.d_",
+                    "dh.k_",
+                    "dh.m_",
+                    "jb.",
+                    "jo.",
+                    *tuple(f"{code}." for code in NAHF_BY_ITEM),
+                )
             ):
                 from cpe.local import titled_releases
 
                 return titled_releases.import_documents(found, folder)
+            if root.get("name") == "한국사료총서" or identity.startswith("sa_"):
+                from cpe.nikh import importer as nikh
+
+                return nikh.import_documents(found, folder, saryo=True)
             from cpe.nikh import importer as nikh
 
             return nikh.import_documents(found, folder)

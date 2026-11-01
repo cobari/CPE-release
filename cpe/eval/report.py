@@ -2,23 +2,27 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import tomllib
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-from cpe.eval.metrics import evaluate, load_entries
-from cpe.export.safe import check_outputs, staged
+from cpe.eval.metrics import evaluate, parse_entries
+from cpe.export.safe import check_input_collisions, check_outputs, staged
 from cpe.match.api import run as run_matcher
 from cpe.match.dsl import parse as parse_expression
 from cpe.match.pattern_file import loads as load_patterns
 
 
 def patterns_from(path: Path) -> dict[str, dict[str, Any]]:
-    # The loader rejects duplicate ids and bad schemas first, so a repeated
-    # id can no longer silently keep only its last definition here.
-    raw = path.read_bytes()
+    return _parse_patterns(path.read_bytes(), path)
+
+
+def _parse_patterns(raw: bytes, path: Path) -> dict[str, dict[str, Any]]:
+    # Validate before building the ID map; duplicate IDs would replace earlier
+    # patterns and hide a malformed configuration.
     load_patterns(raw, str(path))
     data = tomllib.loads(raw.decode("utf-8"))
     return {entry["id"]: entry for entry in data.get("pattern", [])}
@@ -56,8 +60,19 @@ def wire_builder(patterns: dict[str, dict[str, Any]]) -> Any:
 def build(
     gold: Sequence[Path], patterns_path: Path, confirmed_only: bool = False
 ) -> dict[str, Any]:
-    entries = load_entries(gold)
-    patterns = patterns_from(patterns_path)
+    gold_snapshots: list[dict[str, str]] = []
+
+    def capture_gold() -> Iterator[tuple[Path, bytes]]:
+        for path in gold:
+            content = path.read_bytes()
+            gold_snapshots.append(
+                {"path": path.as_posix(), "sha256": hashlib.sha256(content).hexdigest()}
+            )
+            yield path, content
+
+    entries = parse_entries(capture_gold())
+    pattern_bytes = patterns_path.read_bytes()
+    patterns = _parse_patterns(pattern_bytes, patterns_path)
     for entry in entries:
         if entry["pattern_id"] not in patterns:
             raise ValueError(
@@ -78,6 +93,13 @@ def build(
         "schema": "cpe.eval/1",
         "gold": [path.as_posix() for path in gold],
         "patterns": patterns_path.as_posix(),
+        "input_snapshots": {
+            "gold": gold_snapshots,
+            "patterns": {
+                "path": patterns_path.as_posix(),
+                "sha256": hashlib.sha256(pattern_bytes).hexdigest(),
+            },
+        },
         "confirmed_only": confirmed_only,
         "patterns_evaluated": [reports[key].as_dict() for key in sorted(reports)],
     }
@@ -134,6 +156,21 @@ def markdown(data: dict[str, Any]) -> str:
         "annotation prose are not used; unexplained grammatical negatives stay "
         "other. Uncertain candidates are not counted as definite false positives.",
     ]
+    if snapshots := data.get("input_snapshots"):
+        lines += [
+            "",
+            "## Input snapshots",
+            "",
+            "SHA-256 of the scored input files:",
+            "",
+        ]
+        lines += [
+            f"- Gold `{item['path']}`: `{item['sha256']}`" for item in snapshots["gold"]
+        ]
+        pattern_snapshot = snapshots["patterns"]
+        lines.append(
+            f"- Patterns `{pattern_snapshot['path']}`: `{pattern_snapshot['sha256']}`"
+        )
     for item in data["patterns_evaluated"]:
         structural = item["structural"]
         precision = item["precision"]
@@ -261,10 +298,14 @@ def write(
 ) -> tuple[Path, Path]:
     json_path = prefix.with_name(prefix.name + ".json")
     md_path = prefix.with_name(prefix.name + ".md")
+    check_input_collisions(
+        [json_path, md_path],
+        [*(Path(path) for path in data["gold"]), Path(data["patterns"])],
+    )
     check_outputs([json_path, md_path], force=force)
     json_text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     md_text = markdown(data)
-    with staged([json_path, md_path]) as (json_target, md_target):
+    with staged([json_path, md_path], force=force) as (json_target, md_target):
         with json_target.open("w", encoding="utf-8", newline="") as stream:
             stream.write(json_text)
         with md_target.open("w", encoding="utf-8", newline="") as stream:

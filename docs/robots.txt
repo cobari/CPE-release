@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cobari.github.io/CPE-release/sitemap.xml
