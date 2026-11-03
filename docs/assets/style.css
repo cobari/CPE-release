@@ -584,39 +584,27 @@ p:last-child {
   }
 }
 
-/* Research Guidance & Data Limits (Split into two distinct cards) */
-.guidance-grid {
+/* Peer guidance sections share the page's heading and paragraph hierarchy. */
+.guidance-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-  margin-top: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 24px clamp(28px, 4vw, 64px);
+  align-items: start;
 }
-.guidance-col {
-  min-width: 0;
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--control-border);
-  border-radius: var(--border-radius-sm);
-  padding: 24px 26px;
-}
-.guidance-col h3 {
-  margin: 0 0 14px;
-  font-size: 18px;
-  line-height: 1.4;
-  font-weight: 700;
-  color: var(--ink);
-}
-.guidance-col ul {
+.guidance-section h2 {
   margin: 0;
-  padding-left: 1.3em;
-  font-size: 16px;
-  line-height: 1.65;
 }
-.guidance-col li {
-  margin-bottom: 9px;
+.guidance-copy {
+  min-width: 0;
+  font-size: 17px;
+  line-height: 1.8;
+  overflow-wrap: break-word;
 }
-.guidance-col li:last-child {
-  margin-bottom: 0;
+.guidance-copy p {
+  margin: 0;
+}
+.guidance-copy p + p {
+  margin-top: 16px;
 }
 
 /* Platform & Installation Reference Table/Grid */
@@ -695,7 +683,7 @@ p:last-child {
 
 @media (max-width: 860px) {
   .scope-dossier,
-  .guidance-grid,
+  .guidance-section,
   .scope-comparison {
     grid-template-columns: minmax(0, 1fr);
     gap: 20px;
@@ -733,7 +721,6 @@ p:last-child {
   .scope-col {
     padding: 20px;
   }
-  .guidance-col,
   .step-item {
     padding: 18px 20px;
   }
@@ -802,7 +789,6 @@ p:last-child {
   }
 
   .scope-col,
-  .guidance-col,
   .step-item,
   .scope-comparison,
   .action-note,
