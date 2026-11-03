@@ -58,11 +58,20 @@
         </div>
       </div>
       <button class="go" type="submit" data-i18n="search.submit"></button>
+      <div class="search-meta">
+        <p class="search-help" id="search-help"></p>
+        <div class="search-scope" id="search-scope" role="group" aria-labelledby="search-scope-label">
+          <span class="scope-label" id="search-scope-label"></span>
+          <ul class="scope-list" id="search-scope-list"></ul>
+          <span class="scope-count" id="search-scope-count"></span>
+          <button type="button" class="link-button scope-change" id="search-scope-change"></button>
+        </div>
+      </div>
     </form>
-    <p class="visually-hidden" id="search-help"></p>
 
     <div class="results-bar is-hidden" id="results-bar">
-      <button type="button" class="link-button" id="results-clear" data-i18n="search.reset"></button>
+      <button type="button" class="search-stop is-hidden" id="search-stop" aria-controls="panels" data-i18n="search.stop"></button>
+      <button type="button" class="link-button" id="results-clear" aria-controls="panels" data-i18n="search.reset"></button>
       <p class="status" id="status" role="status" aria-live="polite"></p>
       <button type="button" class="link-button batch-details is-hidden" id="batch-details" data-i18n="batch.details"></button>
       <label class="sort"><span data-i18n="sort.label"></span>
@@ -84,6 +93,7 @@
       <h2 id="sources-title" tabindex="-1" data-i18n="nav.sources"></h2>
     </div>
     <p class="view-intro" data-i18n="sources.intro"></p>
+    <p class="source-choice-note is-hidden" id="sources-selection-notice" role="status" aria-live="polite"></p>
     <div class="sources-import-summary" id="sources-import-summary">
       <span class="sources-import-label" data-i18n="sources.import_target_label"></span>
       <strong class="sources-import-name" id="sources-import-target-name"></strong>
@@ -114,7 +124,7 @@
             <div class="source-guide-scroll">
               <h4 id="source-guide-title" tabindex="-1"></h4>
               <div class="source-guide-content">
-              <p class="source-guide-body" id="source-guide-body"></p>
+              <div class="source-guide-body" id="source-guide-body"></div>
               <p class="external-find is-hidden" id="source-guide-official"><a class="link-button" id="source-guide-link" href="#" target="_blank" rel="noopener" data-i18n="source.official_link"></a></p>
               </div>
             </div>
@@ -144,7 +154,7 @@
     </div>
     <section class="import-providers is-hidden" id="import-providers" aria-labelledby="import-providers-title">
       <div class="view-head">
-        <button type="button" class="link-button import-back" id="import-providers-back" data-i18n-aria="import.back" data-i18n-title="import.back"><svg class="arrow-icon is-prev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg></button>
+        <button type="button" class="link-button import-back" id="import-providers-back" data-i18n-aria="import.back_to_list" data-i18n-title="import.back"><svg class="arrow-icon is-prev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow"/></svg><span class="import-back-label" data-i18n="import.back_to_list"></span></button>
         <h3 id="import-providers-title" tabindex="-1" data-i18n="import.providers"></h3>
       </div>
       <section class="view-section">
@@ -316,7 +326,17 @@
     <textarea id="external-text" class="external-text" lang="lzh" readonly data-i18n-aria="external.text"></textarea>
     <p><a id="external-source" href="#" data-i18n="external.source"></a></p>
     <p class="step-hint" id="external-evidence" data-i18n="external.evidence"></p>
-    <p><label><input type="checkbox" id="external-reviewed"> <span data-i18n="external.review"></span></label></p>
+    <section class="import-review" aria-labelledby="external-review-title">
+      <h4 id="external-review-title" data-i18n="external.review.title"></h4>
+      <ul id="external-review-conditions">
+        <li data-i18n="external.review.original"></li>
+        <li data-i18n="external.review.layers"></li>
+        <li data-i18n="external.review.permission"></li>
+        <li data-i18n="external.review.duplicate"></li>
+      </ul>
+      <p class="step-hint" data-i18n="external.review.edition"></p>
+      <label class="import-review-confirm"><input type="checkbox" id="external-reviewed" aria-describedby="external-review-conditions"> <span data-i18n="external.review.confirm"></span></label>
+    </section>
     </div>
   </section>
   <p class="ctp-status" id="external-status" role="status" aria-live="polite"></p>
@@ -421,12 +441,12 @@
     <div class="panel-loading" aria-hidden="true"><span class="spinner"></span></div>
     <p class="external-find external-source is-hidden"><a class="link-button" href="#" target="_blank" rel="noopener" data-i18n="source.external.open"></a></p>
     <section class="group likely is-hidden">
-      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></div>
+      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist><button type="button" class="jump-go"></button></span></div>
       <nav class="result-pages" hidden data-i18n-aria="results.page_navigation" data-i18n-title="results.page_hint"><button type="button" class="link-button page-previous" data-i18n="results.previous_page"></button><span class="page-range" role="status" aria-live="polite"></span><button type="button" class="link-button page-next" data-i18n="results.next_page"></button></nav>
       <div class="list"></div>
     </section>
     <section class="group less is-closed is-hidden">
-      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist></span></div>
+      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist><button type="button" class="jump-go"></button></span></div>
       <p class="group-note is-hidden"></p>
       <nav class="result-pages" hidden data-i18n-aria="results.page_navigation" data-i18n-title="results.page_hint"><button type="button" class="link-button page-previous" data-i18n="results.previous_page"></button><span class="page-range" role="status" aria-live="polite"></span><button type="button" class="link-button page-next" data-i18n="results.next_page"></button></nav>
       <div class="list"></div>
@@ -438,7 +458,7 @@
     <header><span class="num"></span><a class="src" href="#"></a><span class="era"></span><span class="reasons"></span></header>
     <p class="text" lang="lzh"><span class="ctx before" lang="lzh"></span><span class="seg" lang="lzh"></span><span class="ctx after" lang="lzh"></span></p>
     <p class="citation is-hidden"></p>
-    <footer><span class="slot a"><b>A</b><span class="v" lang="lzh"></span></span><span class="slot b"><b>B</b><span class="v" lang="lzh"></span></span></footer>
+    <footer><span class="slot a"><span class="slot-label"></span><span class="v" lang="lzh"></span></span><span class="slot b"><span class="slot-label"></span><span class="v" lang="lzh"></span></span></footer>
   </article>
 </template>
 <script src="app.js"></script>

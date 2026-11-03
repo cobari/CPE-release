@@ -177,6 +177,7 @@ function applyCatalog() {
   if (currentView === "search") renderAll();
   else resultsNeedTranslation = true;
   updateSelectionNotice();
+  syncSearchStatus();
   updateExternalProvider();
   updateExternal();
   updateLanguageList();
@@ -444,6 +445,7 @@ async function removeLocal(code) {
     autoLoadTried.delete(code);
     loadingSlots.delete(code);
     library = await api().library();
+    updateSource();
     clearResults();
     refreshHistoryAvailability();
     return true;
@@ -563,6 +565,9 @@ async function loadLocalSlot(code, { auto = false } = {}) {
       localState = answer;
       if (code === answer.active) library = await api().library();
       clearResults();
+      // A saved slot that finishes loading can make the selection usable; the
+      // reason shown for an earlier submit must not outlive it.
+      syncSourceChoiceReason();
     }
   } catch { localError({ error: "network" }); }
   finally {
@@ -2232,6 +2237,43 @@ function updateSourceOfficial(code) {
 }
 
 let sourceGuideCode = "";
+const GUIDE_HEADINGS = Object.freeze({
+  scope: "guide.scope",
+  provided: "guide.provided",
+  limits: "guide.limits",
+  verification: "guide.verification",
+  usage: "guide.usage",
+});
+function sourceGuideSections(code) {
+  const prefix = code === "local" ? "library.guide" : `source.${code}.guide`;
+  return Object.entries(GUIDE_HEADINGS).flatMap(([category, label]) => {
+    const key = `${prefix}.${category}`;
+    const text = t(key);
+    return text === key ? [] : [{ category, label: t(label), text }];
+  });
+}
+function renderSourceGuideBody(code) {
+  const sections = sourceGuideSections(code);
+  if (!sections.length) {
+    // An older catalog can still explain its source without exposing raw keys.
+    sourceGuideBody.textContent = code === "local" ? t("library.help") : t(`source.${code}.note`);
+    return;
+  }
+  sourceGuideBody.replaceChildren(...sections.map(({ category, label, text }) => {
+    const section = document.createElement("section");
+    section.className = "source-guide-section";
+    section.dataset.category = category;
+    const heading = document.createElement("h5");
+    heading.textContent = label;
+    const paragraphs = text.split("\n\n").map(value => {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = value;
+      return paragraph;
+    });
+    section.append(heading, ...paragraphs);
+    return section;
+  }));
+}
 function refreshSourceGuide() {
   for (const [code, button] of sourceHelpButtons) {
     button.setAttribute("aria-label", code === "local" ? t("library.help.summary")
@@ -2241,7 +2283,7 @@ function refreshSourceGuide() {
   if (!sourceGuideCode) return;
   const code = sourceGuideCode;
   sourceGuideTitle.textContent = code === "local" ? t("library.help.summary") : t(`source.${code}`);
-  sourceGuideBody.textContent = code === "local" ? t("library.help") : t(`source.${code}.note`);
+  renderSourceGuideBody(code);
   updateSourceOfficial(code);
 }
 
@@ -2302,6 +2344,7 @@ function showSourceGuide(code) {
   sourceGuideCode = code;
   sourceGuide.classList.remove("is-hidden");
   refreshSourceGuide();
+  sourceGuideTitle.parentElement.scrollTop = 0;
   if (typeof sourceGuide.showPopover === "function") {
     if (!sourceGuide.matches(":popover-open")) sourceGuide.showPopover({ source: sourceHelpButtons.get(code) });
   } else sourceGuide.removeAttribute("popover");
@@ -2361,6 +2404,8 @@ function updateSource() {
   if (nrichBox && nrichHint) nrichHint.classList.toggle("is-hidden", !nrichBox.checked);
   updateWelcome();
   updateSelectionNotice();
+  updateSearchScope();
+  syncSourceChoiceReason();
   syncSearchButton();
 }
 const homeButton = document.getElementById("home");
@@ -2401,6 +2446,11 @@ let searchVersion = 0;
 // One search at a time: the bridge calls cannot be cancelled, and a second run
 // would spend another source's request budget while the first still answers.
 let searchBusy = false;
+// The run token owns one submitted search: its entries, pending replies, stop
+// acknowledgement and finalizer. A finished run stays here so a retry can
+// reuse the same lifecycle and original request.
+let activeRun = null;
+let terminalStatusKey = "";
 function syncResultsBar() {
   const bar = document.getElementById("results-bar");
   if (!bar) return;
@@ -2411,10 +2461,19 @@ function syncResultsBar() {
 function syncSearchButton() {
   const button = document.querySelector("#search .go");
   if (!button) return;
+  const run = typeof activeRun === "undefined" ? null : activeRun;
+  const active = Boolean(run && !run.finished);
   // An empty source selection is routed to the source view by the submit
   // handler; disabling the button here would make that feedback unreachable.
   button.disabled = searchBusy;
   document.querySelectorAll("#panels .source-retry").forEach(retry => { retry.disabled = searchBusy; });
+  const stop = typeof document.getElementById === "function" ? document.getElementById("search-stop") : null;
+  if (stop) {
+    stop.classList.toggle("is-hidden", !active);
+    stop.disabled = !active || Boolean(run.stopRequested);
+  }
+  const clear = typeof document.getElementById === "function" ? document.getElementById("results-clear") : null;
+  if (clear) clear.disabled = Boolean(active && !run.stopRequested);
   form.setAttribute("aria-busy", String(searchBusy));
   syncResultsBar();
 }
@@ -2432,18 +2491,89 @@ function updateSelectionNotice() {
   notice.textContent = changed ? t("results.selection_changed") : "";
 }
 
+// The next search's target, shown beside the fields. `#selection-notice` says
+// instead that the panels on screen were submitted for a different selection;
+// keeping them separate stops a changed selection from relabelling old results.
+function updateSearchScope() {
+  const label = document.getElementById("search-scope-label");
+  const list = document.getElementById("search-scope-list");
+  const count = document.getElementById("search-scope-count");
+  const change = document.getElementById("search-scope-change");
+  if (!label || !list || !count || !change) return;
+  const chosen = sources();
+  // One entry per selected ID/slot, in source order: two slots may open the same
+  // folder and still be distinct search targets, and the count counts slots.
+  label.textContent = t("search.scope.label");
+  change.textContent = t("search.scope.change");
+  count.textContent = chosen.length
+    ? t("search.scope.count", { n: numberText(chosen.length), max: numberText(MAX_SOURCES) })
+    : t("search.scope.empty");
+  list.replaceChildren(...chosen.map(code => {
+    const item = document.createElement("li");
+    item.dataset.source = code;
+    item.textContent = sourceName(code);
+    return item;
+  }));
+  list.classList.toggle("is-hidden", chosen.length === 0);
+}
+
+// Only a submit with no usable source shows this reason; ordinary navigation to
+// the Sources view must not report a search error the researcher did not make.
+function showSourceChoiceReason() {
+  const note = document.getElementById("sources-selection-notice");
+  if (!note) return;
+  note.classList.remove("is-hidden");
+  note.textContent = t("sources.selection_required");
+}
+function clearSourceChoiceReason() {
+  const note = document.getElementById("sources-selection-notice");
+  if (!note) return;
+  note.textContent = "";
+  note.classList.add("is-hidden");
+}
+function syncSourceChoiceReason() {
+  const note = document.getElementById("sources-selection-notice");
+  if (!note || note.classList.contains("is-hidden")) return;
+  // A visible reason follows the catalog and disappears as soon as the
+  // selection can run, so it never lingers over a usable target.
+  if (hasUsableSources()) { clearSourceChoiceReason(); return; }
+  const text = t("sources.selection_required");
+  // Repeating the same sentence on every source edit would re-announce it.
+  if (note.textContent !== text) note.textContent = text;
+}
+
 function clearResults() {
+  const run = typeof activeRun === "undefined" ? null : activeRun;
+  if (run && !run.finished) {
+    // Clearing while calls are in flight is a stop request, not an unlock: the
+    // held requests must finish before another search can start.
+    run.cleared = true;
+    if (!run.stopRequested) void requestSearchStop({ fromClear: true });
+    else setStatusKey(run.stopAck === "failed" ? "results.stop_unconfirmed" : "results.stopping");
+    resultMotion.reset();
+    lastAnswers = [];
+    document.getElementById("panels").replaceChildren();
+    updateWelcome();
+    updateSelectionNotice();
+    syncSearchButton();
+    return;
+  }
   searchVersion++;
+  terminalStatusKey = "";
+  activeRun = null;
   api().invalidate_searches?.(searchVersion)?.catch(() => {});
   resultMotion.reset();
   lastAnswers = [];
-  document.getElementById("status").textContent = searchBusy ? t("results.searching") : "";
+  document.getElementById("status").textContent = "";
   document.getElementById("panels").replaceChildren();
   updateWelcome();
   updateSelectionNotice();
   syncSearchButton();
 }
 document.getElementById("results-clear").addEventListener("click", clearResults);
+document.getElementById("search-scope-change").addEventListener("click", () => showView("sources"));
+const searchStopButton = document.getElementById("search-stop");
+if (searchStopButton) searchStopButton.addEventListener("click", () => { void requestSearchStop(); });
 function updateHint() {
   form.classList.toggle("is-compound", mode() === "pair");
   document.getElementById("search-help").textContent = t(mode() === "pair" ? "search.hint.compound" : "search.hint.single");
@@ -2567,6 +2697,14 @@ function card(row, number) {
     if (row.b.length) b.textContent = row.b.join(" · ");
     else { b.textContent = t("slot.none"); b.classList.add("none"); }
   }
+  // A and B are labels for the two text slots, not for the query elements.
+  // The complete localized label is shown once above its value; the value below
+  // keeps the source characters and lang unchanged.
+  for (const [slotName, labelKey] of [["a", "slot.a.label"], ["b", "slot.b.label"]]) {
+    const label = node.querySelector(`.slot.${slotName} .slot-label`);
+    if (!label) continue;
+    label.textContent = t(labelKey);
+  }
   return node;
 }
 
@@ -2574,7 +2712,21 @@ function pageStartFor(number) {
   return Math.max(0, Math.floor((number - 1) / PAGE) * PAGE);
 }
 
-function fill(section, rows, labelKey, keepVisibleWhenEmpty = false) {
+// A new fill replaces the pending page; opening must never use an older locale,
+// sort or answer snapshot. Weak keys let removed result panels be collected.
+const resultPages = new WeakMap();
+function renderGroupPage(section) {
+  if (section.isConnected === false || section.classList.contains("is-closed")
+    || section.classList.contains("is-hidden")) return;
+  resultPages.get(section)?.render();
+}
+function setGroupExpanded(section, expanded) {
+  section.classList.toggle("is-closed", !expanded);
+  section.querySelector(".group-toggle").setAttribute("aria-expanded", String(expanded));
+  if (expanded) renderGroupPage(section);
+}
+
+function fill(section, rows, labelKey, keepVisibleWhenEmpty = false, keepHidden = false) {
   const list = section.querySelector(".list");
   const navigation = section.querySelector(".result-pages");
   if (navigation) {
@@ -2591,9 +2743,13 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false) {
   list.replaceChildren();
   section.querySelector(".label").textContent = t(labelKey);
   section.querySelector(".n").textContent = t("results.count", { n: rows.length });
-  section.classList.toggle("is-hidden", !keepVisibleWhenEmpty && rows.length === 0 && section.classList.contains("less"));
+  section.classList.toggle("is-hidden", keepHidden || (!keepVisibleWhenEmpty && rows.length === 0 && section.classList.contains("less")));
   if (!rows.length) {
+    resultPages.delete(section);
     section.querySelector(".jump").hidden = true;
+    section.querySelector(".jump-to").onkeydown = null;
+    const jumpButton = section.querySelector(".jump-go");
+    if (jumpButton) jumpButton.onclick = null;
     section.dataset.start = "0";
     section.dataset.shown = String(PAGE);
     const empty = document.createElement("p");
@@ -2602,6 +2758,8 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false) {
     list.appendChild(empty);
     return;
   }
+  const page = { dirty: true, render: () => { if (page.dirty) showPage(start); } };
+  resultPages.set(section, page);
   let shown = start;
   const syncPages = () => {
     if (!navigation) return;
@@ -2616,11 +2774,17 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false) {
     start = targetStart;
     shown = Math.min(start + PAGE, rows.length);
     resultMotion.forget(list);
-    list.replaceChildren(...rows.slice(start, shown).map((row, i) => card(row, start + i + 1)));
+    list.replaceChildren();
+    page.dirty = true;
+    if (section.isConnected !== false && !section.classList.contains("is-closed")
+      && !section.classList.contains("is-hidden")) {
+      list.replaceChildren(...rows.slice(start, shown).map((row, i) => card(row, start + i + 1)));
+      page.dirty = false;
+    }
     section.dataset.start = String(start);
     section.dataset.shown = String(shown);
     syncPages();
-    if (move) section.scrollIntoView?.({ block: "start" });
+    if (move && !page.dirty) section.scrollIntoView?.({ block: "start" });
   };
   if (navigation) {
     navigation.querySelector(".page-previous").onclick = () => {
@@ -2636,14 +2800,19 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false) {
     // A number inside the rendered window only needs scrolling. A distant
     // number replaces the window with its page instead of building every card
     // from the first result to the target.
-    if (targetStart < start || targetStart >= shown) {
+    if (page.dirty || targetStart < start || targetStart >= shown) {
       showPage(targetStart);
     }
     const target = list.querySelector(`.card[data-number="${number}"]`);
     if (!target) return;
     // Measured on screen (offsetTop depends on which ancestor is positioned), and
     // again once newly rendered cards and late fonts have settled their heights.
-    const align = () => { target.scrollIntoView?.({ block: "start" }); };
+    const align = () => {
+      if (resultPages.get(section) !== page || page.dirty || section.isConnected === false
+        || target.isConnected === false || section.classList.contains("is-closed")
+        || section.classList.contains("is-hidden")) return;
+      target.scrollIntoView?.({ block: "start" });
+    };
     align();
     requestAnimationFrame(() => requestAnimationFrame(align));
     document.fonts.ready.then(align);
@@ -2678,7 +2847,13 @@ function setupJump(section, total, go) {
     section.querySelector(".group-toggle").setAttribute("aria-expanded", "true");
     go(number);
   };
-  box.onchange = jump;
+  const button = section.querySelector(".jump-go");
+  if (button) {
+    button.textContent = t("jump.go");
+    button.onclick = jump;
+  }
+  // No change or blur handler: picking a suggestion, editing, or leaving the box
+  // must not move the list. Only the Go button or Enter jumps explicitly.
   box.onkeydown = event => {
     if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.repeat || event.defaultPrevented) return;
     event.preventDefault();
@@ -2837,8 +3012,7 @@ function makePanels(names) {
       list.id = `results-${name}-${index}`;
       toggle.setAttribute("aria-controls", list.id);
       toggle.addEventListener("click", () => {
-        const closed = group.classList.toggle("is-closed");
-        toggle.setAttribute("aria-expanded", String(!closed));
+        setGroupExpanded(group, group.classList.contains("is-closed"));
       });
     });
     resultMotion.observe(panel);
@@ -2874,7 +3048,7 @@ function renderPanel(panel, name, answer, request) {
   const less = panel.querySelector(".less");
   const retry = panel.querySelector(".source-retry");
   if (retry) {
-    retry.classList.toggle("is-hidden", !retryableSourceError(answer));
+    retry.classList.toggle("is-hidden", Boolean(panel.dataset.stopped) || !retryableSourceError(answer));
     retry.disabled = searchBusy;
     retry.onclick = () => retrySource(lastAnswers.findIndex(entry => entry.source === name));
   }
@@ -2884,6 +3058,14 @@ function renderPanel(panel, name, answer, request) {
     const link = external.querySelector("a");
     link.removeAttribute("href");
     link.onclick = null;
+  }
+  if (answer && answer.stopped) {
+    status.textContent = t("results.source_stopped");
+    status.classList.remove("is-error");
+    panel.classList.remove("is-loading");
+    likely.classList.add("is-hidden");
+    less.classList.add("is-hidden");
+    return;
   }
   status.classList.toggle("is-error", Boolean(answer && answer.error));
   panel.classList.toggle("is-loading", !answer);
@@ -2938,7 +3120,7 @@ function renderPanel(panel, name, answer, request) {
     group.querySelector(".group-toggle").setAttribute("aria-expanded", String(!group.classList.contains("is-closed")));
   });
   panel.dataset.received = "true";
-  fill(likely, sorted(answer.likely), likelyLabel);
+  fill(likely, sorted(answer.likely), likelyLabel, false, referenceOnly);
   fill(less, sorted(answer.less), lessLabel, referenceOnly);
   if (referenceOnly) likely.classList.add("is-hidden");
 }
@@ -2957,53 +3139,218 @@ form.addEventListener("keydown", event => {
 function retryableSourceError(answer) {
   return ["network", "source_failed", "source_internal"].includes(answer?.error);
 }
-async function receiveSource(entry, index, version) {
-  const source = entry.source;
-  let answer;
-  try {
-    answer = await api().search(entry.request);
-  } catch {
-    answer = { error: "network" };
+
+function setStatusKey(key, { preserveExternal = false } = {}) {
+  const status = document.getElementById("status");
+  // Imports share this status region. A late search finalizer must yield if
+  // another operation has replaced the last text this run wrote.
+  if (preserveExternal && activeRun && status && status.textContent !== activeRun.statusText) {
+    terminalStatusKey = "";
+    return;
   }
-  if (version !== searchVersion) return;
-  // A first search may have loaded this saved slot; refresh its count before
-  // the panel words the source line.
-  if (LOCAL_SOURCES.includes(source)) {
-    try {
-      const refreshed = await api().local_libraries();
-      if (version !== searchVersion) return;
-      localState = refreshed;
-      updateSource();
-    } catch {
-      // Keep the counts already on screen; the search answer is still valid.
+  terminalStatusKey = key;
+  if (status) {
+    status.textContent = key ? t(key) : "";
+    if (activeRun) activeRun.statusText = status.textContent;
+    status.classList?.remove?.("is-error");
+  }
+  if (typeof syncResultsBar === "function") syncResultsBar();
+}
+
+// Re-word active/terminal search state after a locale change without touching a
+// validation message that has no run behind it.
+function syncSearchStatus() {
+  const status = document.getElementById("status");
+  if (!status) return;
+  const run = typeof activeRun === "undefined" ? null : activeRun;
+  if (run && status.textContent !== run.statusText) {
+    terminalStatusKey = "";
+    return;
+  }
+  if (run && !run.finished) {
+    if (run.stopRequested) {
+      setStatusKey(run.stopAck === "failed" ? "results.stop_unconfirmed" : "results.stopping");
     }
+    return;
   }
-  if (version !== searchVersion) return;
-  entry.answer = answer;
-  const panel = document.querySelectorAll("#panels > .panel")[index];
-  if (panel) renderPanel(panel, source, answer, entry.request);
+  if (terminalStatusKey) {
+    setStatusKey(terminalStatusKey);
+  }
+}
+
+function beginSearchRun(version, entries) {
+  const run = {
+    version,
+    entries,
+    pending: new Set(),
+    stopRequested: false,
+    stopAck: "none",
+    finished: false,
+    cleared: false,
+    statusText: "",
+    presentationFailed: false,
+  };
+  activeRun = run;
+  searchBusy = true;
+  terminalStatusKey = "";
+  return run;
+}
+function trackPending(run) {
+  const token = {};
+  run.pending.add(token);
+  searchBusy = true;
+  return token;
+}
+function settlePending(run, token) {
+  if (!run || !token) return;
+  run.pending.delete(token);
+  maybeFinishRun(run);
+}
+function runErrorCount(run) {
+  return run.entries.filter(entry => entry.answer?.error && !entry.answer.stopped).length;
+}
+function finishRun(run) {
+  if (!run || run.finished || activeRun !== run) return;
+  run.finished = true;
+  searchBusy = false;
+  const superseded = run.version !== searchVersion && !run.stopRequested;
+  if (superseded) terminalStatusKey = "";
+  else if (run.stopRequested) {
+    // A failed acknowledgement is only a draining-state warning; the terminal
+    // state is the generic stopped message, or blank when the rows were cleared.
+    terminalStatusKey = run.cleared ? "" : "results.stopped";
+  } else {
+    terminalStatusKey = run.presentationFailed ? "error.source_internal"
+      : runErrorCount(run) ? "results.complete_errors" : "results.complete";
+  }
+  setStatusKey(terminalStatusKey, { preserveExternal: true });
+  if (run.cleared) {
+    lastAnswers = [];
+    activeRun = null;
+  }
+  syncSearchButton();
+}
+function maybeFinishRun(run) {
+  if (!run || run.finished || activeRun !== run) return;
+  if (run.pending.size) return;
+  if (run.stopRequested && run.stopAck === "pending") return;
+  finishRun(run);
+}
+
+// Stop request: mark pending entries informational, invalidate the generation,
+// and wait for both the calls and the bridge acknowledgement before unlocking.
+async function requestSearchStop({ fromClear = false } = {}) {
+  const run = typeof activeRun === "undefined" ? null : activeRun;
+  if (!run || run.finished) return false;
+  if (fromClear) run.cleared = true;
+  if (run.stopRequested) return false;
+  run.stopRequested = true;
+  run.stopAck = "pending";
+  for (const entry of run.entries) {
+    entry.stopped = true;
+    if (!entry.answer) entry.answer = { stopped: true };
+  }
+  document.querySelectorAll("#panels > .panel").forEach(panel => { panel.dataset.stopped = "true"; });
+  try {
+    if (typeof renderAll === "function") renderAll();
+  } catch {
+    // A panel rendering failure must not skip generation invalidation or the
+    // acknowledgement wait; the run still has to drain and unlock safely.
+  }
+  setStatusKey("results.stopping");
+  syncSearchButton();
+  const generation = ++searchVersion;
+  let ack = false;
+  try {
+    const apiObject = typeof api === "function" ? api() : null;
+    ack = apiObject && typeof apiObject.invalidate_searches === "function"
+      ? await apiObject.invalidate_searches(generation)
+      : false;
+  } catch {
+    ack = false;
+  }
+  // The stop ack may arrive after another run took ownership; never let this
+  // run overwrite that run's state.
+  if (activeRun !== run || run.finished) return true;
+  run.stopAck = ack === true ? "confirmed" : "failed";
+  if (run.stopAck === "failed") setStatusKey("results.stop_unconfirmed", { preserveExternal: true });
+  maybeFinishRun(run);
+  return true;
+}
+// Public alias used by the stop control; both names share one lifecycle.
+const stopSearch = requestSearchStop;
+
+async function receiveSource(run, entry, index, token) {
+  try {
+    if (!run || run.finished || run.stopRequested || run.cleared
+      || run.version !== searchVersion || activeRun !== run) return;
+    const source = entry.source;
+    let answer;
+    try {
+      answer = await api().search(entry.request);
+    } catch {
+      answer = { error: "network" };
+    }
+    if (!run || run.finished || run.stopRequested || run.cleared
+      || run.version !== searchVersion || activeRun !== run) return;
+    // A first search may have loaded this saved slot; refresh its count before
+    // the panel words the source line.
+    if (LOCAL_SOURCES.includes(source)) {
+      try {
+        const refreshed = await api().local_libraries();
+        if (!run || run.finished || run.stopRequested || run.cleared
+          || run.version !== searchVersion || activeRun !== run) return;
+        localState = refreshed;
+        updateSource();
+      } catch {
+        // Keep the counts already on screen; the search answer is still valid.
+      }
+    }
+    if (!run || run.finished || run.stopRequested || run.cleared
+      || run.version !== searchVersion || activeRun !== run) return;
+    entry.answer = answer;
+    const panel = document.querySelectorAll("#panels > .panel")[index];
+    if (panel) renderPanel(panel, source, answer, entry.request);
+  } catch (error) {
+    run.presentationFailed = true;
+    throw error;
+  } finally {
+    settlePending(run, token);
+  }
 }
 async function retrySource(index) {
+  const run = typeof activeRun === "undefined" ? null : activeRun;
   const entry = lastAnswers[index];
-  if (searchBusy || !entry?.request || !retryableSourceError(entry.answer)) return;
-  const version = searchVersion;
+  if (!run || !run.finished || run.stopRequested || run.cleared) return;
+  if (!entry?.request || !retryableSourceError(entry.answer)) return;
+  // Retry reuses the run, its original immutable request and the same stop
+  // lifecycle; it never creates a second search version.
+  run.finished = false;
+  run.stopAck = "none";
+  run.presentationFailed = false;
   searchBusy = true;
+  terminalStatusKey = "";
+  setStatusKey("");
   syncSearchButton();
   try {
     entry.answer = null;
     const panel = document.querySelectorAll("#panels > .panel")[index];
     if (panel) renderPanel(panel, entry.source, null, entry.request);
-    await receiveSource(entry, index, version);
-  } finally {
-    searchBusy = false;
-    if (version !== searchVersion) document.getElementById("status").textContent = "";
-    syncSearchButton();
+    const token = trackPending(run);
+    await receiveSource(run, entry, index, token);
+  } catch (error) {
+    run.presentationFailed = true;
+    if (run.pending.size === 0) maybeFinishRun(run);
+    throw error;
   }
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
   if (searchBusy) return;
   if (!hasUsableSources()) {
+    // The reason belongs to this submit, so it is shown only here; the Sources
+    // view itself stays free of search errors during normal navigation.
+    showSourceChoiceReason();
     showView("sources");
     return;
   }
@@ -3011,6 +3358,7 @@ form.addEventListener("submit", async event => {
   fields.forEach(id => document.getElementById(id).removeAttribute?.("aria-invalid"));
   const missing = fields.find(id => !document.getElementById(id).value.trim());
   if (missing) {
+    terminalStatusKey = "";
     document.getElementById("status").textContent = t("error.empty");
     document.getElementById("status").classList?.add("is-error");
     document.getElementById(missing).setAttribute?.("aria-invalid", "true");
@@ -3018,16 +3366,13 @@ form.addEventListener("submit", async event => {
     document.getElementById(missing).focus?.();
     return;
   }
-  searchBusy = true;
-  syncSearchButton();
   const version = ++searchVersion;
+  let run = null;
   try {
     const body = mode() === "pair"
       ? { mode: "pair", first: document.getElementById("first").value, second: document.getElementById("second").value }
       : { mode: "words", query: document.getElementById("query").value };
     const names = sources();
-    document.getElementById("status").textContent = "";
-    document.getElementById("status").classList?.remove("is-error");
     makePanels(names);
     lastAnswers = names.map(source => {
       const extra = source === "historydb"
@@ -3037,18 +3382,25 @@ form.addEventListener("submit", async event => {
           : {};
       return { source, answer: null, request: { ...body, ...extra, source, generation: version } };
     });
+    run = beginSearchRun(version, lastAnswers);
+    setStatusKey("");
     renderAll();
     updateSelectionNotice();
     document.getElementById("results-bar").classList.remove("is-hidden");
+    syncSearchButton();
     // Each source answers on its own; a slow one does not hold back the others.
     // A panel rendering failure must not release the guard while another source
     // still has a request in flight.
-    await Promise.allSettled(lastAnswers.map((entry, index) => receiveSource(entry, index, version)));
-  } finally {
-    searchBusy = false;
-    // A cleared or replaced search leaves no panel to report its own end.
-    if (version !== searchVersion) document.getElementById("status").textContent = "";
-    syncSearchButton();
+    // Register every pending token before any bridge call starts so a synchronous
+    // bridge throw cannot strand the guard with untracked work.
+    const tokens = lastAnswers.map(() => trackPending(run));
+    const tasks = lastAnswers.map((entry, index) =>
+      receiveSource(run, entry, index, tokens[index]));
+    await Promise.allSettled(tasks);
+  } catch (error) {
+    if (run) run.presentationFailed = true;
+    if (run && run.pending.size === 0) maybeFinishRun(run);
+    throw error;
   }
 });
 
