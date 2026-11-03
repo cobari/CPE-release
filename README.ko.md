@@ -176,3 +176,7 @@ A. 배포된 `cpe-gui.exe`는 64비트 Windows(x64)용입니다. 실행 시 반�
 - 패키지 버전은 `3.0.0`이며, Git 태그는 `v3.0.0`입니다. `release.json`에 원본 소스 스냅샷 정보가 기록되어 있습니다.
 - MIT 라이선스(`LICENSE`)로 배포됩니다.
 - 본 도구는 한국고전번역원(ITKC)과 무관한 개인 프로젝트입니다. 저작권 및 이용조건 준수를 위해 원문 코퍼스, 현대어 번역문, 데이터베이스 원시 응답 데이터는 저장소에 동봉되어 있지 않습니다.
+
+## 의견 및 요청
+
+[의견과 요청 보내기 (Google Forms)](https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform)

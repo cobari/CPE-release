@@ -176,3 +176,7 @@ A. Tệp `cpe-gui.exe` được biên dịch cho Windows 64-bit (x64). Nếu nh�
 - Phiên bản gói: `3.0.0`; thẻ Git: `v3.0.0`. Ảnh chụp nhanh mã nguồn chính xác được ghi lại trong `release.json`.
 - Được phát hành theo Giấy phép MIT (`LICENSE`).
 - Dự án nghiên cứu cá nhân độc lập, không liên kết với ITKC hay các cơ quan khác. Để tôn trọng bản quyền và điều khoản sử dụng, không có kho ngữ liệu độc quyền, bản dịch hiện đại hay phản hồi API thô nào được đóng gói kèm theo.
+
+## Góp ý và đề xuất
+
+[Gửi góp ý và đề xuất (Google Biểu mẫu)](https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform)

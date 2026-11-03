@@ -176,3 +176,7 @@ A. 發布的 `cpe-gui.exe` 適用於 64 位元 Windows (x64)。若按兩下無�
 - 套件版本為 `3.0.0`，對應 Git 標籤為 `v3.0.0`。精確的原始碼快照記錄於 `release.json`。
 - 依 MIT 授權條款（`LICENSE`）釋出。
 - 本專案為獨立個人研究工具，與韓國古典翻譯院（ITKC）無隸屬關係。為恪守著作權與使用條款，本儲存庫未隨附任何專有資料庫語料、現代譯文或原始 API 回應資料。
+
+## 意見與建議
+
+[提供意見與建議（Google 表單）](https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform)

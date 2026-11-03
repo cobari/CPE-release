@@ -176,3 +176,7 @@ A. The distributed `cpe-gui.exe` is built for 64-bit Windows (x64). If double-cl
 - Package version: `3.0.0`; Git tag: `v3.0.0`. Exact source snapshot recorded in `release.json`.
 - Released under the MIT License (`LICENSE`).
 - An independent personal project unaffiliated with ITKC. To respect copyright and terms of use, no proprietary database corpus, modern translation, or raw API response is bundled.
+
+## Feedback and requests
+
+[Feedback and requests (Google Forms)](https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform)

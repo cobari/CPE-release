@@ -176,3 +176,7 @@ A. 配布されている `cpe-gui.exe` は 64 ビット Windows（x64）専用�
 - パッケージバージョン: `3.0.0`、Git タグ: `v3.0.0`。`release.json` に正確なソーススナップショット情報が記録されています。
 - MIT ライセンス（`LICENSE`）の下で公開されています。
 - 本ツールは韓国古典翻訳院（ITKC）とは無関係の個人プロジェクトです。著作権および利用条件を遵守するため、原文コーパス、現代語訳、データベースの生レスポンスデータは同梱されていません。
+
+## ご意見・ご要望
+
+[ご意見・ご要望を送る（Google フォーム）](https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform)

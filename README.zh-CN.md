@@ -176,3 +176,7 @@ A. 发布的 `cpe-gui.exe` 适用于 64 位 Windows (x64)。若双击无反应�
 - 程序包版本为 `3.0.0`，对应 Git 标签为 `v3.0.0`。精确的源码快照记录于 `release.json`。
 - 基于 MIT 许可证（`LICENSE`）发布。
 - 本项目为独立个人研究工具，与韩国古典翻译院（ITKC）无隶属关系。为恪守版权与使用条款，本仓库未捆绑任何专有数据库语料、现代译文或原始 API 响应数据。
+
+## 意见与建议
+
+[提交意见与建议（Google 表单）](https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform)
