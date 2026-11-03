@@ -53,8 +53,10 @@
   </header>
   <main id="main">
     <section class="hero">
-      <h1>Tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn nguyên tác</h1>
-      <p class="lead">Classic Pattern Explorer giúp tìm các đoạn có thể chứa mẫu câu như <span class="pattern" lang="lzh">以…爲</span> hoặc <span class="pattern" lang="lzh">雖…而</span> trong văn bản Hán văn. Bạn có thể đọc ngữ cảnh được cung cấp và mở liên kết nguồn khi có để tự đối chiếu.</p>
+      <div class="hero-copy">
+        <h1>Tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn nguyên tác</h1>
+        <p class="lead">Classic Pattern Explorer giúp tìm các đoạn có thể chứa mẫu câu như <span class="pattern" lang="lzh">以…爲</span> hoặc <span class="pattern" lang="lzh">雖…而</span> trong văn bản Hán văn. Bạn có thể đọc ngữ cảnh được cung cấp và mở liên kết nguồn khi có để tự đối chiếu.</p>
+      </div>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe">Tải xuống cho Windows<small>cpe-gui.exe, 64-bit</small></a>
@@ -63,15 +65,50 @@
           <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.0.0">Danh sách tệp phát hành v3.0.0<small>Gói mã nguồn cho macOS và Linux</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.vi.md">Đọc hướng dẫn sử dụng<small>Tài liệu chi tiết (README)</small></a>
         </div>
-        <p class="action-note"><strong>Thông tin bản phát hành v3.0.0:</strong> Người dùng Windows có thể chạy trực tiếp tệp <code>cpe-gui.exe</code> độc lập (yêu cầu Microsoft Edge WebView2 Runtime). Trên macOS và Linux, vui lòng tải gói mã nguồn và chạy <code>cpe-gui.command</code> hoặc <code>cpe-gui.sh</code> (cần có Python và uv). Tìm kiếm 18 nguồn trực tuyến thuộc 5 khu vực yêu cầu kết nối Internet và trả về các đoạn trích hoặc thư mục giới hạn theo hạn mức của từng nguồn cung cấp.</p>
+        <p class="action-note"><strong>Bản phát hành v3.0.0:</strong> Người dùng Windows có thể chạy trực tiếp tệp thực thi độc lập <code>cpe-gui.exe</code> (yêu cầu WebView2 Runtime). macOS và Linux chạy từ gói mã nguồn (trình khởi chạy tự động tải môi trường khi mở lần đầu, cần kết nối mạng). Kết nối 18 nguồn trực tuyến qua 5 khu vực và thư mục văn bản cục bộ.</p>
       </div>
+      <p class="preview-label">Ví dụ giao diện chương trình</p>
       <figure class="hero-preview">
         <img src="../assets/interface-preview.png" srcset="../assets/interface-preview.png 1180w, ../assets/interface-preview-2x.png 2360w, ../assets/interface-preview-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="Giao diện tìm kiếm Classic Pattern Explorer (hiển thị tiếng Hàn, gồm thanh điều hướng, chế độ tìm kiếm và các ô nhập từ khóa)." width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Giao diện tìm kiếm Classic Pattern Explorer (minh họa tiếng Hàn; v3.0.0 hỗ trợ sáu ngôn ngữ giao diện).</figcaption>
+        <figcaption>Hình ảnh xem trước giao diện chương trình (minh họa tiếng Hàn; v3.0.0 hỗ trợ sáu ngôn ngữ giao diện).</figcaption>
       </figure>
     </section>
 
-    <section>
+    <section id="get-started">
+      <h2>Bắt đầu và tìm kiếm lần đầu</h2>
+      <div class="platforms-grid">
+        <div class="platform-item">
+          <h3>Windows</h3>
+          <p>Tải <code>cpe-gui.exe</code> từ bản phát hành v3.0.0 và nhấp đúp để chạy; không cần cài đặt Python. Ứng dụng chạy trên <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; nếu cửa sổ không mở, hãy cài đặt WebView2 Runtime này.</p>
+        </div>
+        <div class="platform-item">
+          <h3>macOS và Linux</h3>
+          <p>Tải gói mã nguồn từ bản phát hành v3.0.0, giải nén và chạy <code>cpe-gui.command</code> (macOS) hoặc <code>cpe-gui.sh</code> (Linux). Lần đầu khởi chạy, trình chạy sẽ hỏi ý kiến cài đặt uv và tự động tải môi trường Python cùng các phần phụ thuộc, yêu cầu có kết nối Internet.</p>
+        </div>
+        <div class="platform-item">
+          <h3>Dòng lệnh</h3>
+          <p>Gói mã nguồn cũng bao gồm công cụ dòng lệnh <code>cpe</code> để xuất CSV, JSONL và nhật ký thực thi. Xem <a href="https://github.com/cobari/CPE-release/blob/main/README.vi.md">hướng dẫn sử dụng</a> để biết chi tiết.</p>
+        </div>
+      </div>
+
+      <h3 class="section-subhead">Các bước tìm kiếm đầu tiên</h3>
+      <div class="steps-grid">
+        <div class="step-item">
+          <h4>1. Chọn nguồn tìm kiếm</h4>
+          <p>Trong mục “Nguồn”, thêm thư mục văn bản hoặc chọn nguồn trực tuyến. Có thể chọn tổng cộng tối đa 4 nguồn, gồm cả thư mục và nguồn trực tuyến.</p>
+        </div>
+        <div class="step-item">
+          <h4>2. Nhập từ cần tìm</h4>
+          <p>Trong mục “Tìm kiếm”, chọn Tìm kiếm đơn để tìm từ hoặc cụm từ; cú pháp truy vấn được hỗ trợ tùy thuộc vào nguồn. Chọn Tìm kiếm cặp để tìm những vị trí có thành tố thứ nhất đứng trước thành tố thứ hai.</p>
+        </div>
+        <div class="step-item">
+          <h4>3. Đối chiếu ngữ cảnh và kiểm tra nguồn</h4>
+          <p>Xem kết quả hoặc thông tin thư mục được trả về. Mở liên kết nguồn khi có để đối chiếu ngữ cảnh gốc. Với Tìm kiếm cặp, xem thêm văn bản A/B và nhóm theo dấu hiệu cấu trúc nếu được cung cấp.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
       <h2>Chức năng chính</h2>
       <div class="method-grid">
         <div class="method-item">
@@ -89,8 +126,12 @@
       </div>
     </section>
 
-    <section>
+    <section id="scope">
       <h2>Phạm vi tìm kiếm</h2>
+      <div class="scope-comparison">
+        <div class="scope-comparison-item"><strong>Tệp cục bộ:</strong> Tìm kiếm ngoại tuyến toàn văn các tệp văn bản UTF-8 và gói văn bản đã nhập (.texts.jsonl) trên máy tính của bạn.</div>
+        <div class="scope-comparison-item"><strong>Tìm kiếm trực tuyến:</strong> Kết nối 18 nguồn trực tuyến: xem đoạn trích, thông tin thư mục hoặc mở trang tìm kiếm chính thức, tùy nguồn. Tuân theo giới hạn của nguồn; không thu thập hay tải toàn bộ kho văn bản.</div>
+      </div>
       <div class="scope-dossier">
         <article class="scope-col">
           <h3>Văn bản của bạn</h3>
@@ -119,38 +160,26 @@
       </div>
     </section>
 
-    <section>
-      <h2>Lưu ý khi diễn giải kết quả</h2>
-      <div class="limits-box">
-        <ul>
-          <li>Không có kết quả không có nghĩa là mẫu câu đó chưa từng được dùng.</li>
-          <li>Trước khi trích dẫn, hãy mở liên kết xuất xứ khi có để kiểm tra toàn bộ văn bản và ngữ cảnh.</li>
-          <li>Văn bản OCR của NDL và đoạn trích OCR của Việt Điện có thể chứa lỗi nhận dạng; vui lòng kiểm tra hình ảnh trang trước khi trích dẫn.</li>
-          <li>Tìm kiếm trực tuyến chỉ lấy các đoạn trích hoặc thư mục giới hạn trong phạm vi cho phép của nguồn cung cấp; công cụ không tải toàn bộ kho dữ liệu hay cào dữ liệu toàn văn.</li>
-        </ul>
-        <h3>Hướng dẫn sử dụng tài liệu</h3>
-        <ul>
-          <li>Tìm kiếm trực tuyến phụ thuộc vào các đoạn trích và thông tin do mỗi nguồn trả về, trong phạm vi giới hạn kết quả của từng nguồn.</li>
-          <li>Mỗi lần xem trước địa chí MPIWG, ứng dụng đọc tối đa 50 đơn vị nguồn trong mục đã chọn. Bạn có thể lưu những phần được hỗ trợ để tìm kiếm trên máy. Các đơn vị này không tương ứng với số trang in của sách; không hỗ trợ tìm kiếm trực tuyến toàn bộ kho ngữ liệu.</li>
-          <li>Để giảm tải cho máy chủ của nhà cung cấp, ứng dụng áp dụng khoảng thời gian và giới hạn yêu cầu. Tài liệu tải về tuân theo các điều khoản sử dụng của từng cơ quan.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section>
-      <h2>Bắt đầu sử dụng</h2>
-      <div class="platforms-grid">
-        <div class="platform-item">
-          <h3>Windows</h3>
-          <p>Tải cpe-gui.exe từ bản phát hành v3.0.0 và nhấp đúp để chạy; không cần cài đặt Python. Ứng dụng chạy trên <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a>; nếu cửa sổ không mở, hãy cài đặt WebView2 Runtime này.</p>
+    <section id="guidance">
+      <h2>Diễn giải kết quả và lưu ý sử dụng</h2>
+      <div class="guidance-grid">
+        <div class="guidance-col">
+          <h3>Lưu ý khi diễn giải kết quả</h3>
+          <ul>
+            <li>Không có kết quả không có nghĩa là mẫu câu đó chưa từng được dùng.</li>
+            <li>Trong Tìm kiếm cặp, việc phân nhóm chỉ là gợi ý cấu trúc để hỗ trợ tra cứu, không phải kết luận ngữ pháp.</li>
+            <li>Trước khi trích dẫn, hãy mở liên kết xuất xứ khi có để kiểm tra toàn bộ văn bản và ngữ cảnh.</li>
+            <li>Văn bản OCR của NDL và đoạn trích OCR của Việt Điện có thể chứa lỗi nhận dạng; vui lòng kiểm tra hình ảnh trang trước khi trích dẫn.</li>
+          </ul>
         </div>
-        <div class="platform-item">
-          <h3>macOS và Linux</h3>
-          <p>Tải gói mã nguồn từ bản phát hành v3.0.0, giải nén và chạy cpe-gui.command (macOS) hoặc cpe-gui.sh (Linux). Lần chạy đầu tiên sẽ đề xuất cài đặt uv và tải về môi trường Python nên cần có kết nối Internet.</p>
-        </div>
-        <div class="platform-item">
-          <h3>Dòng lệnh</h3>
-          <p>Gói mã nguồn cũng bao gồm lệnh cpe để ghi kết quả ra tệp CSV, JSONL và nhật ký thực thi. Xem chi tiết trong <a href="https://github.com/cobari/CPE-release/blob/main/README.vi.md">hướng dẫn sử dụng</a>.</p>
+        <div class="guidance-col">
+          <h3>Hướng dẫn sử dụng tài liệu</h3>
+          <ul>
+            <li>Tìm kiếm trực tuyến chỉ lấy các đoạn trích hoặc thư mục giới hạn trong phạm vi cho phép của nguồn cung cấp; công cụ không tải toàn bộ kho dữ liệu hay cào dữ liệu toàn văn.</li>
+            <li>Tìm kiếm trực tuyến phụ thuộc vào các đoạn trích và thông tin do mỗi nguồn trả về, trong phạm vi giới hạn kết quả của từng nguồn.</li>
+            <li>Mỗi lần xem trước địa chí MPIWG, ứng dụng đọc tối đa 50 đơn vị nguồn trong mục đã chọn. Bạn có thể lưu những phần được hỗ trợ để tìm kiếm trên máy. Các đơn vị này không tương ứng với số trang in của sách; không hỗ trợ tìm kiếm trực tuyến toàn bộ kho ngữ liệu.</li>
+            <li>Để giảm tải cho máy chủ của nhà cung cấp, ứng dụng áp dụng khoảng thời gian và giới hạn yêu cầu. Tài liệu tải về tuân theo các điều khoản sử dụng của từng cơ quan.</li>
+          </ul>
         </div>
       </div>
     </section>

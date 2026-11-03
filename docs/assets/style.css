@@ -204,7 +204,7 @@ a:focus-visible {
 .brand:hover { color: var(--link-hover); }
 
 .languages {
-  font-size: 14px;
+  font-size: 16px;
 }
 .languages ul {
   display: flex;
@@ -216,8 +216,12 @@ a:focus-visible {
   list-style: none;
 }
 .languages a {
-  display: inline-block;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: var(--border-radius-sm);
   background: var(--surface);
@@ -288,14 +292,15 @@ p:last-child {
   align-items: start;
   padding: 52px 0 44px;
 }
-.hero h1 {
+.hero-copy {
+  min-width: 0;
   grid-column: 1;
   grid-row: 1;
-  margin: 0;
+}
+.hero h1 {
+  margin: 0 0 18px;
 }
 .hero .lead {
-  grid-column: 1;
-  grid-row: 2;
   margin: 0;
   font-size: 18px;
   line-height: 1.75;
@@ -304,7 +309,7 @@ p:last-child {
 }
 .hero .actions {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   margin: 0;
   padding: 0 0 0 clamp(20px, 2.5vw, 32px);
   border-left: 1px solid var(--line);
@@ -393,10 +398,19 @@ p:last-child {
 }
 
 /* Hero interface preview figure */
+.preview-label {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 28px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
 .hero-preview {
   grid-column: 1 / -1;
   grid-row: 3;
-  margin: 28px 0 0;
+  margin: 10px 0 0;
   border: 1px solid var(--line);
   border-radius: var(--border-radius-md);
   background: var(--surface);
@@ -444,18 +458,76 @@ p:last-child {
 }
 .method-item p {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: 17px;
+  line-height: 1.7;
   color: var(--ink);
   max-width: none;
 }
 
+/* First Search Workflow Steps */
+.section-subhead {
+  margin: 36px 0 16px;
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 20px clamp(16px, 2.5vw, 32px);
+  margin: 20px 0 12px;
+}
+.step-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius-sm);
+  padding: 22px 24px;
+}
+.step-item :is(h3, h4) {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--ink);
+}
+.step-item p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
 /* Scope & Holdings Dossier */
+.scope-comparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px 28px;
+  margin: 20px 0 24px;
+  padding: 18px 22px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius-sm);
+}
+.scope-comparison-item {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.scope-comparison-item strong {
+  color: var(--ink);
+  display: inline-block;
+  margin-right: 6px;
+}
 .scope-dossier {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 28px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 .scope-col {
   min-width: 0;
@@ -467,7 +539,10 @@ p:last-child {
 }
 .scope-col h3 {
   margin-bottom: 6px;
-  font-size: 19px;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--ink);
 }
 .scope-col .scope-sub {
   margin: 0 0 14px;
@@ -477,15 +552,15 @@ p:last-child {
   letter-spacing: 0.01em;
 }
 .scope-col p {
-  font-size: 15.5px;
-  line-height: 1.65;
+  font-size: 17px;
+  line-height: 1.7;
   margin-bottom: 16px;
   max-width: 48rem;
 }
 .scope-col ul {
   margin: 0;
   padding-left: 1.3em;
-  font-size: 14.5px;
+  font-size: 16px;
   line-height: 1.65;
 }
 .scope-col li {
@@ -509,34 +584,39 @@ p:last-child {
   }
 }
 
-/* Limits & Scholarly Notes */
-.limits-box {
+/* Research Guidance & Data Limits (Split into two distinct cards) */
+.guidance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+.guidance-col {
+  min-width: 0;
   background: var(--surface-subtle);
   border: 1px solid var(--line);
   border-left: 4px solid var(--control-border);
   border-radius: var(--border-radius-sm);
-  padding: 24px 28px;
-  margin-top: 20px;
+  padding: 24px 26px;
 }
-.limits-box ul {
-  margin: 0;
-  padding-left: 1.3em;
-  font-size: 15px;
-  line-height: 1.65;
-  max-width: 68rem;
-}
-.limits-box li {
-  margin-bottom: 9px;
-}
-.limits-box li:last-child {
-  margin-bottom: 0;
-}
-.limits-box h3 {
-  margin: 20px 0 10px;
-  font-size: 16px;
+.guidance-col h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
   line-height: 1.4;
   font-weight: 700;
   color: var(--ink);
+}
+.guidance-col ul {
+  margin: 0;
+  padding-left: 1.3em;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.guidance-col li {
+  margin-bottom: 9px;
+}
+.guidance-col li:last-child {
+  margin-bottom: 0;
 }
 
 /* Platform & Installation Reference Table/Grid */
@@ -544,7 +624,7 @@ p:last-child {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   gap: 28px clamp(24px, 3.5vw, 48px);
-  margin-top: 24px;
+  margin-top: 20px;
 }
 .platform-item {
   display: flex;
@@ -555,12 +635,13 @@ p:last-child {
   margin: 0;
   font-size: 18px;
   line-height: 1.4;
+  font-weight: 700;
   color: var(--ink);
 }
 .platform-item p {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: 17px;
+  line-height: 1.7;
   color: var(--ink);
   max-width: none;
 }
@@ -613,7 +694,9 @@ p:last-child {
 }
 
 @media (max-width: 860px) {
-  .scope-dossier {
+  .scope-dossier,
+  .guidance-grid,
+  .scope-comparison {
     grid-template-columns: minmax(0, 1fr);
     gap: 20px;
   }
@@ -644,13 +727,14 @@ p:last-child {
     flex-direction: column;
     align-items: stretch;
   }
-  .method-grid, .platforms-grid {
+  .method-grid, .platforms-grid, .steps-grid {
     gap: 20px;
   }
   .scope-col {
     padding: 20px;
   }
-  .limits-box {
+  .guidance-col,
+  .step-item {
     padding: 18px 20px;
   }
   .hero-preview {
@@ -718,7 +802,9 @@ p:last-child {
   }
 
   .scope-col,
-  .limits-box,
+  .guidance-col,
+  .step-item,
+  .scope-comparison,
   .action-note,
   .method-item,
   .platform-item {

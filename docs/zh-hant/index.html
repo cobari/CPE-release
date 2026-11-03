@@ -53,8 +53,10 @@
   </header>
   <main id="main">
     <section class="hero">
-      <h1>從漢文原文中尋找句式候選用例</h1>
-      <p class="lead">Classic Pattern Explorer 是為數位人文研究設計的輔助工具，可從漢文（Literary Sinitic）原文中尋找 <span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span> 等句式候選用例。研究者可在提供的原文或摘錄中檢視候選用例的前後文，並透過出處連結進一步對照原始資料，自行判斷句式是否成立。</p>
+      <div class="hero-copy">
+        <h1>從漢文原文中尋找句式候選用例</h1>
+        <p class="lead">Classic Pattern Explorer 是為數位人文研究設計的輔助工具，可從漢文（Literary Sinitic）原文中尋找 <span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span> 等句式候選用例。研究者可在提供的原文或摘錄中檢視候選用例的前後文，並透過出處連結進一步對照原始資料，自行判斷句式是否成立。</p>
+      </div>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe">下載 Windows 版<small>cpe-gui.exe，64 位元</small></a>
@@ -63,15 +65,50 @@
           <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.0.0">v3.0.0 下載清單<small>macOS 與 Linux 原始碼套件</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.zh-TW.md">閱讀使用說明<small>詳細說明書 (README)</small></a>
         </div>
-        <p class="action-note"><strong>v3.0.0 發行說明：</strong> Windows 使用者可直接執行獨立的 <code>cpe-gui.exe</code>（需 Microsoft Edge WebView2 執行階段）。macOS 與 Linux 使用者請下載原始碼套件並執行 <code>cpe-gui.command</code> 或 <code>cpe-gui.sh</code>（需 Python 與 uv）。檢索5個地區的18個線上資料源需要網路連線，並依各機構檢索上限傳回有限的摘錄或書目記錄。</p>
+        <p class="action-note"><strong>v3.0.0 版本說明：</strong>Windows 使用者可直接執行獨立執行檔 <code>cpe-gui.exe</code>（需要 Edge WebView2 執行階段）。macOS 與 Linux 由原始碼套件執行（首次啟動時自動下載執行環境，需網路連線）。支援 5 個瀏覽地區的 18 個線上資料來源與本機純文字資料夾。</p>
       </div>
+      <p class="preview-label">程式執行介面範例</p>
       <figure class="hero-preview">
         <img src="../assets/interface-preview.png" srcset="../assets/interface-preview.png 1180w, ../assets/interface-preview-2x.png 2360w, ../assets/interface-preview-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="Classic Pattern Explorer 檢索畫面（韓語介面，包含導覽、檢索方式與檢索詞輸入欄位）。" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Classic Pattern Explorer 檢索畫面（以韓語介面為例；v3.0.0 支援六種介面語言）。</figcaption>
+        <figcaption>程式介面預覽（以韓語介面為例；v3.0.0 支援六種介面語言）。</figcaption>
       </figure>
     </section>
 
-    <section>
+    <section id="get-started">
+      <h2>快速入門與首次檢索</h2>
+      <div class="platforms-grid">
+        <div class="platform-item">
+          <h3>Windows</h3>
+          <p>從 v3.0.0 發布頁面下載 <code>cpe-gui.exe</code> 後按兩下即可執行，無需預裝 Python。本軟體依賴 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 執行階段</a>；若視窗未能開啟，請安裝該執行階段。</p>
+        </div>
+        <div class="platform-item">
+          <h3>macOS 與 Linux</h3>
+          <p>從 v3.0.0 發布頁面下載原始碼套件並解壓縮，執行 <code>cpe-gui.command</code>（macOS）或 <code>cpe-gui.sh</code>（Linux）。首次執行時啟動指令碼會提示安裝 uv 並自動下載 Python 環境與相依套件，因此需要連線網際網路。</p>
+        </div>
+        <div class="platform-item">
+          <h3>命令列</h3>
+          <p>原始碼套件中亦包含輸出 CSV、JSONL 與執行紀錄的 <code>cpe</code> 命令列工具。詳情請參閱 <a href="https://github.com/cobari/CPE-release/blob/main/README.zh-TW.md">使用說明</a>。</p>
+        </div>
+      </div>
+
+      <h3 class="section-subhead">首次檢索步驟</h3>
+      <div class="steps-grid">
+        <div class="step-item">
+          <h4>1. 選擇檢索來源</h4>
+          <p>在「檢索來源」中新增文本資料夾，或選取線上來源。資料夾與線上來源合計最多選取 4 個。</p>
+        </div>
+        <div class="step-item">
+          <h4>2. 輸入檢索詞</h4>
+          <p>在「檢索」中選擇單項檢索，可尋找詞語或片語；支援的檢索語法依來源而異。選擇組合檢索，可尋找第一要素之後出現第二要素的位置。</p>
+        </div>
+        <div class="step-item">
+          <h4>3. 對照語境與查對原文</h4>
+          <p>查看傳回的結果或書目資訊；若有來源連結，請開啟核對原文前後文。組合檢索若提供 A、B 欄的原文和結構線索分組，請一併考察。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
       <h2>主要功能</h2>
       <div class="method-grid">
         <div class="method-item">
@@ -89,8 +126,12 @@
       </div>
     </section>
 
-    <section>
+    <section id="scope">
       <h2>檢索範圍</h2>
+      <div class="scope-comparison">
+        <div class="scope-comparison-item"><strong>本機檔案：</strong>離線直接檢索指定資料夾中的 UTF-8 文字檔案及已匯入的文字集（.texts.jsonl）全文。</div>
+        <div class="scope-comparison-item"><strong>線上資料檢索：</strong> 連接 18 個線上來源，依來源提供摘錄、書目資訊或開啟官方檢索頁面。遵守提供方的結果筆數限制，不下載整個資料庫或擷取全文。</div>
+      </div>
       <div class="scope-dossier">
         <article class="scope-col">
           <h3>本機文字</h3>
@@ -119,38 +160,26 @@
       </div>
     </section>
 
-    <section>
-      <h2>解讀檢索結果時的注意事項</h2>
-      <div class="limits-box">
-        <ul>
-          <li>檢索無結果並不代表該句式未曾使用。</li>
-          <li>引用用例前，請開啟提供的出處連結，核對完整原文與前後文。</li>
-          <li>NDL 與 Việt Điển 的 OCR 文本可能存在辨識誤差，引用前請核對原書圖像底本。</li>
-          <li>線上檢索僅在提供方傳回限制內取得有限摘錄或書目記錄，不執行全庫下載或全文抓取。</li>
-        </ul>
-        <h3>資料利用與使用條件</h3>
-        <ul>
-          <li>線上檢索可核對的範圍取決於各來源回傳的摘錄與資料資訊，單次結果數也有上限。</li>
-          <li>MPIWG 方志每次預覽最多讀取所選卷目的50個來源單元，可將支援的部分儲存為本機可檢索文字。這些單位並不對應紙本書籍的頁碼；不提供整部語料庫的線上檢索。</li>
-          <li>為減輕資料來源伺服器負擔，程式限制了請求間隔與頻次。下載的資料受各機構使用條款約束。</li>
-        </ul>
-      </div>
-    </section>
-
-    <section>
-      <h2>快速開始</h2>
-      <div class="platforms-grid">
-        <div class="platform-item">
-          <h3>Windows</h3>
-          <p>從 v3.0.0 發布頁面下載 cpe-gui.exe，按兩下即可執行，無須安裝 Python。程式使用 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 Runtime</a> 執行；若視窗無法開啟，請安裝此執行環境。</p>
+    <section id="guidance">
+      <h2>解讀檢索結果與使用須知</h2>
+      <div class="guidance-grid">
+        <div class="guidance-col">
+          <h3>解讀檢索結果時的注意事項</h3>
+          <ul>
+            <li>檢索無結果並不代表該句式未曾使用。</li>
+            <li>「組合檢索」依結構線索將候選用例分組，旨在輔助研讀，並不代表語法結論。</li>
+            <li>引用用例前，請開啟提供的出處連結，核對完整原文與前後文。</li>
+            <li>NDL 與 Việt Điển 的 OCR 文本可能存在辨識誤差，引用前請核對原書圖像底本。</li>
+          </ul>
         </div>
-        <div class="platform-item">
-          <h3>macOS 與 Linux</h3>
-          <p>從 v3.0.0 發布頁面下載原始碼套件並解壓縮，執行 cpe-gui.command (macOS) 或 cpe-gui.sh (Linux)。首次執行時若同意將安裝 uv 並下載 Python 環境，因此需要網路連線。</p>
-        </div>
-        <div class="platform-item">
-          <h3>命令列</h3>
-          <p>原始碼套件內亦包含可輸出 CSV、JSONL 及執行紀錄的 cpe 命令工具。詳情請參閱 <a href="https://github.com/cobari/CPE-release/blob/main/README.zh-TW.md">使用說明</a>。</p>
+        <div class="guidance-col">
+          <h3>資料利用與使用條件</h3>
+          <ul>
+            <li>線上檢索僅在提供方傳回限制內取得有限摘錄或書目記錄，不執行全庫下載或全文抓取。</li>
+            <li>線上檢索可核對的範圍取決於各來源回傳的摘錄與資料資訊，單次結果數也有上限。</li>
+            <li>MPIWG 方志每次預覽最多讀取所選卷目的50個來源單元，可將支援的部分儲存為本機可檢索文字。這些單位並不對應紙本書籍的頁碼；不提供整部語料庫的線上檢索。</li>
+            <li>為減輕資料來源伺服器負擔，程式限制了請求間隔與頻次。下載的資料受各機構使用條款約束。</li>
+          </ul>
         </div>
       </div>
     </section>

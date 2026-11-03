@@ -53,8 +53,10 @@
   </header>
   <main id="main">
     <section class="hero">
-      <h1>漢文の原文から文型の候補を探す</h1>
-      <p class="lead">Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から <span class="pattern" lang="lzh">以…爲</span> や <span class="pattern" lang="lzh">雖…而</span> のような文型の候補を探すデジタル・ヒューマニティーズ（人文情報学）の研究支援ツールです。候補ごとに、テキストや資料源の抜粋から得られる文脈を示し、出典リンクがあればそれも添えて、研究者が自ら読んで判断できるよう支援します。</p>
+      <div class="hero-copy">
+        <h1>漢文の原文から文型の候補を探す</h1>
+        <p class="lead">Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から <span class="pattern" lang="lzh">以…爲</span> や <span class="pattern" lang="lzh">雖…而</span> のような文型の候補を探すデジタル・ヒューマニティーズ（人文情報学）の研究支援ツールです。候補ごとに、テキストや資料源の抜粋から得られる文脈を示し、出典リンクがあればそれも添えて、研究者が自ら読んで判断できるよう支援します。</p>
+      </div>
       <div class="actions">
         <div class="action-primary">
           <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
@@ -63,15 +65,50 @@
           <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.0.0">v3.0.0 のダウンロード一覧<small>macOS・Linux 用ソースパッケージ</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内を読む<small>詳細ドキュメント (README)</small></a>
         </div>
-        <p class="action-note"><strong>v3.0.0 リリースについて：</strong> Windowsではスタンドアロンの <code>cpe-gui.exe</code> をそのまま実行できます（Microsoft Edge WebView2 ランタイムが必要）。macOS・Linuxではソースパッケージをダウンロードし、<code>cpe-gui.command</code> または <code>cpe-gui.sh</code> を実行してください（初回起動時に uv の導入と Python 環境の取得を行うためインターネット接続が必要）。5地域・18のオンライン資料源の検索にはインターネット接続が必要で、提供元の制限に応じた抜粋や書誌情報が表示されます。</p>
+        <p class="action-note"><strong>v3.0.0 リリース案内：</strong> Windows では単体実行ファイル <code>cpe-gui.exe</code> を直接実行できます（Edge WebView2 ランタイムが必要）。macOS・Linux はソースパッケージから実行します（初回起動時にランタイムをダウンロード、インターネット接続が必要）。5地域18のオンライン資料源とローカルテキストフォルダを検索できます。</p>
       </div>
+      <p class="preview-label">プログラム画面の例</p>
       <figure class="hero-preview">
         <img src="../assets/interface-preview.png" srcset="../assets/interface-preview.png 1180w, ../assets/interface-preview-2x.png 2360w, ../assets/interface-preview-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="ナビゲーション、検索方式、2つの検索語入力欄を備えたClassic Pattern Explorerの検索画面（韓国語表示）。" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Classic Pattern Explorer 検索画面（韓国語表示の例。v3.0.0で6言語に対応）。</figcaption>
+        <figcaption>プログラム画面の例（韓国語表示の例。v3.0.0で6つの表示言語に対応）。</figcaption>
       </figure>
     </section>
 
-    <section>
+    <section id="get-started">
+      <h2>導入と最初の検索手順</h2>
+      <div class="platforms-grid">
+        <div class="platform-item">
+          <h3>Windows</h3>
+          <p>v3.0.0 リリースから <code>cpe-gui.exe</code> をダウンロードしてダブルクリックします。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
+        </div>
+        <div class="platform-item">
+          <h3>macOS および Linux</h3>
+          <p>v3.0.0 リリースからソースパッケージをダウンロード・解凍し、<code>cpe-gui.command</code>（macOS）または <code>cpe-gui.sh</code>（Linux）を実行します。初回実行時に uv の導入確認を行い、Python 環境と依存関係を自動取得するためインターネット接続が必要です。</p>
+        </div>
+        <div class="platform-item">
+          <h3>コマンドライン</h3>
+          <p>ソースパッケージには CSV、JSONL および実行記録を保存する <code>cpe</code> コマンドも含まれています。詳細は<a href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内</a>をご覧ください。</p>
+        </div>
+      </div>
+
+      <h3 class="section-subhead">最初の検索手順</h3>
+      <div class="steps-grid">
+        <div class="step-item">
+          <h4>1. 資料源の選択</h4>
+          <p>「検索ソース」でテキストフォルダを追加するか、オンライン資料源を選びます。フォルダとオンライン資料源を合わせて最大4つまで選択できます。</p>
+        </div>
+        <div class="step-item">
+          <h4>2. 検索語の入力</h4>
+          <p>「検索」で単語や語句を探すには単一検索を選びます。使用できる検索式は資料源によって異なります。第1要素の後に第2要素が現れる箇所を探すには複合検索を選びます。</p>
+        </div>
+        <div class="step-item">
+          <h4>3. 文脈の照合と確認</h4>
+          <p>返された結果や書誌情報を確認し、出典リンクがある場合は原文の文脈を照合してください。複合検索では、A・Bの原文や構造的な手がかりによる分類が表示される場合に、合わせて検討してください。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
       <h2>主な機能</h2>
       <div class="method-grid">
         <div class="method-item">
@@ -89,8 +126,12 @@
       </div>
     </section>
 
-    <section>
+    <section id="scope">
       <h2>検索対象</h2>
+      <div class="scope-comparison">
+        <div class="scope-comparison-item"><strong>手元のファイル:</strong> 指定した UTF-8 テキストや取り込んだテキスト集（.texts.jsonl）の全文をオフラインで直接検索します。</div>
+        <div class="scope-comparison-item"><strong>オンライン資料検索:</strong> 18のオンライン資料源に接続します。抜粋・書誌情報の取得、または公式検索画面への移動など、接続先によって動作が異なります。提供元の件数制限に従い、資料群全体の取得や全文クロールは行いません。</div>
+      </div>
       <div class="scope-dossier">
         <article class="scope-col">
           <h3>手元のテキスト</h3>
@@ -119,38 +160,26 @@
       </div>
     </section>
 
-    <section>
-      <h2>結果を解釈する際の注意点</h2>
-      <div class="limits-box">
-        <ul>
-          <li>結果が出ないからといって、その文型が使われていないという意味ではありません。</li>
-          <li>用例を引用する前には、表示される出典リンクを開いて全体の原文と文脈を確認してください。</li>
-          <li>NDL および Việt Điển の OCR テキストには誤認識が含まれる場合があるため、引用する前に紙面の画像を確認してください。</li>
-          <li>オンライン検索では提供元の制限に応じた抜粋や書誌情報のみを取得し、全件ダウンロードやクローリングは行いません。</li>
-        </ul>
-        <h3>資料の利用と提供条件</h3>
-        <ul>
-          <li>オンライン検索は各資料源が返した語句と資料情報の範囲内で行われます。結果件数の上限は資料源ごとに異なります。</li>
-          <li>MPIWG のプレビューでは、選択した節から最大50の原本単位を読み込みます。対応している部分は手元に保存して検索できます。この単位は書籍のページ番号とは異なり、全資料のオンライン検索は提供していません。</li>
-          <li>資料源サーバーの負荷を軽減するため、リクエストの間隔と回数を制限しています。ダウンロードした資料には各提供機関の利用条件が適用されます。</li>
-        </ul>
-      </div>
-    </section>
-
-    <section>
-      <h2>利用開始</h2>
-      <div class="platforms-grid">
-        <div class="platform-item">
-          <h3>Windows</h3>
-          <p>v3.0.0 リリースから cpe-gui.exe をダウンロードしてダブルクリックするだけです。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
+    <section id="guidance">
+      <h2>結果の解釈と利用案内</h2>
+      <div class="guidance-grid">
+        <div class="guidance-col">
+          <h3>結果を解釈する際の注意点</h3>
+          <ul>
+            <li>結果が出ないからといって、その文型が使われていないという意味ではありません。</li>
+            <li>複合検索の候補分類は検討を助ける構造的な手がかりであり、文法的な解釈を確定するものではありません。</li>
+            <li>用例を引用する前には、表示される出典リンクを開いて全体の原文と文脈を確認してください。</li>
+            <li>NDL および Việt Điển の OCR テキストには誤認識が含まれる場合があるため、引用する前に紙面の画像を確認してください。</li>
+          </ul>
         </div>
-        <div class="platform-item">
-          <h3>macOS および Linux</h3>
-          <p>v3.0.0 リリースからソースパッケージをダウンロード・解凍し、cpe-gui.command（macOS）または cpe-gui.sh（Linux）を実行します。初回実行時に同意すると uv をインストールし、Python 環境をダウンロードするためインターネット接続が必要です。</p>
-        </div>
-        <div class="platform-item">
-          <h3>コマンドライン</h3>
-          <p>ソースパッケージには CSV、JSONL および実行記録を保存する cpe コマンドも含まれています。詳細は<a href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内</a>をご覧ください。</p>
+        <div class="guidance-col">
+          <h3>資料の利用と提供条件</h3>
+          <ul>
+            <li>オンライン検索では提供元の制限に応じた抜粋や書誌情報のみを取得し、全件ダウンロードやクローリングは行いません。</li>
+            <li>オンライン検索は各資料源が返した語句と資料情報の範囲内で行われます。結果件数の上限は資料源ごとに異なります。</li>
+            <li>MPIWG のプレビューでは、選択した節から最大50の原本単位を読み込みます。この単位は書籍のページ番号とは異なり、全資料のオンライン検索は提供していません。対応している部分は手元に保存して検索できます。</li>
+            <li>資料源サーバーの負荷を軽減するため、リクエストの間隔と回数を制限しています。ダウンロードした資料には各提供機関の利用条件が適用されます。</li>
+          </ul>
         </div>
       </div>
     </section>
