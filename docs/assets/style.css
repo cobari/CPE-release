@@ -7,15 +7,14 @@
 }
 /* Classic Pattern Explorer: Unified stylesheet for project landing pages (6 languages).
    Self-hosted UI font with regional system fallbacks (no external runtime fetches); high-contrast academic editorial layout.
-   Semantic color roles: --bg (canvas white #ffffff), --surface (card white #ffffff),
-   --surface-subtle (secondary neutral #f6f8fa), --ink (primary text #1f2328),
-   --muted (secondary text #59636e), --line (divider rules #d1d9e0),
-   --control-border (control border #818b98), --primary-action-bg (primary deep blue #0043ce),
-   --interactive (Carbon Blue 60 #0f62fe), --pattern-bg (pale annotation #fff1b8). */
+   Light color roles: --bg is the warm page canvas, --surface is the white reading/card surface,
+   --surface-subtle groups secondary blocks, and --ink/--muted carry the text hierarchy.
+   --line/--control-border define boundaries; --primary-action-bg and --link-color carry action roles;
+   --pattern-bg is the annotation surface. */
 :root {
-  --bg: #ffffff;
+  --bg: #f8f7f3;
   --surface: #ffffff;
-  --surface-subtle: #f6f8fa;
+  --surface-subtle: #f0eee8;
   --ink: #1f2328;
   --muted: #59636e;
   --line: #d1d9e0;
@@ -44,6 +43,7 @@
   --error: #7a1f2b;
   --border-radius-sm: 4px;
   --border-radius-md: 6px;
+  --shadow-preview: 0 4px 20px rgba(31, 35, 40, 0.06);
   color-scheme: light;
 }
 
@@ -381,7 +381,6 @@ p:last-child {
   color: var(--primary-action-text);
   font-size: 15.5px;
   font-weight: 700;
-  box-shadow: 0 2px 4px rgba(31, 35, 40, 0.12);
 }
 .button.primary:hover {
   background: var(--primary-action-hover);
@@ -415,7 +414,7 @@ p:last-child {
   border-radius: var(--border-radius-md);
   background: var(--surface);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(31, 35, 40, 0.06);
+  box-shadow: var(--shadow-preview);
   width: 100%;
 }
 .hero-preview img {
@@ -766,6 +765,7 @@ p:last-child {
     --pattern-border: #5c4b00;
     --pattern-text: #f0e6b2;
     --error: #f85149;
+    --shadow-preview: 0 6px 28px rgba(0, 0, 0, 0.4);
   }
 
   .button.primary:hover {
@@ -775,7 +775,6 @@ p:last-child {
   .hero-preview {
     border-color: var(--line);
     background: var(--surface);
-    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
   }
 
   .hero-preview img {
