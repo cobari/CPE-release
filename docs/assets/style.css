@@ -390,7 +390,7 @@ p:last-child {
   text-decoration: none;
 }
 .button.primary small {
-  color: #d1d9e0;
+  color: var(--primary-action-text);
 }
 .button.primary:focus-visible {
   outline: 3px solid var(--focus-ring);
@@ -752,7 +752,7 @@ p:last-child {
     --line-strong: #484f58;
     --control-border: #6e7681;
     --primary-action-bg: #1f6feb;
-    --primary-action-hover: #388bfd;
+    --primary-action-hover: #0043ce;
     --primary-action-text: #ffffff;
     --interaction: #58a6ff;
     --interaction-hover: #79c0ff;
@@ -768,8 +768,8 @@ p:last-child {
     --error: #f85149;
   }
 
-  .button.primary small {
-    color: #e6edf3;
+  .button.primary:hover {
+    border-color: var(--link-color);
   }
 
   .hero-preview {
