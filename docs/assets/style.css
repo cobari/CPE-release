@@ -5,47 +5,46 @@
   font-weight: 100 900;
   font-display: swap;
 }
-/* Classic Pattern Explorer: Unified stylesheet for project landing pages (6 languages).
-   Self-hosted UI font with regional system fallbacks (no external runtime fetches); high-contrast academic editorial layout.
-   Light color roles: --bg is the warm page canvas, --surface is the white reading/card surface,
-   --surface-subtle groups secondary blocks, and --ink/--muted carry the text hierarchy.
-   --line/--control-border define boundaries; --primary-action-bg and --link-color carry action roles;
-   --pattern-bg is the annotation surface. */
+/* Color roles mirror the desktop GUI (cpe/gui/static/style.css :root in the
+   main repository) so the page and the program screenshot read as one product:
+   a neutral canvas, white reading surfaces, teal actions and links, and the
+   yellow source-pattern mark. Each role has its own token so a state rule
+   never borrows another role's color. */
 :root {
-  --bg: #f8f7f3;
-  --surface: #ffffff;
-  --surface-subtle: #f0eee8;
-  --ink: #1f2328;
-  --muted: #59636e;
-  --line: #d1d9e0;
-  --line-strong: #818b98;
-  --control-border: #818b98;
-  /* Joint role contract */
-  --primary-action-bg: #0043ce;
-  --primary-action-hover: #002d9c;
-  --primary-action-text: #ffffff;
-
-  /* Shared interaction base tokens */
-  --interaction: #0f62fe; /* Carbon Blue 60 */
-  --interaction-hover: #0043ce; /* Carbon Blue 70 */
-
-  /* Semantic role aliases for individual interactive elements */
+  --bg: #F4F6F5;
+  --surface: #FFFFFF;
+  --surface-subtle: #EEF2EF;
+  --surface-hover: #EAF0EC;
+  --ink: #222B2A;
+  --muted: #56615D;
+  --line: #D6DED9;
+  --line-strong: #7B8A83;
+  --control-border: #7B8A83;
+  --primary-action-bg: #006D5B;
+  --primary-action-hover: #005347;
+  --primary-action-text: #FFFFFF;
+  --interaction: #006D5B;
+  --interaction-hover: #004E43;
   --link-color: var(--interaction);
   --link-hover: var(--interaction-hover);
   --focus-ring: var(--interaction);
   --selection-indicator: var(--interaction);
-
-  --nav-active-bg: #e8f0ff;
-  --nav-active-text: #0043ce;
-  --pattern-bg: #fff1b8;
-  --pattern-border: #e8db9b;
-  --pattern-text: #1f2328;
-  --error: #7a1f2b;
-  --border-radius-sm: 4px;
-  --border-radius-md: 6px;
-  --shadow-preview: 0 4px 20px rgba(31, 35, 40, 0.06);
+  --nav-active-bg: #E0ECE7;
+  --nav-active-text: #164D40;
+  --pattern-bg: #F2D58B;
+  --pattern-text: #2A2618;
+  --error: #B23A48;
+  --border-radius-sm: 8px;
+  --border-radius-md: 8px;
+  --radius-card: 12px;
+  --shadow-preview: none;
+  /* Long prose keeps a readable line length while the page itself keeps
+     growing with the window (main repository frontend-design.md, Fluid
+     workspace). Latin-script pages take a shorter em measure. */
+  --measure: 42em;
   color-scheme: light;
 }
+:lang(en), :lang(vi) { --measure: 36em; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: 20px; }
@@ -114,13 +113,14 @@ h1 {
 }
 
 .pattern {
-  display: inline;
+  display: inline-block;
+  white-space: nowrap;
   padding: 0.1em 0.25em;
   font-weight: 600;
   color: var(--pattern-text);
   background: var(--pattern-bg);
   border: none;
-  border-radius: 2px;
+  border-radius: 4px;
   outline: none;
   text-decoration: none;
   cursor: text;
@@ -134,7 +134,7 @@ h1 {
   z-index: 100;
   padding: 8px 16px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
   border-radius: var(--border-radius-sm);
   font-size: 14px;
   font-weight: 600;
@@ -162,8 +162,8 @@ a:hover {
 }
 
 ::selection {
-  background: var(--selection-indicator);
-  color: #ffffff;
+  background: var(--ink);
+  color: var(--bg);
 }
 a:focus-visible {
   outline: 3px solid var(--focus-ring);
@@ -184,8 +184,12 @@ a:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 12px 24px;
-  padding: 24px 0 20px;
-  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+  /* The header band spans the whole viewport, as the GUI header does, while
+     its content stays on the page's gutter axis. */
+  background: var(--surface);
+  box-shadow: 0 0 0 100vmax var(--surface), 0 1px 0 100vmax var(--line);
+  clip-path: inset(0 -100vmax -1px);
 }
 .brand {
   display: inline-flex;
@@ -201,7 +205,7 @@ a:focus-visible {
   display: block;
   border-radius: var(--border-radius-sm);
 }
-.brand:hover { color: var(--link-hover); }
+.brand:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 
 .languages {
   font-size: 16px;
@@ -210,11 +214,13 @@ a:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
+/* Same treatment as the GUI navigation rail: quiet entries, a pale teal fill
+   with bold text for the current page. */
 .languages a {
   display: inline-flex;
   align-items: center;
@@ -222,23 +228,19 @@ a:focus-visible {
   min-width: 44px;
   min-height: 44px;
   padding: 8px 12px;
-  border: 1px solid var(--line);
   border-radius: var(--border-radius-sm);
-  background: var(--surface);
-  color: var(--ink);
+  color: var(--muted);
   text-decoration: none;
   line-height: 1.4;
 }
 .languages a:hover {
-  background: var(--surface-subtle);
-  border-color: var(--line-strong);
+  background: var(--surface-hover);
   color: var(--ink);
 }
 .languages a[aria-current="page"] {
   background: var(--nav-active-bg);
-  border-color: var(--nav-active-bg);
   color: var(--nav-active-text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Main Sections */
@@ -301,6 +303,7 @@ p:last-child {
   margin: 0 0 18px;
 }
 .hero .lead {
+  max-width: var(--measure);
   margin: 0;
   font-size: 18px;
   line-height: 1.75;
@@ -311,13 +314,14 @@ p:last-child {
   grid-column: 2;
   grid-row: 1;
   margin: 0;
-  padding: 0 0 0 clamp(20px, 2.5vw, 32px);
-  border-left: 1px solid var(--line);
-  border-top: none;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  align-self: stretch;
+  gap: 12px;
+  align-self: start;
   justify-content: flex-start;
 }
 .action-primary {
@@ -326,18 +330,19 @@ p:last-child {
 }
 .action-secondary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
   width: 100%;
 }
 .action-note {
   grid-column: 1 / -1;
-  margin: 8px 0 0;
-  padding: 14px 18px;
-  border-left: 3px solid var(--interactive);
+  margin: 4px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--interaction);
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
   background: var(--surface-subtle);
   color: var(--ink);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.65;
   max-width: none;
 }
@@ -345,22 +350,24 @@ p:last-child {
   display: inline-flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 42px;
-  padding: 7px 14px;
+  gap: 2px;
+  min-height: 48px;
+  padding: 8px 14px;
   border: 1px solid var(--control-border);
   border-radius: var(--border-radius-md);
   background: var(--surface);
   color: var(--ink);
-  font-weight: 500;
-  font-size: 13.5px;
+  font-weight: 600;
+  font-size: 15px;
   text-decoration: none;
-  line-height: 1.3;
+  line-height: 1.35;
   width: 100%;
   box-sizing: border-box;
 }
+/* Pointer feedback is fill and border color, as on GUI controls; no outline. */
 .button:hover {
-  background: var(--surface-subtle);
-  border-color: var(--line-strong);
+  background: var(--surface-hover);
+  border-color: var(--interaction);
   color: var(--ink);
   text-decoration: none;
 }
@@ -370,16 +377,16 @@ p:last-child {
 }
 .button small {
   font-weight: 400;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 .button.primary {
-  min-height: 52px;
+  min-height: 58px;
   padding: 10px 18px;
   background: var(--primary-action-bg);
   border: 1px solid var(--primary-action-bg);
   color: var(--primary-action-text);
-  font-size: 15.5px;
+  font-size: 17px;
   font-weight: 700;
 }
 .button.primary:hover {
@@ -389,7 +396,7 @@ p:last-child {
   text-decoration: none;
 }
 .button.primary small {
-  color: var(--primary-action-text);
+  color: inherit;
 }
 .button.primary:focus-visible {
   outline: 3px solid var(--focus-ring);
@@ -411,7 +418,7 @@ p:last-child {
   grid-row: 3;
   margin: 10px 0 0;
   border: 1px solid var(--line);
-  border-radius: var(--border-radius-md);
+  border-radius: var(--radius-card);
   background: var(--surface);
   overflow: hidden;
   box-shadow: var(--shadow-preview);
@@ -484,7 +491,7 @@ p:last-child {
   gap: 8px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-card);
   padding: 22px 24px;
 }
 .step-item :is(h3, h4) {
@@ -510,9 +517,10 @@ p:last-child {
   padding: 18px 22px;
   background: var(--surface-subtle);
   border: 1px solid var(--line);
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-card);
 }
 .scope-comparison-item {
+  max-width: var(--measure);
   font-size: 17px;
   line-height: 1.7;
   color: var(--ink);
@@ -533,7 +541,7 @@ p:last-child {
   overflow-wrap: anywhere;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-card);
   padding: 26px;
 }
 .scope-col h3 {
@@ -554,9 +562,10 @@ p:last-child {
   font-size: 17px;
   line-height: 1.7;
   margin-bottom: 16px;
-  max-width: 48rem;
+  max-width: var(--measure);
 }
 .scope-col ul {
+  max-width: var(--measure);
   margin: 0;
   padding-left: 1.3em;
   font-size: 16px;
@@ -572,14 +581,6 @@ p:last-child {
 @media (min-width: 1440px) {
   .scope-col {
     padding: 30px;
-  }
-  .scope-col ul {
-    columns: 2;
-    column-gap: 28px;
-  }
-  .scope-col li {
-    break-inside: avoid;
-    margin-bottom: 12px;
   }
 }
 
@@ -600,6 +601,7 @@ p:last-child {
   overflow-wrap: break-word;
 }
 .guidance-copy p {
+  max-width: var(--measure);
   margin: 0;
 }
 .guidance-copy p + p {
@@ -662,9 +664,6 @@ p:last-child {
     margin: 0 0 24px;
   }
   .hero .actions {
-    padding: 24px 0 0;
-    border-left: none;
-    border-top: 1px solid var(--line);
     width: 100%;
   }
   .action-secondary {
@@ -738,61 +737,28 @@ p:last-child {
   }
 }
 
-/* Auto dark mode (system preference) */
+/* Auto dark mode (system preference): the GUI's dark value for each role. */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface-subtle: #1c2128;
-    --ink: #f0f6fc;
-    --muted: #9198a1;
-    --line: #30363d;
-    --line-strong: #484f58;
-    --control-border: #6e7681;
-    --primary-action-bg: #1f6feb;
-    --primary-action-hover: #0043ce;
-    --primary-action-text: #ffffff;
-    --interaction: #58a6ff;
-    --interaction-hover: #79c0ff;
-    --link-color: var(--interaction);
-    --link-hover: var(--interaction-hover);
-    --focus-ring: #58a6ff;
-    --selection-indicator: #58a6ff;
-    --nav-active-bg: #1f2d3d;
-    --nav-active-text: #58a6ff;
-    --pattern-bg: #3d3100;
-    --pattern-border: #5c4b00;
-    --pattern-text: #f0e6b2;
-    --error: #f85149;
-    --shadow-preview: 0 6px 28px rgba(0, 0, 0, 0.4);
-  }
-
-  .button.primary:hover {
-    border-color: var(--link-color);
-  }
-
-  .hero-preview {
-    border-color: var(--line);
-    background: var(--surface);
-  }
-
-  .hero-preview img {
-    background: var(--surface-subtle);
-  }
-
-  .hero-preview figcaption {
-    background: var(--surface-subtle);
-    border-top-color: var(--line);
-    color: var(--muted);
-  }
-
-  .scope-col,
-  .step-item,
-  .scope-comparison,
-  .action-note,
-  .method-item,
-  .platform-item {
-    border-color: var(--line);
+    --bg: #121A18;
+    --surface: #1A2521;
+    --surface-subtle: #15201C;
+    --surface-hover: #293C32;
+    --ink: #E8EEE9;
+    --muted: #B1BEB5;
+    --line: #364B40;
+    --line-strong: #7D9485;
+    --control-border: #7D9485;
+    --primary-action-bg: #8DC8B5;
+    --primary-action-hover: #ADE0CE;
+    --primary-action-text: #11271E;
+    --interaction: #9CD9C2;
+    --interaction-hover: #C2F0DD;
+    --nav-active-bg: #263E34;
+    --nav-active-text: #B8E5D0;
+    --pattern-bg: #F2D58B;
+    --pattern-text: #2A2618;
+    --error: #F2A8B1;
   }
 }
