@@ -576,11 +576,6 @@ p:last-child {
   margin-bottom: 0;
 }
 
-@media (min-width: 1440px) {
-  .scope-col {
-    padding: 30px;
-  }
-}
 
 /* Peer guidance sections share the page's heading and paragraph hierarchy. */
 .guidance-section {
@@ -732,6 +727,65 @@ p:last-child {
 @media (max-width: 480px) {
   .site-head, main, .site-foot {
     width: calc(100% - 32px);
+  }
+}
+
+/* One card system, as in the desktop GUI: every content block inside a section
+   (platforms, first-search steps, features, scope summary and dossiers, and
+   each guidance section) is the same white card on the canvas, with one gap.
+   Cards carry the separation, so sections no longer draw dividing rules. */
+main > section {
+  border-bottom: 0;
+}
+.platform-item,
+.method-item,
+.step-item,
+.scope-comparison,
+.scope-col,
+.guidance-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 22px 24px;
+}
+.platforms-grid,
+.method-grid,
+.steps-grid,
+.scope-dossier {
+  gap: 16px;
+}
+.platforms-grid,
+.method-grid {
+  margin-top: 20px;
+}
+.scope-comparison {
+  margin: 20px 0 16px;
+}
+.scope-dossier {
+  margin-top: 0;
+}
+.guidance-section {
+  margin: 0 0 16px;
+  padding: 28px clamp(20px, 3vw, 32px);
+}
+.guidance-section:last-child {
+  margin-bottom: 44px;
+}
+@media (max-width: 860px) {
+  .scope-dossier,
+  .scope-comparison,
+  .guidance-section {
+    gap: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .platform-item,
+  .method-item,
+  .step-item,
+  .scope-comparison,
+  .scope-col,
+  .guidance-section {
+    padding: 18px 20px;
   }
 }
 
