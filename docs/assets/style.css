@@ -297,10 +297,14 @@ p:last-child {
 }
 
 /* Hero (Editorial 2-column grid on desktop, single-column on mobile) */
+/* The introduction and the download card form one block centred in the page
+   (user choice), so a wide window does not leave a gap between them; the
+   program screenshot below spans the same block. Below 900px they stack. */
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
-  gap: 20px clamp(28px, 3.5vw, 48px);
+  grid-template-columns: minmax(0, 46rem) minmax(300px, 420px);
+  justify-content: center;
+  gap: 20px 56px;
   align-items: start;
   padding: 52px 0 44px;
 }
