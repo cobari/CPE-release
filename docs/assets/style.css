@@ -508,27 +508,6 @@ p:last-child {
 }
 
 /* Scope & Holdings Dossier */
-.scope-comparison {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px 28px;
-  margin: 20px 0 24px;
-  padding: 18px 22px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-}
-.scope-comparison-item {
-  max-width: var(--measure);
-  font-size: 17px;
-  line-height: 1.7;
-  color: var(--ink);
-}
-.scope-comparison-item strong {
-  color: var(--ink);
-  display: inline-block;
-  margin-right: 6px;
-}
 .scope-dossier {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -685,8 +664,7 @@ p:last-child {
 
 @media (max-width: 860px) {
   .scope-dossier,
-  .guidance-section,
-  .scope-comparison {
+  .guidance-section {
     grid-template-columns: minmax(0, 1fr);
     gap: 20px;
   }
@@ -751,7 +729,6 @@ main > section {
 .platform-item,
 .method-item,
 .step-item,
-.scope-comparison,
 .scope-col,
 .guidance-section {
   background: var(--surface);
@@ -769,11 +746,8 @@ main > section {
 .method-grid {
   margin-top: 20px;
 }
-.scope-comparison {
-  margin: 20px 0 16px;
-}
 .scope-dossier {
-  margin-top: 0;
+  margin-top: 20px;
 }
 .guidance-section {
   margin: 0 0 16px;
@@ -784,7 +758,6 @@ main > section {
 }
 @media (max-width: 860px) {
   .scope-dossier,
-  .scope-comparison,
   .guidance-section {
     gap: 16px;
   }
@@ -793,7 +766,6 @@ main > section {
   .platform-item,
   .method-item,
   .step-item,
-  .scope-comparison,
   .scope-col,
   .guidance-section {
     padding: 18px 20px;
