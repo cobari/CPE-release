@@ -334,14 +334,12 @@ p:last-child {
   gap: 8px;
   width: 100%;
 }
+/* Plain supporting prose under the download buttons, not a callout box. */
 .action-note {
   grid-column: 1 / -1;
   margin: 4px 0 0;
-  padding: 12px 14px;
-  border-left: 3px solid var(--interaction);
-  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
-  background: var(--surface-subtle);
-  color: var(--ink);
+  padding: 0 2px;
+  color: var(--muted);
   font-size: 15px;
   line-height: 1.65;
   max-width: none;
