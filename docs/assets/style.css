@@ -411,20 +411,11 @@ p:last-child {
   outline-offset: 3px;
 }
 
-/* Hero interface preview figure */
-.preview-label {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  margin: 28px 0 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.01em;
-}
+/* Hero interface preview figure; its caption names it, so no label above. */
 .hero-preview {
   grid-column: 1 / -1;
-  grid-row: 3;
-  margin: 10px 0 0;
+  grid-row: 2;
+  margin: 36px 0 0;
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--surface);
