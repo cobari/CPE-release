@@ -233,6 +233,14 @@ a:focus-visible {
   text-decoration: none;
   line-height: 1.4;
 }
+/* Each language name is shown in its own script's font. Inheriting the page's
+   font made a name like 繁體中文 fall back to a heavier system face than its
+   neighbours (for example Malgun Gothic on the Korean page). */
+.languages a:lang(ko) { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+.languages a:lang(ja) { font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Noto Sans JP", system-ui, sans-serif; }
+.languages a:lang(zh-Hans) { font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif; }
+.languages a:lang(zh-Hant) { font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif; }
+.languages a:lang(en), .languages a:lang(vi) { font-family: "Pretendard", "Segoe UI", -apple-system, Roboto, Arial, sans-serif; }
 .languages a:hover {
   background: var(--surface-hover);
   color: var(--ink);
