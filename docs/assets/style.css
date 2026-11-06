@@ -632,7 +632,14 @@ p:last-child {
 }
 
 /* Footer */
+/* The notice takes the first line; the two links share one line at the
+   bottom right, wrapping only when the width cannot hold them. */
 .site-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px 24px;
   padding: 36px 0 52px;
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -640,7 +647,10 @@ p:last-child {
   line-height: 1.6;
 }
 .site-foot p {
-  margin-bottom: 8px;
+  margin: 0;
+}
+.site-foot p:first-child {
+  flex: 1 1 100%;
 }
 
 /* Responsive Breakpoints */
