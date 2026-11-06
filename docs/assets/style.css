@@ -47,6 +47,8 @@
 :lang(en), :lang(vi) { --measure: 36em; }
 
 * { box-sizing: border-box; }
+/* File and command names read as part of the sentence, not as inline code. */
+code { font: inherit; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: 20px; }
 
 body {
