@@ -24,6 +24,8 @@ from cpe.gui.search_session import sorted_rows
 from cpe.gui.service import Library
 from cpe.gui.service import search_pair as _gui_search_pair
 from cpe.gui.service import search_words as _gui_search_words
+from cpe.mcp.disclosure import DisclosurePolicy
+from cpe.mcp.evidence import annotate_row
 from cpe.mcp.response import wire_size
 from cpe.mcp.sources import LOCAL_SOURCE_IDS, SOURCE_IDS, SourceRegistry
 
@@ -119,6 +121,7 @@ class SearchService:
         max_retained_bytes: int = 64 * 1024 * 1024,
         response_byte_budget: int = 256 * 1024,
         clock: Callable[[], float] = time.monotonic,
+        disclosure: DisclosurePolicy | None = None,
     ) -> None:
         if not isinstance(library, Library):
             raise ServiceConfigError("library must be a loaded cpe.gui.service.Library")
@@ -130,6 +133,7 @@ class SearchService:
         if clients is not None and not isinstance(clients, Mapping):
             raise ServiceConfigError("clients must be a mapping")
         self._library = library
+        self.disclosure = disclosure
         self._enabled = frozenset(enabled)
         self._itkc_log = itkc_log
         self._clients: dict[str, Any] = dict(clients or {})
@@ -469,6 +473,8 @@ class SearchService:
         page_size: int,
         answer: Any,
         checkpoint: Callable[[], None],
+        *,
+        annotated: bool = False,
     ) -> dict[str, Any]:
         """Build and store the snapshot while the active-search guard is held."""
         if not isinstance(answer, dict):
@@ -479,6 +485,13 @@ class SearchService:
         rows, counts = self._partition(answer)
         if rows is None:
             return {"error": "source_failed"}
+        # Reordered snapshots already carry server-derived evidence labels even
+        # when their canonical record was withheld. Reclassifying them from the
+        # projected row would turn structural candidates into provider references.
+        if not annotated:
+            rows = [annotate_row(row) for row in rows]
+        if self.disclosure is not None:
+            rows = [self.disclosure.row(row, source_id) for row in rows]
         session_rows = tuple(rows)
         sizes = tuple(_json_size(row) for row in session_rows)
         retained = sum(sizes)
@@ -488,6 +501,8 @@ class SearchService:
             for key in ("external_search_url",)
             if key in answer
         }
+        if self.disclosure is not None:
+            extra["disclosure"] = self.disclosure.describe(source_id)
         if source.get("external_only"):
             counts = None
             extra["navigation_only"] = True
@@ -642,6 +657,7 @@ class SearchService:
             page_size,
             answer,
             _noop,
+            annotated=True,
         )
 
     # --------------------------------------------------------------- internals

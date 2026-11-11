@@ -136,8 +136,10 @@ class Workspace:
         ctp_key: str = "",
         clients: Mapping[str, Any] | None = None,
         restore_normalization: bool = True,
+        disclosure: Any = None,
     ) -> None:
         paths = tuple(input_paths)
+        self.disclosure = disclosure
         self.policy = PathPolicy((*paths, *read_roots), write_roots)
         for path in paths:
             self.policy.check_library(path)
@@ -341,6 +343,11 @@ class Workspace:
             "capabilities": {
                 **self.policy.describe(),
                 "enabled_imports": sorted(self._enabled_imports),
+                **(
+                    {"source_text": self.disclosure.describe()}
+                    if self.disclosure
+                    else {}
+                ),
             },
             "ctp_key_set": self.api.ctp_key_set(),
         }
@@ -598,7 +605,27 @@ class Workspace:
         if action == "cancel":
             return {"cancelled": self.api.cancel_external(job_id)}
         if action == "unit":
-            return self.api.external_unit(token, unit_id)
+            with self.api._external_lock:
+                pending = self.api._external_pending
+                if pending is None or not token or token != self.api._external_token:
+                    return {"error": "external_stale"}
+                scope = "import:" + pending.provider if pending is not None else ""
+                if self.disclosure is not None and not self.disclosure.allows(scope):
+                    return {
+                        "error": "source_text_disabled",
+                        "disclosure": self.disclosure.describe(scope),
+                    }
+                unit = next(
+                    (unit for unit in pending.units if unit.id == unit_id), None
+                )
+                if unit is None:
+                    return {"error": "external_selection"}
+                # The pending provider and unit must be checked under one lock;
+                # Api.external_unit acquires this non-reentrant lock itself.
+                answer = {"text": unit.text, "source": unit.source}
+                if self.disclosure is not None:
+                    answer["disclosure"] = self.disclosure.describe(scope)
+                return answer
         if action == "discard":
             return {"discarded": self.api.discard_external(token)}
         with self._lock:
@@ -744,6 +771,8 @@ class Workspace:
         snapshot: dict[str, Any] = service.snapshot(search_id)
         if "error" in snapshot:
             return snapshot
+        if self.disclosure is not None:
+            snapshot = self.disclosure.search(snapshot)
         try:
             outputs = outputs_for(self.policy.check(output_prefix, write=True))
             paths = (outputs.csv, outputs.jsonl, outputs.run)
@@ -768,6 +797,15 @@ class Workspace:
                 "b",
                 "reasons",
                 "record",
+                "core_result_id",
+                "matched_field",
+                "positions",
+                "citation",
+                "evidence_scope",
+                "group_semantics",
+                "text_views",
+                "text_withheld",
+                "record_withheld",
             ]
             with staged(paths, force=force) as temporary:
                 with temporary[0].open("w", encoding="utf-8-sig", newline="") as stream:
@@ -956,7 +994,15 @@ class Workspace:
                 return {"error": "bad_page_size"}
             answer = session.page(revision, group, start, sort)
             if "rows" in answer:
-                rows = staged_rows(answer["rows"][:page_size])
+                from cpe.mcp.evidence import annotate_row
+
+                rows = [
+                    annotate_row(row, group)
+                    for row in staged_rows(answer["rows"][:page_size])
+                ]
+                if self.disclosure is not None:
+                    rows = [self.disclosure.row(row, "itkc") for row in rows]
+                    answer["disclosure"] = self.disclosure.describe("itkc")
                 answer["rows"] = rows
                 answer["next_start"] = (
                     start + len(rows)

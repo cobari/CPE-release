@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 from functools import partial
 from threading import Event
 from typing import Annotated, Any, Literal
@@ -110,7 +111,11 @@ async def interruptible(function: Any, **kwargs: Any) -> dict[str, Any]:
 
 
 def register(
-    server: MCPServer[Any], service: SearchService, workspace: Workspace
+    server: MCPServer[Any],
+    service: SearchService,
+    workspace: Workspace,
+    *,
+    present: Callable[[dict[str, Any]], CallToolResult] = _result,
 ) -> None:
     read = ToolAnnotations(
         read_only_hint=True,
@@ -145,7 +150,7 @@ def register(
         roots and enabled imports are capabilities, not new permissions requested
         by a tool. CTP credentials are never returned.
         """
-        return _result(bounded(await call(workspace.describe)))
+        return present(bounded(await call(workspace.describe)))
 
     @server.tool(annotations=mutate)
     async def manage_library(
@@ -159,7 +164,7 @@ def register(
         destination. remove detaches a slot without deleting user files. Existing
         search IDs remain immutable snapshots of their submitted searches.
         """
-        return _result(
+        return present(
             bounded(await call(workspace.manage_library, action, source_id, path))
         )
 
@@ -188,7 +193,7 @@ def register(
             language=language,
             normalization=normalization,
         )
-        return _result(bounded(answer))
+        return present(bounded(answer))
 
     @server.tool(annotations=download)
     async def get_source_catalog(
@@ -204,7 +209,7 @@ def register(
         Network catalogs require host source opt-in and use the persistent source
         client cap. start pages this returned catalog, not source search results.
         """
-        return _result(
+        return present(
             page(
                 await call(
                     workspace.cached_catalog,
@@ -251,7 +256,7 @@ def register(
             )
             > 1
         ):
-            return _result({"error": "bad_sources"})
+            return present({"error": "bad_sources"})
         results = []
         for source in sources:
             answer = await _search(
@@ -282,14 +287,14 @@ def register(
                     for result in results
                 ]
             }
-        return _result(bounded(payload))
+        return present(bounded(payload))
 
     @server.tool(annotations=read)
     async def reorder_search(
         search_id: str, sort: Sort = "source", page_size: PageSize = 20
     ) -> CallToolResult:
         """Create a separately paged source/era-sorted snapshot without re-searching."""
-        return _result(bounded(await call(service.reorder, search_id, sort, page_size)))
+        return present(bounded(await call(service.reorder, search_id, sort, page_size)))
 
     @server.tool(annotations=mutate)
     async def manage_searches(
@@ -304,7 +309,7 @@ def register(
         operation_id can restrict cancellation to the operation previously seen.
         clear/clear_all retire saved snapshots. Staged ITKC uses itkc_search.
         """
-        return _result(
+        return present(
             await call(service.manage_searches, action, search_id, operation_id)
         )
 
@@ -323,7 +328,7 @@ def register(
         invent classical examples or grammatical rules. Core evidence/positions
         are preserved in record. This is not a remote-provider DSL query.
         """
-        return _result(
+        return present(
             await interruptible(
                 workspace.search_dsl,
                 service=service,
@@ -373,7 +378,7 @@ def register(
             if action in {"start", "advance"}
             else await call(workspace.itkc_search, **arguments)
         )
-        return _result(bounded(answer))
+        return present(bounded(answer))
 
     @server.tool(annotations=download)
     async def get_import_catalog(
@@ -390,7 +395,7 @@ def register(
         RISE needs host import opt-in. provider_page explicitly fetches a provider
         page; start/page_size only page the collected response metadata.
         """
-        return _result(
+        return present(
             page(
                 await call(
                     workspace.cached_catalog,
@@ -414,7 +419,7 @@ def register(
         source IDs, collision/idempotency rules, locks, reports and recovery paths.
         It does not delete source files or replace a library on conversion failure.
         """
-        return _result(bounded(await call(workspace.import_local, path, batch=batch)))
+        return present(bounded(await call(workspace.import_local, path, batch=batch)))
 
     @server.tool(annotations=download)
     async def import_remote_release(
@@ -426,7 +431,7 @@ def register(
         credentials come only from host environment, never tool arguments. The
         existing importer keeps source/edition/evidence and provider safeguards.
         """
-        return _result(
+        return present(
             bounded(await call(workspace.import_remote, provider, identifier))
         )
 
@@ -443,7 +448,7 @@ def register(
         A job ID is not a preview token; poll manage_import(progress) until done.
         Previewing never confirms original-vs-translation review or imports text.
         """
-        return _result(
+        return present(
             bounded(await call(workspace.preview_import, provider, address, revision))
         )
 
@@ -493,7 +498,7 @@ def register(
                 "next_text_start": end if end < len(text) else None,
                 "total_characters": len(text),
             }
-        return _result(page(answer, start, page_size))
+        return present(page(answer, start, page_size))
 
     @server.tool(annotations=export)
     async def run_cli_export(
@@ -523,8 +528,8 @@ def register(
         already-retained local/online result instead.
         """
         if pattern_file and expression:
-            return _result({"error": "bad_request"})
-        return _result(
+            return present({"error": "bad_request"})
+        return present(
             bounded(
                 await call(
                     workspace.run_export,
@@ -558,7 +563,7 @@ def register(
         from canonical CLI export. Writes require a host write root; force may
         replace existing outputs only on explicit user instruction.
         """
-        return _result(
+        return present(
             bounded(
                 await call(
                     workspace.export_snapshot,

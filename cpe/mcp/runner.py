@@ -27,6 +27,17 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--itkc-log", type=Path, help="required request log path when ITKC is enabled"
     )
+    parser.add_argument(
+        "--allow-source-text",
+        action="append",
+        default=[],
+        metavar="SOURCE",
+        help=(
+            "host permits source text in client results for this source or "
+            "import:PROVIDER; repeat; references only by default; "
+            "not a provider licence"
+        ),
+    )
     parser.add_argument("--note-markers", nargs=2, metavar=("OPEN", "CLOSE"))
     parser.add_argument("--annotation-markers", nargs=2, metavar=("OPEN", "CLOSE"))
     parser.add_argument(
@@ -110,6 +121,7 @@ def run(args: argparse.Namespace) -> int:
     from cpe.local.file_lock import exclusive
     from cpe.local.txt import InputError
     from cpe.match.engine import Settings
+    from cpe.mcp.disclosure import DisclosurePolicy
     from cpe.mcp.policy import PathPolicy, PolicyError, host_path
     from cpe.mcp.service import SearchService
     from cpe.mcp.sources import LOCAL_SOURCE_IDS, SOURCE_IDS, SourceRegistry
@@ -120,6 +132,7 @@ def run(args: argparse.Namespace) -> int:
     annotations = args.annotation_markers or (None, None)
     workspace = None
     try:
+        disclosure = DisclosurePolicy(args.allow_source_text)
         inputs = [host_path(path) for path in args.inputs]
         slots: dict[str, Path] = {}
         for code, path in args.library:
@@ -224,6 +237,7 @@ def run(args: argparse.Namespace) -> int:
                 state_path=state,
                 ctp_key=os.environ.get(args.ctp_key_env, ""),
                 restore_normalization=not explicit_normalization,
+                disclosure=disclosure,
             )
             registry = SourceRegistry(
                 workspace.settings, enabled_online=online, itkc_log=args.itkc_log
@@ -237,6 +251,7 @@ def run(args: argparse.Namespace) -> int:
                 library_provider=workspace.library,
                 local_status=workspace.library_status,
                 external_retained=lambda: workspace._itkc_bytes,
+                disclosure=disclosure,
             )
             workspace.attach_service(service)
             for code, path in slots.items():

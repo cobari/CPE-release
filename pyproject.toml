@@ -47,6 +47,7 @@ include = [
     "/docs/mcp.md",
     "/docs/mcp-parity.md",
     "/docs/mcp-dsl-classification.md",
+    "/docs/mcp-data-policy.md",
 ]
 
 [tool.hatch.build.targets.sdist.hooks.custom]

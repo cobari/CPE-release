@@ -12,6 +12,8 @@ from mcp.server import MCPServer
 from mcp.types import CallToolResult, ToolAnnotations
 from pydantic import Field
 
+from cpe.mcp.disclosure import DisclosurePolicy
+from cpe.mcp.evidence import RESEARCH_CONTEXT
 from cpe.mcp.response import RESPONSE_LIMIT, result_payload, wire_size
 from cpe.mcp.service import SearchService
 
@@ -63,6 +65,14 @@ def create_server(
     service: SearchService, workspace: Workspace | None = None
 ) -> MCPServer[Any]:
     """Build one server per host-selected library and online allowlist."""
+    policy = service.disclosure or DisclosurePolicy()
+    service.disclosure = policy
+    if workspace is not None:
+        workspace.disclosure = policy
+
+    def present(payload: dict[str, Any]) -> CallToolResult:
+        return _result(policy.source(policy.search(payload)))
+
     server: MCPServer[Any] = MCPServer(
         "Classic Pattern Explorer",
         version=version("classic-pattern-explorer"),
@@ -79,6 +89,16 @@ def create_server(
             "never substitute AI inference for researcher_confirmed. Use only "
             "researcher-selected normalization/pattern rules. Writes and network "
             "imports are limited by the host's startup capabilities."
+            " Source-text delivery is a separate immutable host grant. Default "
+            "results withhold excerpts and canonical records; do not reconstruct "
+            "withheld text. likely/less are legacy display groups, never confidence "
+            "or evidence grades. Literal occurrences and provider references are "
+            "not verified grammatical readings. Do not use Modern Chinese grammar "
+            "to decide a Literary Sinitic reading. Label any interpretation or "
+            "translation as a hypothesis requiring researcher verification. Cite "
+            "the returned source, not an imagined complete article. The server "
+            "cannot control your model's answer, processing location or retention; "
+            "host grants do not certify provider permissions."
         ),
     )
     local_read = ToolAnnotations(
@@ -91,12 +111,13 @@ def create_server(
     @server.tool(annotations=local_read)
     async def list_sources() -> CallToolResult:
         """List this MCP server's sources, enabled state, scope and limitations."""
-        return _result(await anyio.to_thread.run_sync(service.list_sources))
+        answer = await anyio.to_thread.run_sync(service.list_sources)
+        return present({**answer, "research_context": RESEARCH_CONTEXT})
 
     @server.tool(annotations=local_read)
     async def get_source_details(source_id: str) -> CallToolResult:
         """Read source metadata and limits; never fetch or invent a full article."""
-        return _result(
+        return present(
             await anyio.to_thread.run_sync(
                 partial(service.get_source_details, source_id)
             )
@@ -129,7 +150,7 @@ def create_server(
         collected candidates, not more provider requests. Inspect warnings,
         omitted rows, source scope and counts before interpreting results.
         """
-        return _result(
+        return present(
             await _search(
                 service,
                 source_id=source_id,
@@ -152,10 +173,10 @@ def create_server(
         This does not fetch more source pages or repeat analysis. Expired or
         evicted searches must be started again; never invent missing results.
         """
-        return _result(service.get_search_results(search_id, cursor))
+        return present(service.get_search_results(search_id, cursor))
 
     if workspace is not None:
         from cpe.mcp.tools import register
 
-        register(server, service, workspace)
+        register(server, service, workspace, present=present)
     return server
