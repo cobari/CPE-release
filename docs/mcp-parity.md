@@ -50,10 +50,10 @@ These features belong strictly to the native graphical user interface (`cpe/gui/
 
 ## 3. Category C: Developer-Only & Experiment Tooling (Excluded from Parity)
 
-These tools are developer/maintainer utilities and research probe experiments rather than end-user analytical services. They reside exclusively in the development source checkout and are not shipped inside runtime distribution packages or standalone release executables (`cpe-gui.exe`, `cpe-mcp.exe`):
-1. **Matcher Evaluation Harness (`cpe eval`)**: `cpe/cli.py:211`, `cpe/eval/report.py`. Benchmarks pattern candidates against gold JSONL datasets, calculating recall with Wilson score intervals and slot precision.
-2. **ITKC Server Probe Suite (`cpe probe`)**: `cpe/cli.py:226`, `cpe/itkc/probe.py`. Plans and runs empirical experiments E0–E7 on live ITKC API endpoints with call budgets and dry-run reporting.
-3. **Packaging & Build Scripts**: `scripts/build_exe.py`, `scripts/build_mcp.py`, `hatch_build.py`. Standalone PyInstaller console/GUI executables for development builds. These scripts and automated test suites (`tests/`) are retained only in the source repository and are not duplicated into end-user release distributions.
+These tools and commands are developer/maintainer utilities, packaging scripts, and research probe experiments rather than end-user MCP query services:
+1. **Matcher Evaluation Harness (`cpe eval`)**: `cpe/cli.py:211`, `cpe/eval/report.py`. Benchmarks pattern candidates against gold JSONL datasets, calculating recall with Wilson score intervals and slot precision. While `cpe.eval` is retained in the source distribution as a CLI subcommand, it is excluded from MCP tool exposure.
+2. **ITKC Server Probe Suite (`cpe probe`)**: `cpe/cli.py:226`, `cpe/itkc/probe.py`. Plans and runs empirical experiments E0–E7 on live ITKC API endpoints with call budgets and dry-run reporting. Retained in the source distribution as an offline/manual CLI subcommand, excluded from automated MCP tools.
+3. **Packaging & Build Scripts**: Standalone PyInstaller build scripts (`scripts/build_exe.py`, `scripts/build_mcp.py`) and automated test suites (`tests/`) require a development git checkout and are not shipped inside runtime distribution archives or release executables. In contrast, `hatch_build.py` is shipped in the source distribution archive to support standard `uv`/`pip` source builds.
 
 ---
 
