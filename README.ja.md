@@ -153,10 +153,10 @@ uv run --locked python itkc_search.py --help
 
 未公開の 3.1 リリース候補版には、公式 Python SDK v2 に基づくローカル stdio MCP（Model Context Protocol）サーバーが含まれています。4 つのローカルライブラリスロット、18 のオンライン資料源アダプター、提供元の目録、段階的な ITKC コレクションセッション、漢文文型 DSL 検索、安全なコーパス取り込み、CSV/JSONL 直接エクスポートを網羅する 20 の専用ツールを提供します。
 
-`ash
+```sh
 # stdio 経由で MCP サーバーを起動（追加依存 'mcp' が必要）
 uv run --extra mcp cpe mcp path/to/texts
-`
+```
 
 単体 Windows パッケージには、同一の引数を受け付ける cpe-mcp.exe も同梱されています。サーバーは標準入出力（stdin/stdout）を介して通信し、GUI ウィンドウや HTTP サーバーは起動しません。詳細は [MCP インストール・設定・ツール案内](docs/mcp.md) および [3.1 機能対応表](docs/mcp-parity.md) をご覧ください。本候補版は、商用 AI クライアント（Claude Desktop、Claude Code 等）や外部ライブサービスに対する認証を主張するものではありません。
 

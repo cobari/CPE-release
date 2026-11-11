@@ -153,10 +153,10 @@ uv run --locked python itkc_search.py --help
 
 Phiên bản ứng viên 3.1 chưa công bố bao gồm máy chủ stdio MCP (Model Context Protocol) cục bộ tùy chọn dựa trên Python SDK v2 chính thức. Máy chủ cung cấp 20 công cụ có cấu trúc bao quát 4 ngăn thư viện cục bộ, toàn bộ 18 bộ điều hợp nguồn trực tuyến, danh mục nhà cung cấp, phiên làm việc theo giai đoạn cho các bộ sưu tập ITKC, tìm kiếm DSL mẫu câu Hán văn, quy trình nhập ngữ liệu an toàn và xuất trực tiếp tệp CSV/JSONL.
 
-`ash
+```sh
 # Khởi động máy chủ MCP qua stdio (yêu cầu gói bổ sung 'mcp')
 uv run --extra mcp cpe mcp path/to/texts
-`
+```
 
 Các gói phân phối Windows độc lập cũng kèm theo tệp cpe-mcp.exe chấp nhận các tham số khởi động tương tự. Máy chủ giao tiếp qua luồng nhập/xuất chuẩn (stdin/stdout), không mở cửa sổ đồ họa hay máy chủ HTTP. Xem [Hướng dẫn cài đặt, tùy chọn và công cụ MCP](docs/mcp.md) cùng [Bảng đối chiếu tính năng 3.1](docs/mcp-parity.md). Bản cài đặt ứng viên này không tuyên bố đã được chứng nhận tương thích trên các ứng dụng AI thương mại cụ thể (như Claude Desktop, Claude Code) hoặc các dịch vụ trực tuyến bên thứ ba.
 

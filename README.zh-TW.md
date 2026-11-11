@@ -153,10 +153,10 @@ uv run --locked python itkc_search.py --help
 
 未公開的 3.1 候選版本包含基於官方 Python SDK v2 的本機 stdio MCP (Model Context Protocol) 伺服器。提供 20 個結構化工具，涵蓋 4 個本機文獻庫插槽、全部 18 個線上資料來源轉接器、典藏目錄、分步 ITKC 典籍集工作階段、漢文句型 DSL 檢索、安全的語料匯入流程以及 CSV/JSONL 直接匯出。
 
-`ash
+```sh
 # 透過 stdio 啟動 MCP 伺服器（需要選用的 'mcp' 額外套件）
 uv run --extra mcp cpe mcp path/to/texts
-`
+```
 
 獨立 Windows 發行套件中亦隨附接受相同啟動引數的 cpe-mcp.exe。伺服器透過標準輸入/輸出（stdin/stdout）進行通訊，不會開啟 GUI 視窗或 HTTP 伺服器。詳情請參閱 [MCP 安裝、選項與工具指南](docs/mcp.md) 及 [3.1 功能對應表](docs/mcp-parity.md)。本候選實作不聲稱已獲得特定商用 AI 用戶端（如 Claude Desktop、Claude Code 等）或外部線上服務的認證。
 

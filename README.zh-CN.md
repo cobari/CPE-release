@@ -153,10 +153,10 @@ uv run --locked python itkc_search.py --help
 
 未公开的 3.1 候选版本包含基于官方 Python SDK v2 的本地 stdio MCP (Model Context Protocol) 服务器。提供 20 个结构化工具，涵盖 4 个本地文献库槽位、全部 18 个在线数据源适配器、提供方目录、分步 ITKC 典籍集会话、文言文句型 DSL 检索、安全的语料导入管线以及 CSV/JSONL 直接导出。
 
-`ash
+```sh
 # 通过 stdio 启动 MCP 服务器（需要可选的 'mcp' 扩展）
 uv run --extra mcp cpe mcp path/to/texts
-`
+```
 
 独立 Windows 发行包中亦附带接受相同启动参数的 cpe-mcp.exe。服务器通过标准输入/输出（stdin/stdout）进行通信，不会启动 GUI 窗口或 HTTP 服务。详情请参阅 [MCP 安装、选项与工具指南](docs/mcp.md) 以及 [3.1 功能对应表](docs/mcp-parity.md)。本候选实现不声称已通过特定商业 AI 客户端（如 Claude Desktop、Claude Code 等）或外部在线服务的认证。
 

@@ -153,10 +153,10 @@ uv run --locked python itkc_search.py --help
 
 The unpublished 3.1 candidate includes an optional local stdio MCP (Model Context Protocol) server based on the official Python SDK v2. It exposes 20 structured tools covering the 4 local library slots, all 18 online adapters, provider catalogues, staged ITKC collection sessions, full Literary Sinitic pattern DSL search, safe corpus imports, and direct CSV/JSONL exports.
 
-`ash
+```sh
 # Start the MCP server on stdio (requires the optional 'mcp' extra)
 uv run --extra mcp cpe mcp path/to/texts
-`
+```
 
 Standalone Windows packages also include cpe-mcp.exe, which accepts the same startup arguments. The server runs over standard input/output (stdin/stdout) with no GUI window or HTTP server. See [MCP installation, options, and tools](docs/mcp.md) and the [feature equivalence matrix](docs/mcp-parity.md). This candidate implementation does not claim certification on live proprietary AI clients (e.g. Claude Desktop, Claude Code) or live third-party services.
 
