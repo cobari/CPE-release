@@ -32,14 +32,16 @@ As shown by `gh repo view cobari/CPE-release`:
   `hreflang` links (each page lists all six and `x-default`) and the sitemap use it.
   If the repository is renamed or a custom domain is added, every page and the
   sitemap must be changed together, or search engines are pointed at missing pages.
-- **What the pages say**: v3.0.0 supports six interface languages and 18 online
+- **What the local candidate pages say**: v3.1 supports six interface languages and 18 online
   sources. Local full texts, provider-returned excerpts and source-linked
   references remain distinct; a source connection is not complete corpus coverage.
-  Downloads, README guides and screenshots describe the same published version.
+  Downloads, README guides and screenshots describe the same local 3.1 candidate.
+  This does not publish it; the public 3.0.0 baseline remains until an authorized
+  release and Pages deployment are completed.
   Indexing of a page is requested only after that page answers 200.
 - **No external requests**: no analytics, tracker, remote font or remote script.
   The UI font and its license are served locally. Links go to the repository,
-  the v3.0.0 release and Microsoft's WebView2 page.
+  the intended v3.1 release and Microsoft's WebView2 page.
 - **robots.txt**: the project-path file is a reference containing the sitemap
   location, not a host-root robots policy. Crawlers use the host-root file;
   the project sitemap can be submitted directly in Search Console. No account

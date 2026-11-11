@@ -22,6 +22,11 @@
   <meta property="og:description" content="漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストや連携するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/ja/">
   <meta property="og:locale" content="ja_JP">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
   <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -31,6 +36,7 @@
   <meta name="twitter:description" content="漢文（古典中国語）テキストから構文パターンの候補を検索し、前後の文脈や原典リンクを確認しながら研究者自身が判断することを支援するデジタル人文学研究支援ツールです。">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image.png">
   <meta name="twitter:image:alt" content="古典構文エクスプローラー デスクトップアプリ実行画面">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストや連携するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。","url":"https://cobari.github.io/CPE-release/ja/","softwareVersion":"3.1","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"ja","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
@@ -59,17 +65,17 @@
       </div>
       <div class="actions">
         <div class="action-primary">
-          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.0.0">v3.0.0 のダウンロード一覧<small>macOS・Linux 用ソースパッケージ</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.1">v3.1 のダウンロード一覧<small>macOS・Linux 用ソースパッケージ</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内を読む<small>詳細ドキュメント (README)</small></a>
         </div>
-        <p class="action-note">Windows では cpe-gui.exe をダウンロードして、そのまま起動できます。Edge WebView2 ランタイムが必要です。macOS と Linux ではソースパッケージから起動します。初回起動時に実行環境を自動でダウンロードするため、インターネット接続が必要です。v3.0.0 では、5つの地域に分類された18のオンライン資料源と、ローカルのテキストフォルダを検索できます。</p>
+        <p class="action-note">Windows では cpe-gui.exe をダウンロードして、そのまま起動できます。Edge WebView2 ランタイムが必要です。macOS と Linux ではソースパッケージから起動します。初回起動時に実行環境を自動でダウンロードするため、インターネット接続が必要です。v3.1 では、5つの地域に分類された18のオンライン資料源と、ローカルのテキストフォルダを検索できます。</p>
       </div>
       <figure class="hero-preview">
         <img src="../assets/interface-preview.png" srcset="../assets/interface-preview.png 1180w, ../assets/interface-preview-2x.png 2360w, ../assets/interface-preview-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="ナビゲーション、検索方式、2つの検索語入力欄を備えたClassic Pattern Explorerの検索画面（韓国語表示）。" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>プログラム画面の例（韓国語表示の例。v3.0.0で6つの表示言語に対応）。</figcaption>
+        <figcaption>プログラム画面の例（韓国語表示の例。v3.1で6つの表示言語に対応）。</figcaption>
       </figure>
     </section>
 
@@ -78,11 +84,11 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>v3.0.0 リリースから <code>cpe-gui.exe</code> をダウンロードしてダブルクリックします。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
+          <p>v3.1 リリースから <code>cpe-gui.exe</code> をダウンロードしてダブルクリックします。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
         </div>
         <div class="platform-item">
           <h3>macOS および Linux</h3>
-          <p>v3.0.0 リリースからソースパッケージをダウンロード・解凍し、<code>cpe-gui.command</code>（macOS）または <code>cpe-gui.sh</code>（Linux）を実行します。初回実行時に uv の導入確認を行い、Python 環境と依存関係を自動取得するためインターネット接続が必要です。</p>
+          <p>v3.1 リリースからソースパッケージをダウンロード・解凍し、<code>cpe-gui.command</code>（macOS）または <code>cpe-gui.sh</code>（Linux）を実行します。初回実行時に uv の導入確認を行い、Python 環境と依存関係を自動取得するためインターネット接続が必要です。</p>
         </div>
         <div class="platform-item">
           <h3>コマンドライン</h3>
@@ -174,7 +180,7 @@
     </section>
   </main>
   <footer class="site-foot">
-    <p>バージョン 3.0.0（タグ v3.0.0）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API の生の応答は含まれていません。</p>
+    <p>バージョン 3.1（タグ v3.1）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API の生の応答は含まれていません。</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub のソースとリリース</a></p>
     <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">ご意見・ご要望を送る（Google フォーム）</a></p>
   </footer>
