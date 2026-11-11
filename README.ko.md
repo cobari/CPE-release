@@ -154,11 +154,13 @@ uv run --locked python itkc_search.py --help
 미공개 3.1 릴리스 후보에는 공식 Python SDK v2 기반의 로컬 stdio MCP(Model Context Protocol) 서버가 포함되어 있습니다. 4개 로컬 라이브러리 슬롯, 18개 온라인 소스 어댑터, 제공처 카탈로그, 단계별 ITKC 컬렉션 세션, 한문 문형 DSL 검색, 안전한 코퍼스 가져오기 파이프라인 및 CSV/JSONL 직접 내보내기를 다루는 20개 전용 도구를 제공합니다.
 
 ```sh
-# stdio 기반 MCP 서버 실행 (선택적 'mcp' 추가 기능 필요)
-uv run --extra mcp cpe mcp path/to/texts
+# stdio 기반 MCP 서버 실행 및 로컬 원문 전달 허용
+uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
-독립 실행형 윈도우 패키지에는 동일한 인수를 받는 cpe-mcp.exe가 함께 포함되어 있습니다. 서버는 표준 입출력(stdin/stdout)을 통해 통신하며 GUI 창이나 HTTP 서버는 열리지 않습니다. 자세한 내용은 [MCP 설치·옵션·20개 도구 안내](docs/mcp.md)와 [3.1 기능 대응표](docs/mcp-parity.md)를 참고하세요. 본 후보 구현은 특정 상용 AI 클라이언트(Claude Desktop, Claude Code 등)나 외부 라이브 서비스에 대한 공식 인증을 주장하지 않습니다.
+기본값은 참조와 메타데이터만 반환합니다. 로컬 원문을 반환하려면 호스트가 자체 권리 검토 후 `--allow-source-text local`을 지정해야 합니다. 온라인 접근과 가져오기는 별개입니다. `--enable-online`은 제공처 접근을, `--enable-import`는 가져오기 접근을 추가하지만, 해당 `--allow-source-text SOURCE` 권한이 함께 없으면 원문은 반환하지 않습니다. `all` 권한은 없습니다. 이 권한은 제공처 라이선스가 아니며 클라우드 처리, 모델 답변 또는 보존의 적법성을 보장하지 않습니다. 자세한 내용은 [MCP 설치·옵션·20개 도구 안내](docs/mcp.md)와 [3.1 기능 대응표](docs/mcp-parity.md)를 참고하세요.
+
+독립 실행형 윈도우 패키지에는 동일한 인수를 받는 cpe-mcp.exe가 함께 포함되어 있습니다. 서버는 표준 입출력(stdin/stdout)을 통해 통신하며 GUI 창이나 HTTP 서버는 열리지 않습니다. 본 후보 구현은 특정 상용 AI 클라이언트(Claude Desktop, Claude Code 등)나 외부 라이브 서비스에 대한 공식 인증을 주장하지 않습니다.
 
 ---
 

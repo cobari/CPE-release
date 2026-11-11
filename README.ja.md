@@ -154,11 +154,13 @@ uv run --locked python itkc_search.py --help
 未公開の 3.1 リリース候補版には、公式 Python SDK v2 に基づくローカル stdio MCP（Model Context Protocol）サーバーが含まれています。4 つのローカルライブラリスロット、18 のオンライン資料源アダプター、提供元の目録、段階的な ITKC コレクションセッション、漢文文型 DSL 検索、安全なコーパス取り込み、CSV/JSONL 直接エクスポートを網羅する 20 の専用ツールを提供します。
 
 ```sh
-# stdio 経由で MCP サーバーを起動（追加依存 'mcp' が必要）
-uv run --extra mcp cpe mcp path/to/texts
+# stdio 経由で MCP サーバーを起動し、ローカル原文の提供を許可
+uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
-単体 Windows パッケージには、同一の引数を受け付ける cpe-mcp.exe も同梱されています。サーバーは標準入出力（stdin/stdout）を介して通信し、GUI ウィンドウや HTTP サーバーは起動しません。詳細は [MCP インストール・設定・ツール案内](docs/mcp.md) および [3.1 機能対応表](docs/mcp-parity.md) をご覧ください。本候補版は、商用 AI クライアント（Claude Desktop、Claude Code 等）や外部ライブサービスに対する認証を主張するものではありません。
+既定では参照とメタデータのみを返します。ローカル原文を返すには、ホストが自身の権利確認の後で `--allow-source-text local` を指定する必要があります。オンラインアクセスとインポートは別指定です。`--enable-online` は提供元へのアクセスを、`--enable-import` はインポートへのアクセスを追加しますが、対応する `--allow-source-text SOURCE` 権限がなければ原文は返しません。`all` 権限はありません。この権限は提供元のライセンスではなく、クラウド処理、モデル応答、保持の適法性を保証するものではありません。詳細は [MCP インストール・設定・ツール案内](docs/mcp.md) および [3.1 機能対応表](docs/mcp-parity.md) をご覧ください。
+
+単体 Windows パッケージには、同一の引数を受け付ける cpe-mcp.exe も同梱されています。サーバーは標準入出力（stdin/stdout）を介して通信し、GUI ウィンドウや HTTP サーバーは起動しません。本候補版は、商用 AI クライアント（Claude Desktop、Claude Code 等）や外部ライブサービスに対する認証を主張するものではありません。
 
 ---
 
