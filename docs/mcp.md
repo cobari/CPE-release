@@ -70,7 +70,7 @@ startup:
 | `--write-root PATH` | None | Authorizes tool writes/reads under an existing folder `PATH`. Tool writes are disabled unless granted; explicitly configured state and ITKC log files are separate host destinations. |
 | `--enable-online SOURCE` | None | Allows access to an online repository (`all`, `docusky:PROFILE`, or any of the 18 online source identifiers: `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `thdl`, `csid`, `cand`, `kyudb`). Repeat as needed. |
 | `--itkc-log PATH` | None | Required local request log path whenever `itkc` is enabled. |
-| `--enable-import PROVIDER`| None | Allows network import providers (`portal`, `ctp`, `gutenberg`, `ndl`, `rise`, `cbeta`, `nikh-partial`, or `all`). |
+| `--enable-import PROVIDER`| None | Allows import providers (`portal`, `ctp`, `gutenberg`, `ndl`, `rise`, `cbeta`, `nikh-partial`, or `all`); network ones need Internet access, while CBETA and NIKH need host-readable XML files. |
 | `--workspace-state PATH` | Memory | Dedicated, locked MCP JSON state file outside corpus folders and source sidecars. Desktop GUI preferences are never used automatically. |
 | `--ctp-key-env VAR` | `CPE_CTP_API_KEY` | Environment variable name holding the CTP API key. Keys are never passed via tool parameters. |
 | `--language CODE` | System | Saved interface language setting; MCP descriptions and error codes remain English (`ko`, `ja`, `zh-Hans`, `zh-Hant`, `vi`, `en`). |
@@ -111,7 +111,7 @@ The MCP server registers 20 structured tools mapped to CPE 3.1 research workflow
 |---|---|---|
 | `search_pattern(source_id, ...)` | Search | Searches a single source in compound two-box (`mode="pair"`) or single-box (`mode="words"`) mode and saves a query snapshot. |
 | `search_sources(source_ids, ...)` | Search | Runs multi-panel search across up to 4 selected sources as separate, sequentially collected panels (local slots and enabled online repositories). |
-| `search_dsl(source_id, ...)` | Search | Executes full Literary Sinitic pattern DSL queries on local libraries using an inline `expression` or a multi-pattern TOML `pattern_file`. |
+| `search_dsl(source_id, ...)` | Search | Executes full Literary Sinitic pattern DSL queries on local libraries using an inline `expression` or a multi-pattern TOML `pattern_file`. Non-pair pattern shapes are conservatively placed in `less` with `classification_unreviewed` pending researcher review ([rationale](mcp-dsl-classification.md)). |
 | `itkc_search(action, ...)` | Search | Stepped multi-collection ITKC session: `start`, `advance` (steps `GO_AA` → `MO_AA` → `IT_AA` on demand), `page`, `status`, `cancel`, or `clear`. |
 
 ### C. Snapshot Navigation & Session Tools
@@ -154,7 +154,7 @@ Matcher-backed rows preserve the existing display fields and core evidence liste
 - `segment`: The matched sentence with search terms enclosed in `【】` (strong placements) and `〖〗` (secondary hits).
 - `a`: String content of the first internal slot.
 - `b`: Array of candidate string representations for open slots.
-- `reasons`: Diagnostic signals explaining why a candidate is placed in `less` (e.g. `skips_nearer`, `crosses_clause`, `adjacent`, `indeterminate`).
+- `reasons`: Diagnostic signals explaining why a candidate is placed in `less` (e.g. `skips_nearer`, `crosses_clause`, `adjacent`, `indeterminate`, or `classification_unreviewed` for non-pair DSL patterns; see [General DSL candidate classification](mcp-dsl-classification.md)).
 - `record`: When a core record exists, the exact CLI representation: `cpe.result/1` for pattern matches or `cpe.occurrence/1` for word occurrences. Reference-only rows have no fabricated record.
 
 ### Philological Invariants
@@ -164,7 +164,7 @@ Matcher-backed rows preserve the existing display fields and core evidence liste
 4. **False Zero Rejection**: Malformed provider envelopes or missing count fields return explicit errors (`source_failed`) rather than being misinterpreted as zero results.
 
 ### Protocol Budgets & Cancellation
-- **Response Budget**: Tool responses are capped at 256 KiB. Rows that fit are paged with next_cursor; an individually oversized row has an explicit omitted index/reason. Snapshot export preserves the full retained rows. Staged ITKC pages instead return response_limit and suggest a smaller page; they do not silently truncate text.
+- **Response Budget**: Tool responses are capped at 256 KiB on the wire, including both text and structured content copies and a 512-byte protocol envelope reserve. Rows that fit within the budget are paged with `next_cursor`; an individually oversized row has an explicit omitted index/reason. Snapshot export preserves the full retained rows. Staged ITKC pages instead return `response_limit` and suggest a smaller page; they do not silently truncate text.
 - **Session Retention**: Up to 8 concurrent snapshot sessions are retained with a 15-minute inactivity TTL and a shared 64 MiB serialized-retention budget (ordinary results plus staged ITKC). This is not a hard limit on Python object or transient matcher memory.
 - **Cooperative Cancellation**: Long-running search or download workers periodically poll cancellation checkpoints. Protocol cancellation releases the foreground search slot; a retiring worker cannot publish or unlock a newer search. Up to four active/retiring workers are allowed, so repeated cancellation cannot accumulate unbounded provider threads. Existing network calls retire at their timeouts/checkpoints; download cancellation uses manage_import(cancel).
 
