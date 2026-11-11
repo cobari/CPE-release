@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from functools import partial
 from importlib.metadata import version
 from threading import Event
@@ -10,9 +9,10 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 import anyio
 from mcp.server import MCPServer
-from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from mcp.types import CallToolResult, ToolAnnotations
 from pydantic import Field
 
+from cpe.mcp.response import RESPONSE_LIMIT, result_payload, wire_size
 from cpe.mcp.service import SearchService
 
 if TYPE_CHECKING:
@@ -20,15 +20,19 @@ if TYPE_CHECKING:
 
 
 def _result(payload: dict[str, Any]) -> CallToolResult:
-    return CallToolResult(
-        content=[
-            TextContent(
-                text=json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-            )
-        ],
-        structured_content=payload,
-        is_error=bool(payload.get("error")),
-    )
+    size = wire_size(payload)
+    if size > RESPONSE_LIMIT:
+        payload = {
+            "error": "response_limit",
+            "bytes": size,
+            "limit": RESPONSE_LIMIT,
+            **{
+                key: payload[key]
+                for key in ("search_id", "id", "job")
+                if isinstance(payload.get(key), str) and len(payload[key]) <= 128
+            },
+        }
+    return CallToolResult.model_validate(result_payload(payload))
 
 
 async def _search(service: SearchService, **arguments: Any) -> dict[str, Any]:
@@ -41,7 +45,7 @@ async def _search(service: SearchService, **arguments: Any) -> dict[str, Any]:
     try:
         # Abandoning the await lets protocol cancellation set the checkpoint while
         # the bounded worker finishes its current unit; it cannot publish a job
-        # after observing cancellation. The service retains its busy guard meanwhile.
+        # after observing cancellation. Each lease owns only its foreground guard.
         return await anyio.to_thread.run_sync(
             partial(service.search_pattern, checkpoint=checkpoint, **arguments),
             abandon_on_cancel=True,

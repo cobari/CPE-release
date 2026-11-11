@@ -110,6 +110,7 @@ def run(args: argparse.Namespace) -> int:
     from cpe.local.file_lock import exclusive
     from cpe.local.txt import InputError
     from cpe.match.engine import Settings
+    from cpe.mcp.policy import PathPolicy, PolicyError, host_path
     from cpe.mcp.service import SearchService
     from cpe.mcp.sources import LOCAL_SOURCE_IDS, SOURCE_IDS, SourceRegistry
     from cpe.mcp.workspace import IMPORT_PROVIDERS, Workspace
@@ -119,6 +120,33 @@ def run(args: argparse.Namespace) -> int:
     annotations = args.annotation_markers or (None, None)
     workspace = None
     try:
+        inputs = [host_path(path) for path in args.inputs]
+        slots: dict[str, Path] = {}
+        for code, path in args.library:
+            if code not in LOCAL_SOURCE_IDS or code in slots:
+                raise ValueError(
+                    "--library needs a unique local/local2/local3/local4 slot"
+                )
+            slots[code] = host_path(path)
+        variants = host_path(args.variants) if args.variants else None
+        if args.itkc_log is not None:
+            args.itkc_log = host_path(args.itkc_log)
+        startup_policy = PathPolicy(
+            (
+                *inputs,
+                *args.read_root,
+                *slots.values(),
+                *((variants,) if variants else ()),
+            ),
+            args.write_root,
+        )
+        try:
+            for path in inputs:
+                startup_policy.check_library(path)
+            if variants is not None:
+                startup_policy.check(variants)
+        except PolicyError as error:
+            raise ValueError(error.code) from error
         settings = Settings(
             normalization=Options(
                 note_open=notes[0],
@@ -129,10 +157,9 @@ def run(args: argparse.Namespace) -> int:
                 whitespace=args.whitespace or "keep",
                 line_breaks=args.line_breaks or "delete",
                 notes=args.notes or "barrier",
-                variants=load_variant_table(args.variants) if args.variants else None,
+                variants=load_variant_table(variants) if variants else None,
             )
         )
-        inputs = [path.expanduser().resolve() for path in args.inputs]
         library = Library.load(inputs, settings)
         online = tuple(
             dict.fromkeys(
@@ -148,17 +175,10 @@ def run(args: argparse.Namespace) -> int:
                 for code in (IMPORT_PROVIDERS if value == "all" else (value,))
             )
         )
-        slots: dict[str, Path] = {}
-        for code, path in args.library:
-            if code not in LOCAL_SOURCE_IDS or code in slots:
-                raise ValueError(
-                    "--library needs a unique local/local2/local3/local4 slot"
-                )
-            slots[code] = Path(path).expanduser().resolve()
         with ExitStack() as stack:
             state = None
             if args.workspace_state is not None:
-                state = args.workspace_state.expanduser().resolve()
+                state = host_path(args.workspace_state)
                 if state.suffix.lower() in {".txt", ".md", ".toml", ".jsonl"}:
                     raise ValueError("MCP state must not use a source-text file suffix")
                 from cpe.gui.preferences import config_dir
@@ -194,7 +214,11 @@ def run(args: argparse.Namespace) -> int:
             workspace = Workspace(
                 library,
                 input_paths=inputs,
-                read_roots=(*args.read_root, *slots.values()),
+                read_roots=(
+                    *args.read_root,
+                    *slots.values(),
+                    *((variants,) if variants else ()),
+                ),
                 write_roots=args.write_root,
                 enabled_imports=imports,
                 state_path=state,

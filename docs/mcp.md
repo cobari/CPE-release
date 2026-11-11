@@ -84,6 +84,13 @@ startup:
 | `--annotation-markers OPEN CLOSE` | None | Attached annotation delimiter pair. |
 
 ### Security Invariants
+
+Explicit startup text files/folders, `--library` folders and the exact
+`--variants` file are host read capabilities too. A text file includes its
+conventionally named regular manifest sidecar, never the whole parent folder.
+An escaping metadata link is not implicitly granted. Cached library metadata
+does not rescan the corpus; real loads and exports validate file targets.
+
 - **Filesystem Isolation**: File-reading and file-writing tools (`run_cli_export`, `export_search_snapshot`, `manage_library`, `import_local_release`) reject any path outside `--read-root` or `--write-root`. Symlinks and Windows directory junctions pointing outside allowed roots are rejected.
 - **Credential Protection**: Third-party API keys (such as CTP) are resolved strictly from host environment variables. Tools never accept API keys as parameters and never return stored keys in responses.
 - **Provider Safeguards**: The server reuses each existing adapter's request serialization, interval, query grammar and call caps. A persistent client is shared across searches and catalogs; MCP does not reset those budgets for each tool call. Automated tests use mock fixtures and never query live servers.

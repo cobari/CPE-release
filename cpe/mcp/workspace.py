@@ -26,7 +26,9 @@ from cpe.local.search import SearchOutputs
 from cpe.local.txt import InputError
 from cpe.match.engine import Settings
 from cpe.match.run import Outputs
+from cpe.mcp.identity import staged_rows
 from cpe.mcp.policy import PathPolicy, PolicyError
+from cpe.mcp.response import wire_size
 from cpe.normalize.options import NormalizationError, options_from_mapping
 
 IMPORT_PROVIDERS = (
@@ -137,18 +139,40 @@ class Workspace:
     ) -> None:
         paths = tuple(input_paths)
         self.policy = PathPolicy((*paths, *read_roots), write_roots)
+        for path in paths:
+            self.policy.check_library(path)
         self.preferences = WorkspacePreferences(state_path)
         self._enabled_imports = frozenset(enabled_imports)
         if self._enabled_imports - set(IMPORT_PROVIDERS):
             raise ValueError("unknown import provider")
         self._lock = threading.RLock()
+        self._blocked_local: dict[str, tuple[str, str]] = {}
         saved = self.preferences.load()
         folders = saved.get("local_folders", {})
         if isinstance(folders, dict):
+            clean_folders: dict[str, str] = {}
             for code, path in folders.items():
                 if code not in LOCAL_SOURCES or not isinstance(path, str):
                     raise ValueError("invalid saved local library")
-                self.policy.check(path)
+                try:
+                    self.policy.check_library(path)
+                except PolicyError as error:
+                    self._blocked_local[code] = (path, error.code)
+                else:
+                    clean_folders[code] = path
+            if self._blocked_local:
+                # Do not let Api restore a saved slot that the current host
+                # roots do not open. Keep the blocked path only as status.
+                data = self.preferences.load()
+                data["local_folders"] = clean_folders
+                active = data.get("active_local")
+                if active not in clean_folders:
+                    active = next(
+                        (code for code in LOCAL_SOURCES if code in clean_folders), ""
+                    )
+                    data["active_local"] = active
+                data["folder"] = clean_folders.get(active, "")
+                self.preferences._data = data
         normalization = saved.get("normalization")
         if normalization is not None and restore_normalization:
             settings = replace(
@@ -167,6 +191,12 @@ class Workspace:
         if ctp_key:
             self.preferences._data["ctp_key"] = ctp_key
         self.api = Api(library, self.preferences, folder)
+        for code, (blocked_path, error_code) in self._blocked_local.items():
+            if code in self.api._local_libraries:
+                continue
+            with self.api._local_lock:
+                self.api._local_paths.setdefault(code, blocked_path)
+                self.api._local_errors[code] = error_code
         for name, client in (clients or {}).items():
             if name in {"portal", "ctp", "rise"}:
                 setattr(self.api, "_" + name, client)
@@ -175,6 +205,9 @@ class Workspace:
         self._itkc_bytes = 0
         self._itkc_generation = 0
         self._clear_itkc_requested = ""
+        self._clear_worker: threading.Thread | None = None
+        self._clear_worker_lock = threading.Lock()
+        self._closed = threading.Event()
         self._catalogs: dict[str, dict[str, Any]] = {}
         self._search_service: Any = None
 
@@ -275,19 +308,27 @@ class Workspace:
     def library(self, source_id: str) -> Library | None:
         if source_id not in LOCAL_SOURCES:
             return None
-        with self.api._local_lock:
-            path = self.api._local_paths.get(source_id)
+        with self._lock:
+            with self.api._local_lock:
+                path = self.api._local_paths.get(source_id)
+                library = self.api._local_libraries.get(source_id)
             if path:
                 try:
+                    # A cached immutable library is safe, but the root itself
+                    # must still be authorized. A real load also scans its tree.
                     self.policy.check(path)
                 except PolicyError:
                     return None
-            library = self.api._local_libraries.get(source_id)
-        if library is None:
-            self.api.load_local(source_id)
-            with self.api._local_lock:
-                library = self.api._local_libraries.get(source_id)
-        return library
+            if library is None:
+                if path:
+                    try:
+                        self.policy.check_library(path)
+                    except PolicyError:
+                        return None
+                self.api.load_local(source_id)
+                with self.api._local_lock:
+                    library = self.api._local_libraries.get(source_id)
+            return library
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -319,12 +360,12 @@ class Workspace:
         with self._lock:
             try:
                 if action == "open":
-                    target = self.policy.check(path)
+                    target = self.policy.check_library(path)
                     answer = self.api.open_folder(str(target), source_id)
                 elif action in {"load", "reload", "activate", "remove"}:
                     stored = self.api._local_paths.get(source_id)
                     if stored and action != "remove":
-                        self.policy.check(stored)
+                        self.policy.check_library(stored)
                     answer = getattr(self.api, action + "_local")(source_id)
                 else:
                     return {"error": "bad_request"}
@@ -424,6 +465,10 @@ class Workspace:
             ]
         if self.preferences._state_path is not None:
             paths.append(self.preferences._state_path)
+        registry = getattr(self, "registry", None)
+        itkc_log = getattr(registry, "_itkc_log", None)
+        if itkc_log is not None:
+            paths.append(Path(itkc_log))
         return paths
 
     def _changed(self) -> None:
@@ -432,6 +477,61 @@ class Workspace:
             self._search_service.cancel_active()
         if self._itkc is not None:
             self._itkc.cancel()
+
+    def _schedule_clear_worker(self) -> None:
+        """Clear whichever ITKC session has an explicit pending clear."""
+        with self._clear_worker_lock:
+            worker = self._clear_worker
+            if worker is not None and worker.is_alive():
+                return
+            worker = threading.Thread(
+                target=self._clear_when_free,
+                name="cpe-mcp-itkc-clear",
+                daemon=True,
+            )
+            self._clear_worker = worker
+            worker.start()
+
+    def _clear_when_free(self) -> None:
+        try:
+            while not self._closed.is_set():
+                if not self._lock.acquire(timeout=0.1):
+                    continue
+                try:
+                    with self._clear_worker_lock:
+                        pending = self._clear_itkc_requested
+                        session = self._itkc
+                        if session is not None and session.id == pending:
+                            session.cancel()
+                            self._itkc = None
+                            self._itkc_bytes = 0
+                            self._itkc_generation += 1
+                            self._clear_itkc_requested = ""
+                            cleared = True
+                        else:
+                            cleared = False
+                    if cleared:
+                        return
+                    if pending and (session is None or session.id != pending):
+                        # A superseded clear must not clear a replacement
+                        # session without a new explicit pending request.
+                        return
+                    return
+                finally:
+                    self._lock.release()
+        finally:
+            with self._clear_worker_lock:
+                if self._clear_worker is threading.current_thread():
+                    self._clear_worker = None
+                pending = self._clear_itkc_requested
+                session = self._itkc
+            if (
+                not self._closed.is_set()
+                and pending
+                and session is not None
+                and session.id == pending
+            ):
+                self._schedule_clear_worker()
 
     def import_local(self, path: str, *, batch: bool = False) -> dict[str, Any]:
         with self._lock:
@@ -473,13 +573,13 @@ class Workspace:
     ) -> dict[str, Any]:
         if provider not in {"gutenberg", "ndl", "rise", "cbeta", "nikh-partial"}:
             return {"error": "bad_request"}
+        if provider not in self._enabled_imports:
+            return {"error": "import_disabled"}
         if provider in {"cbeta", "nikh-partial"}:
             try:
-                address = str(self.policy.check(address))
+                address = str(self.policy.check_library(address))
             except PolicyError as error:
                 return {"error": error.code}
-        elif provider not in self._enabled_imports:
-            return {"error": "import_disabled"}
         return self.api.start_external_preview(provider, address, revision)
 
     def import_action(
@@ -566,7 +666,7 @@ class Workspace:
 
         with self._lock:
             try:
-                paths = [self.policy.check(path) for path in inputs]
+                paths = [self.policy.check_library(path) for path in inputs]
                 if not paths:
                     return {"error": "inputs_required"}
                 prefix = self.policy.check(output_prefix, write=True)
@@ -826,8 +926,10 @@ class Workspace:
             if session is None or session.id != job_id:
                 return {"error": "bad_request"}
             session.cancel()
-            self._clear_itkc_requested = session.id
+            with self._clear_worker_lock:
+                self._clear_itkc_requested = session.id
             if not self._lock.acquire(blocking=False):
+                self._schedule_clear_worker()
                 return {"id": job_id, "state": "cancelling", "clear_pending": True}
             try:
                 if self._itkc is session:
@@ -854,14 +956,14 @@ class Workspace:
                 return {"error": "bad_page_size"}
             answer = session.page(revision, group, start, sort)
             if "rows" in answer:
-                rows = answer["rows"][:page_size]
+                rows = staged_rows(answer["rows"][:page_size])
                 answer["rows"] = rows
                 answer["next_start"] = (
                     start + len(rows)
                     if start + len(rows) < answer["counts"][group]
                     else None
                 )
-                if _json_size(answer) > 256 * 1024:
+                if wire_size(answer) > 256 * 1024:
                     return {
                         "error": "response_limit",
                         "id": job_id,
@@ -1022,6 +1124,10 @@ class Workspace:
             self._lock.release()
 
     def close(self) -> None:
+        self._closed.set()
+        worker = self._clear_worker
+        if worker is not None and worker is not threading.current_thread():
+            worker.join(timeout=1)
         if self._itkc is not None:
             self._itkc.cancel()
         with self.api._external_job_lock:

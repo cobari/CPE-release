@@ -195,8 +195,8 @@ def _folder_files(folder: Path) -> tuple[list[Path], list[str]]:
     """The .txt and .md files and text bundles under a folder in path order, plus the
     relative paths of subfolders that could not be listed.
 
-    Hidden components are left out. Directory symlinks and Windows junctions (and
-    other reparse-point directories) are not followed: a loop through one would
+    Hidden components are left out. Directory symlinks and Windows junctions are
+    not followed: a loop through one would
     scan until it failed rather than finish, and a link pointing outside the
     folder would load texts the researcher did not open. The resolved path is
     also checked against the opened root, so another outside-root reparse form is
@@ -235,7 +235,9 @@ def _folder_files(folder: Path) -> tuple[list[Path], list[str]]:
                 # `entry.stat()` above already reported a broken link as
                 # unreadable. A live directory link or an outside-root path is
                 # skipped silently, like the documented directory-symlink rule.
-                if is_directory_link(path) or not is_within(root_resolved, path):
+                if is_directory_link(
+                    path, entry.stat(follow_symlinks=False)
+                ) or not is_within(root_resolved, path):
                     continue
                 pending.append(path)
             elif entry.is_file() and (

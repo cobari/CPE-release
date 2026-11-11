@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import json
 from functools import partial
 from threading import Event
 from typing import Annotated, Any, Literal
@@ -13,6 +12,7 @@ from mcp.server import MCPServer
 from mcp.types import CallToolResult, ToolAnnotations
 from pydantic import Field
 
+from cpe.mcp.response import RESPONSE_LIMIT, wire_size
 from cpe.mcp.server import _result, _search
 from cpe.mcp.service import SearchService
 from cpe.mcp.workspace import Workspace
@@ -20,13 +20,11 @@ from cpe.mcp.workspace import Workspace
 PageSize = Annotated[int, Field(strict=True, ge=1, le=100)]
 Start = Annotated[int, Field(strict=True, ge=0)]
 Sort = Literal["source", "era", "era-desc"]
-BUDGET = 256 * 1024
+BUDGET = RESPONSE_LIMIT
 
 
 def _size(value: Any) -> int:
-    return len(
-        json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    )
+    return wire_size(value)
 
 
 def bounded(payload: dict[str, Any]) -> dict[str, Any]:

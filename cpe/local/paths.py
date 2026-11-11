@@ -2,9 +2,10 @@
 
 A folder scan must not follow a link out of the folder the researcher opened.
 On POSIX a directory symlink is detectable with ``is_symlink``; on Windows a
-junction is a reparse point and ``is_symlink`` is false, so it needs the
-``FILE_ATTRIBUTE_REPARSE_POINT`` check.  File symlinks are intentionally not
-covered here: the folder scan documents that only directory links are skipped.
+junction carries a mount-point reparse tag while a cloud placeholder carries a
+different tag. Treating all reparse points as links hides cloud folders. File
+symlinks are intentionally not covered here: the folder scan documents that only
+directory links are skipped.
 """
 
 from __future__ import annotations
@@ -13,11 +14,14 @@ import os
 import stat
 from pathlib import Path
 
-_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+_LINK_TAGS = {
+    getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", 0xA0000003),
+    getattr(stat, "IO_REPARSE_TAG_SYMLINK", 0xA000000C),
+}
 
 
-def is_directory_link(path: Path) -> bool:
-    """Whether ``path`` is a symlink or a Windows reparse-point directory.
+def is_directory_link(path: Path, info: os.stat_result | None = None) -> bool:
+    """Whether ``path`` is a symlink or a Windows mount-point directory.
 
     The caller must check the directory type separately; this function only
     answers the link question so a file symlink keeps its documented behaviour.
@@ -25,14 +29,12 @@ def is_directory_link(path: Path) -> bool:
     listing error handling reports it.
     """
     try:
-        if path.is_symlink():
-            return True
-        if os.name != "nt":
-            return False
-        attributes = getattr(os.lstat(path), "st_file_attributes", 0)
+        info = info if info is not None else os.lstat(path)
     except OSError:
         return False
-    return bool(attributes & _REPARSE_POINT)
+    return (
+        stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) in _LINK_TAGS
+    )
 
 
 def is_within(root: Path, path: Path) -> bool:

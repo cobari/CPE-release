@@ -24,6 +24,7 @@ from cpe.gui.search_session import sorted_rows
 from cpe.gui.service import Library
 from cpe.gui.service import search_pair as _gui_search_pair
 from cpe.gui.service import search_words as _gui_search_words
+from cpe.mcp.response import wire_size
 from cpe.mcp.sources import LOCAL_SOURCE_IDS, SOURCE_IDS, SourceRegistry
 
 ADVERTISED_SOURCES = (*LOCAL_SOURCE_IDS, *SOURCE_IDS)
@@ -320,14 +321,30 @@ class SearchService:
             from cpe.export.run_file import normalization_section
 
             settings = self.registry.settings
+            local_library: Library | None = None
             if source_id in LOCAL_SOURCE_IDS:
-                library = self._get_library(source_id)
-                if library is not None:
-                    settings = library.settings
+                local_library = self._get_library(source_id)
+                if local_library is None:
+                    status = self._local_status(source_id) if self._local_status else {}
+                    return {"error": status.get("load_error") or "local_unconfigured"}
+                settings = local_library.settings
             request_query["normalization"] = normalization_section(
                 settings.normalization
             )
-            if options:
+            if source_id in LOCAL_SOURCE_IDS:
+                # Use the same Library snapshot for the provenance metadata and
+                # the match itself. A second lazy load could observe a settings
+                # change between those two reads.
+                answer = self._run(
+                    source_id,
+                    mode,
+                    first,
+                    second,
+                    query,
+                    check,
+                    library=local_library,
+                )
+            elif options:
                 answer = self._run_options(
                     source_id, mode, first, second, query, check, options
                 )
@@ -636,12 +653,15 @@ class SearchService:
         second: str,
         query: str,
         checkpoint: Callable[[], None],
+        *,
+        library: Library | None = None,
     ) -> dict[str, Any]:
         if source_id in LOCAL_SOURCE_IDS:
-            library = self._get_library(source_id)
+            if library is None:
+                library = self._get_library(source_id)
             if library is None:
                 status = self._local_status(source_id) if self._local_status else {}
-                return {"error": status.get("load_error", "local_unconfigured")}
+                return {"error": status.get("load_error") or "local_unconfigured"}
             if mode == "pair":
                 answer = _gui_search_pair(
                     library,
@@ -800,7 +820,7 @@ class SearchService:
     def _response_limit(self, payload: dict[str, Any]) -> dict[str, Any]:
         return {
             "error": "response_limit",
-            "bytes": _json_size(payload),
+            "bytes": wire_size(payload),
             "limit": self._response_budget,
         }
 
@@ -809,7 +829,7 @@ class SearchService:
         omitted: list[dict[str, Any]] = []
         index = offset
         base = self._page_payload(session, [], [], offset)
-        if _json_size(base) > self._response_budget:
+        if wire_size(base) > self._response_budget:
             return self._response_limit(base)
         while index < len(session.rows) and (
             len(rows) + len(omitted) < session.page_size
@@ -828,7 +848,7 @@ class SearchService:
                 payload = self._page_payload(
                     session, copy.deepcopy(rows), candidate_omitted, index + 1
                 )
-                if _json_size(payload) <= self._response_budget:
+                if wire_size(payload) <= self._response_budget:
                     omitted = candidate_omitted
                     index += 1
                     continue
@@ -839,7 +859,7 @@ class SearchService:
             payload = self._page_payload(
                 session, candidate_rows, copy.deepcopy(omitted), index + 1
             )
-            if _json_size(payload) <= self._response_budget:
+            if wire_size(payload) <= self._response_budget:
                 rows = candidate_rows
                 index += 1
                 continue
@@ -859,7 +879,7 @@ class SearchService:
             payload = self._page_payload(
                 session, copy.deepcopy(rows), candidate_omitted, index + 1
             )
-            if _json_size(payload) <= self._response_budget:
+            if wire_size(payload) <= self._response_budget:
                 omitted = candidate_omitted
                 index += 1
                 continue

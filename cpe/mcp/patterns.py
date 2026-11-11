@@ -25,6 +25,7 @@ ADJACENT = "adjacent"
 INDETERMINATE = "indeterminate"
 SKIPS_NEARER = "skips_nearer"
 CROSSES_CLAUSE = "crosses_clause"
+CLASSIFICATION_UNREVIEWED = "classification_unreviewed"
 
 
 def _is_pair_like(pattern: Pattern) -> bool:
@@ -176,8 +177,10 @@ def search(
                 for rep in result.open_slot.representatives
             ]
 
-        # For pair-like patterns, check standard structural signals
-        # (skips_nearer, crosses_clause)
+        # Pair diagnostics have an established scope. Other DSL shapes retain
+        # their core evidence but cannot imply those checks were completed.
+        if result.pattern_id not in spec_seconds:
+            reasons.append(CLASSIFICATION_UNREVIEWED)
         if result.pattern_id in spec_seconds and first_slot is not None:
             seconds = spec_seconds[result.pattern_id]
             a_norm = text.normalized.text[first_slot.start : first_slot.end]
