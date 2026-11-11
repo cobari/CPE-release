@@ -47,7 +47,7 @@ def parse_entries(snapshots: Iterable[tuple[Path, bytes]]) -> list[dict[str, Any
     entries: list[dict[str, Any]] = []
     seen: dict[str, str] = {}
     for path, content in snapshots:
-        with io.StringIO(content.decode("utf-8"), newline="") as stream:
+        with io.StringIO(content.decode("utf-8-sig"), newline="") as stream:
             for lineno, line in enumerate(stream, start=1):
                 if not line.strip():
                     continue

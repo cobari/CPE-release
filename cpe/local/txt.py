@@ -120,7 +120,9 @@ def read_bundle(path: Path) -> list[LocalText]:
 def parse_bundle(path: Path, content: bytes) -> list[LocalText]:
     """Validate a captured bundle snapshot, using its path for diagnostics."""
     try:
-        lines = content.decode("utf-8", errors="strict").split("\n")
+        # utf-8-sig: a leading byte-order mark (Windows "UTF-8 with BOM") is not
+        # part of the first line's JSON.
+        lines = content.decode("utf-8-sig", errors="strict").split("\n")
     except UnicodeDecodeError as error:
         raise InputError(f"{path}: not valid UTF-8 ({error})") from None
     texts = []
@@ -264,7 +266,7 @@ def _manifest(path: Path) -> dict[str, object]:
     if not sidecar.exists():
         return {}
     try:
-        with sidecar.open("rb") as stream:
-            return tomllib.load(stream)
+        # utf-8-sig accepts a manifest saved as "UTF-8 with BOM", like .txt inputs.
+        return tomllib.loads(sidecar.read_bytes().decode("utf-8-sig"))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as error:
         raise InputError(f"{sidecar}: not a valid TOML manifest ({error})") from None

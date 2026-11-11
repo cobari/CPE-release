@@ -89,7 +89,8 @@ def _title(level: ET.Element, kind: str | None = None) -> str:
 
 def _year(element: ET.Element | None) -> int | None:
     value = element.get("서기년", "") if element is not None else ""
-    return int(value) if value.isdigit() and value not in ("0", "9999") else None
+    # isdecimal(): every character int() accepts, unlike isdigit().
+    return int(value) if value.isdecimal() and value not in ("0", "9999") else None
 
 
 def _author(level: ET.Element) -> Author | None:

@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.0.0
+# Classic Pattern Explorer 3.1
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 ## 可以檢索什麼
 
-3.0.0版本支援本機文字資料夾，並依5個國家與地區提供18個線上資料來源。線上資料來源依提供者的數量上限傳回有限的摘錄或書目紀錄。
+3.1版本支援本機文字資料夾，並依5個國家與地區提供18個線上資料來源。線上資料來源依提供者的數量上限傳回有限的摘錄或書目紀錄。
 
 | | 文本所在 | 結果 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 ### Windows（執行檔）
 
-1. 造訪 [v3.0.0 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) 並下載 Windows x64 專用執行檔 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe)。
+1. 造訪 [v3.1 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.1) 並下載 Windows x64 專用執行檔 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe)。
 2. 按兩下 `cpe-gui.exe` 即可開啟檢索視窗，不需安裝 Python 或 uv。
 3. Windows 執行檔依賴 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。若無法啟動，請透過連結安裝 WebView2 執行階段。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 Windows 執行檔無法在 macOS 或 Linux 上直接執行。請使用完整發行套件：
 
-1. 從 [v3.0.0 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) 下載原始碼壓縮檔（`Source code .zip` 或 `.tar.gz`）並解壓縮。
+1. 從 [v3.1 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.1) 下載原始碼壓縮檔（`Source code .zip` 或 `.tar.gz`）並解壓縮。
 2. 保持解壓縮後的完整資料夾結構，執行對應的啟動腳本：
    - **macOS**：按兩下 `cpe-gui.command`。（將在終端機視窗中啟動。首次執行若彈出安全提示，請按一下滑鼠右鍵並選擇「開啟」。）
    - **Linux**：執行 `cpe-gui.sh`。（在檔案管理器中選擇「執行」或在終端機中執行。）
@@ -173,7 +173,7 @@ A. 發布的 `cpe-gui.exe` 適用於 64 位元 Windows (x64)。若按兩下無�
 
 - 本儲存庫包含執行階段套件、翻譯目錄、網頁靜態資源、啟動腳本、相依性鎖定檔及授權條款。
 - `docs/` 資料夾存放專案網頁，每種介面語言一頁；`discoverability.md` 記錄本儲存庫及網頁的介紹方式。
-- 套件版本為 `3.0.0`，對應 Git 標籤為 `v3.0.0`。精確的原始碼快照記錄於 `release.json`。
+- 套件版本為 `3.1`，對應 Git 標籤為 `v3.1`。精確的原始碼快照記錄於 `release.json`。
 - 依 MIT 授權條款（`LICENSE`）釋出。
 - 本專案為獨立個人研究工具，與韓國古典翻譯院（ITKC）無隸屬關係。為恪守著作權與使用條款，本儲存庫未隨附任何專有資料庫語料、現代譯文或原始 API 回應資料。
 

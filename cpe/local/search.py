@@ -12,14 +12,27 @@ from pathlib import Path
 from typing import Any
 
 from cpe.cancellation import Checkpoint
-from cpe.export.csv_out import TextView, context, display, escape, shown, text_view
+from cpe.export.csv_out import (
+    TextView,
+    context,
+    display,
+    escape,
+    excel_safe,
+    shown,
+    text_view,
+)
 from cpe.export.run_file import (
     LOCAL_ITKC,
     inputs_section,
     normalization_section,
     settings_section,
 )
-from cpe.export.safe import check_input_collisions, check_outputs, staged
+from cpe.export.safe import (
+    check_input_collisions,
+    check_outputs,
+    check_prefix,
+    staged,
+)
 from cpe.itkc.query import (
     And,
     Near,
@@ -136,9 +149,15 @@ def search_text(
     settings: Settings,
     mode: str = "sentence",
     checkpoint: Checkpoint = None,
+    segments: list[seg.Segment] | None = None,
 ) -> list[dict[str, Any]]:
-    """One record per segment of `text` that satisfies the query (spec 14.2)."""
-    segments = _segments(text, normalized, settings, mode)
+    """One record per segment of `text` that satisfies the query (spec 14.2).
+
+    `segments`, when given, must be `_segments(text, normalized, settings, mode)`;
+    a caller that already split the text passes it to avoid splitting twice.
+    """
+    if segments is None:
+        segments = _segments(text, normalized, settings, mode)
     warned = long_warning(segments, settings)
     barriers = sorted(normalized.barriers)
     leaves = positive_leaves(tree)
@@ -229,6 +248,7 @@ def search_files(
 ) -> tuple[list[dict[str, Any]], SearchOutputs]:
     settings = settings or Settings()
     options = settings.normalization
+    check_prefix(prefix)
     outputs = SearchOutputs(
         prefix.with_name(prefix.name + ".csv"),
         prefix.with_name(prefix.name + ".jsonl"),
@@ -263,9 +283,14 @@ def search_files(
             text.boundary_start,
             text.boundary_end,
         )
-        if long_warning(_segments(text, normalized, settings, mode), settings):
+        segments = _segments(text, normalized, settings, mode)
+        if long_warning(segments, settings):
             warnings.append(text.text_id)
-        records.extend(search_text(tree, query, text, normalized, settings, mode))
+        records.extend(
+            search_text(
+                tree, query, text, normalized, settings, mode, segments=segments
+            )
+        )
     for rank, record in enumerate(records, start=1):
         record["result_id"] = f"r{rank:06d}"
     titles = {text.text_id: text.title for text in texts}
@@ -310,9 +335,17 @@ def search_files(
         with jsonl_path.open("w", encoding="utf-8", newline="") as stream:
             stream.write(jsonl_text)
         with csv_path.open("w", encoding="utf-8-sig", newline="") as stream:
-            writer = csv.DictWriter(stream, fieldnames=COLUMNS, lineterminator="\n")
+            writer = csv.DictWriter(
+                stream,
+                fieldnames=COLUMNS,
+                lineterminator="\n",
+                quoting=csv.QUOTE_ALL,
+            )
             writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows(
+                {column: excel_safe(value) for column, value in row.items()}
+                for row in rows
+            )
         with run_path.open("w", encoding="utf-8", newline="") as stream:
             stream.write(run_text)
     return records, outputs

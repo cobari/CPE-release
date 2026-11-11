@@ -19,6 +19,7 @@ with serialized thread locking. No fetched text is persisted.
 from __future__ import annotations
 
 import html
+import http.client
 import re
 import threading
 import time
@@ -289,7 +290,7 @@ class CyberseodangClient:
             }
             try:
                 raw = self.transport(API_URL, params, self.timeout)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise CyberseodangError(str(error)) from None
 
             return parse_response(raw)

@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.0.0
+# Classic Pattern Explorer 3.1
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「以
 
 ## 検索できるもの
 
-3.0.0では手元のテキストフォルダーに加え、5つの地域別に分類された18のオンライン資料源を提供します。オンライン資料源は提供元の制限に応じた抜粋や書誌情報を返します。
+3.1では手元のテキストフォルダーに加え、5つの地域別に分類された18のオンライン資料源を提供します。オンライン資料源は提供元の制限に応じた抜粋や書誌情報を返します。
 
 | | テキストのある場所 | 得られるもの |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「以
 
 ### Windows（実行ファイル）
 
-1. [v3.0.0 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) から Windows x64 用の実行ファイル [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe) をダウンロードします。
+1. [v3.1 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v3.1) から Windows x64 用の実行ファイル [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe) をダウンロードします。
 2. ダウンロードした `cpe-gui.exe` をダブルクリックすると検索ウィンドウが開きます。Python や uv をインストールする必要はありません。
 3. Windows 実行ファイルは [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) を使用します。起動しない場合はリンク先から WebView2 ランタイムをインストールしてください。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer は、漢文（Literary Sinitic）の原文から「以
 
 Windows 実行ファイルは macOS や Linux では動作しません。配布パッケージ全体をご利用ください：
 
-1. [v3.0.0 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) からソースコード（Source code .zip または .tar.gz）をダウンロードし、展開します。
+1. [v3.1 リリースページ](https://github.com/cobari/CPE-release/releases/tag/v3.1) からソースコード（Source code .zip または .tar.gz）をダウンロードし、展開します。
 2. 展開したフォルダー全体を保持したまま、以下のファイルを実行します：
    - **macOS**: `cpe-gui.command` をダブルクリックします。（ターミナル画面が開いて実行されます。初回起動時にセキュリティ警告が表示された場合は、右クリックして「開く」を選択してください。）
    - **Linux**: `cpe-gui.sh` を実行します。（ファイルマネージャーで「実行」またはターミナルから実行。）
@@ -173,7 +173,7 @@ A. 配布されている `cpe-gui.exe` は 64 ビット Windows（x64）専用�
 
 - 本リポジトリには、ランタイムパッケージ、翻訳カタログ、ページリソース、ランチャー、依存関係ロックファイル、ライセンスファイルが含まれています。
 - `docs/` フォルダーには画面言語ごとに1ページずつプロジェクトのウェブページがあり、`discoverability.md` にはリポジトリとページの紹介方法を記録しています。
-- パッケージバージョン: `3.0.0`、Git タグ: `v3.0.0`。`release.json` に正確なソーススナップショット情報が記録されています。
+- パッケージバージョン: `3.1`、Git タグ: `v3.1`。`release.json` に正確なソーススナップショット情報が記録されています。
 - MIT ライセンス（`LICENSE`）の下で公開されています。
 - 本ツールは韓国古典翻訳院（ITKC）とは無関係の個人プロジェクトです。著作権および利用条件を遵守するため、原文コーパス、現代語訳、データベースの生レスポンスデータは同梱されていません。
 

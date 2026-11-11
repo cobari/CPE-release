@@ -7,6 +7,7 @@ never sentence-level or grammatical matches. See docs/research/thdl-search-windo
 
 from __future__ import annotations
 
+import http.client
 import http.cookiejar
 import re
 import ssl
@@ -100,6 +101,9 @@ class _Element:
         return "".join(text)
 
 
+MAX_DEPTH = 256
+
+
 class _Page(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -107,6 +111,11 @@ class _Page(HTMLParser):
         self.stack = [self.root]
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # walk() and text() recurse once per open element; a result page is far
+        # shallower, so deeper (unclosed) markup is an unexpected layout rather
+        # than a RecursionError reported as an internal error.
+        if len(self.stack) > MAX_DEPTH:
+            raise ThdlError("search_layout")
         node = _Element(tag, {key: value or "" for key, value in attrs})
         self.stack[-1].parts.append(node)
         if tag not in _VOID:
@@ -317,7 +326,7 @@ class ThdlClient:
                 with self._opener.open(request, timeout=self.timeout) as response:
                     content_length(response.headers.get("Content-Length"), MAX_BYTES)
                     data = response.read(MAX_BYTES + 1)
-        except (OSError, ValueError, OverflowError) as error:
+        except (OSError, http.client.HTTPException, ValueError, OverflowError) as error:
             raise ThdlError("search_failed") from error
         if len(data) > MAX_BYTES:
             raise ThdlError("search_large")

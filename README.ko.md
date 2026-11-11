@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.0.0
+# Classic Pattern Explorer 3.1
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 以…
 
 ## 무엇을 검색하나요
 
-3.0.0에서는 로컬 텍스트 폴더와 함께 5개 탐색 지역 18개 온라인 자료원을 제공합니다. 온라인 자료원은 제공처의 건수 상한에 따라 제한된 발췌문이나 서지 정보를 반환합니다.
+3.1에서는 로컬 텍스트 폴더와 함께 5개 탐색 지역 18개 온라인 자료원을 제공합니다. 온라인 자료원은 제공처의 건수 상한에 따라 제한된 발췌문이나 서지 정보를 반환합니다.
 
 | | 텍스트가 있는 곳 | 결과 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 以…
 
 ### Windows (실행 파일)
 
-1. [v3.0.0 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.0.0)에서 Windows x64용 실행 파일인 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe)를 내려받습니다.
+1. [v3.1 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.1)에서 Windows x64용 실행 파일인 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe)를 내려받습니다.
 2. 다운로드한 `cpe-gui.exe`를 두 번 클릭하면 검색 창이 열립니다. Python이나 uv를 설치할 필요가 없습니다.
 3. Windows 실행 파일은 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)을 사용합니다. 실행되지 않는 경우 링크에서 WebView2 런타임을 설치하세요.
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 以…
 
 Windows 실행 파일은 macOS나 Linux에서 실행되지 않습니다. 전체 배포 패키지를 사용하세요:
 
-1. [v3.0.0 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.0.0)에서 소스 코드(Source code .zip 또는 .tar.gz)를 내려받아 압축을 풉니다.
+1. [v3.1 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.1)에서 소스 코드(Source code .zip 또는 .tar.gz)를 내려받아 압축을 풉니다.
 2. 압축을 푼 폴더 전체를 유지한 상태에서 다음 파일을 실행합니다:
    - **macOS**: `cpe-gui.command`를 두 번 클릭합니다. (터미널 창이 열리며 실행됩니다. 최초 실행 시 보안 확인 대화상자가 뜨면 마우스 오른쪽 버튼 클릭 후 '열기'를 선택하세요.)
    - **Linux**: `cpe-gui.sh`를 실행합니다. (파일 관리자에서 '실행' 또는 터미널에서 실행.)
@@ -173,7 +173,7 @@ A. 배포된 `cpe-gui.exe`는 64비트 Windows(x64)용입니다. 실행 시 반�
 
 - 이 배포 저장소에는 런타임 패키지, 번역 카탈로그, 페이지 리소스, 실행 스크립트(런처), 의존성 잠금 파일, 라이선스 파일이 포함되어 있습니다.
 - `docs/` 폴더에는 화면 언어마다 한 쪽씩 프로젝트 웹 페이지가 있고, `discoverability.md`에는 저장소와 페이지를 어떻게 소개하는지가 기록되어 있습니다.
-- 패키지 버전은 `3.0.0`이며, Git 태그는 `v3.0.0`입니다. `release.json`에 원본 소스 스냅샷 정보가 기록되어 있습니다.
+- 패키지 버전은 `3.1`이며, Git 태그는 `v3.1`입니다. `release.json`에 원본 소스 스냅샷 정보가 기록되어 있습니다.
 - MIT 라이선스(`LICENSE`)로 배포됩니다.
 - 본 도구는 한국고전번역원(ITKC)과 무관한 개인 프로젝트입니다. 저작권 및 이용조건 준수를 위해 원문 코퍼스, 현대어 번역문, 데이터베이스 원시 응답 데이터는 저장소에 동봉되어 있지 않습니다.
 

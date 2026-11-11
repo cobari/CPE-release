@@ -213,10 +213,18 @@ def fetch(
         else client.search(phrase, start)
     )
     books = data.get("list")
-    if books is None:
-        books = []
     if not isinstance(books, list) or any(not isinstance(book, dict) for book in books):
         raise NdlError("books must be a list of objects")
+    total = data.get("hit")
+    if (
+        isinstance(total, bool)
+        or not isinstance(total, int)
+        or total < len(books)
+        or (books and start + len(books) > total)
+        or len(books) > PAGE_SIZE
+        or (start < total and not books)
+    ):
+        raise NdlError("invalid result counts")
     texts: list[LocalText] = []
     eras: dict[str, dict[str, Any]] = {}
     for book in books:
@@ -225,5 +233,4 @@ def fetch(
             texts.append(text)
             if era is not None:
                 eras[text.text_id] = era
-    total = data.get("hit")
-    return Fetched(total if isinstance(total, int) else 0, len(books), texts, eras)
+    return Fetched(total, len(books), texts, eras)

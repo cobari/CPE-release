@@ -120,7 +120,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         gui.add_argument(
             flag, nargs=2, metavar=("OPEN", "CLOSE"), help=f"markers of {what}"
         )
+    from cpe.mcp.runner import add_arguments
+
+    mcp = subcommands.add_parser(
+        "mcp", help="Serve host-selected texts through local MCP (optional extra)."
+    )
+    add_arguments(mcp)
     args = parser.parse_args(argv)
+    if args.command == "mcp":
+        from cpe.mcp.runner import run
+
+        return run(args)
     if args.command == "gui":
         return _gui(args)
     if args.command == "match":

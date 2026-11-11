@@ -13,6 +13,7 @@ paginate, fetch record bodies or image viewers, or store source text.
 from __future__ import annotations
 
 import html
+import http.client
 import re
 import threading
 import time
@@ -214,7 +215,7 @@ class AksArchiveClient:
                         request, timeout=self.timeout
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise AksArchiveError("search_failed") from error
             if len(data) > MAX_RESPONSE_BYTES:
                 raise AksArchiveError("search_large")

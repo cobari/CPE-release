@@ -6,6 +6,7 @@ retains bibliographic headings only. See docs/research/cand-search-window.md.
 
 from __future__ import annotations
 
+import http.client
 import re
 import threading
 import time
@@ -237,7 +238,12 @@ class CandClient:
                             response.headers.get("Content-Length"), MAX_BYTES
                         )
                         raw = response.read(MAX_BYTES + 1)
-            except (OSError, ValueError, OverflowError) as error:
+            except (
+                OSError,
+                http.client.HTTPException,
+                ValueError,
+                OverflowError,
+            ) as error:
                 raise CandError("search_failed") from error
             if len(raw) > MAX_BYTES:
                 raise CandError("search_large")

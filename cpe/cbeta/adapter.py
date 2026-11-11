@@ -41,6 +41,9 @@ AGENT = f"classic-pattern-explorer (research tool; {PROJECT_URL})"
 ROWS = 50
 # Characters on each side of a hit: room for A (up to 20), the other element and B.
 AROUND = 40
+# A KWIC page of ROWS short excerpts is far smaller; a larger reply is refused
+# instead of being read into memory whole.
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _MARK = re.compile(r"</?mark\b[^>]*>")
 
 Transport = Callable[[str, dict[str, Any], float], bytes]
@@ -67,8 +70,10 @@ def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
         headers={"User-Agent": AGENT, "Referer": PROJECT_URL},
     )
     with urllib.request.urlopen(request, timeout=timeout, context=_context()) as reply:
-        data: bytes = reply.read()
-        return data
+        data: bytes = reply.read(MAX_RESPONSE_BYTES + 1)
+    if len(data) > MAX_RESPONSE_BYTES:
+        raise ValueError("response too large")
+    return data
 
 
 @dataclass
@@ -220,12 +225,20 @@ def fetch(
         else client.search(phrase, start)
     )
     results = data.get("results")
-    if results is None:
-        results = []
     if not isinstance(results, list) or any(
         not isinstance(item, dict) for item in results
     ):
         raise CbetaError("results must be a list of objects")
+    total = data.get("num_found")
+    if (
+        isinstance(total, bool)
+        or not isinstance(total, int)
+        or total < len(results)
+        or (results and start + len(results) > total)
+        or len(results) > ROWS
+        or (start < total and not results)
+    ):
+        raise CbetaError("invalid result counts")
     texts: list[LocalText] = []
     eras: dict[str, dict[str, Any]] = {}
     for item in results:
@@ -234,5 +247,4 @@ def fetch(
             texts.append(text)
             if era is not None:
                 eras[text.text_id] = era
-    total = data.get("num_found")
-    return Fetched(total if isinstance(total, int) else 0, len(results), texts, eras)
+    return Fetched(total, len(results), texts, eras)

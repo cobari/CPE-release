@@ -9,6 +9,7 @@ moved 4 MB intact (docs/decisions.md "The GUI is built before gate 1-A is comple
 
 from __future__ import annotations
 
+import copy
 import json
 import sys
 import threading
@@ -29,6 +30,7 @@ from cpe.gui.online import (
     docusky_catalog as docusky_database_list,
 )
 from cpe.gui.online import (
+    itkc_plan,
     search_aksarchive,
     search_cbeta,
     search_cyberseodang,
@@ -44,6 +46,7 @@ from cpe.gui.online import (
     search_vietdien,
 )
 from cpe.gui.preferences import Preferences, config_dir
+from cpe.gui.search_session import ItkcSearchSession
 from cpe.gui.service import Library, search_pair, search_words
 from cpe.gui.thdl import search_thdl
 from cpe.local.txt import InputError
@@ -113,6 +116,20 @@ def _home_icon(path: Path) -> str:
     return f"data:image/png;base64,{icon}"
 
 
+def _load_folder(path: str, settings: Settings) -> Library:
+    """One folder as a library; a root that cannot be listed is a failed read.
+
+    Library.load records an unlistable subfolder in `skipped` and keeps going,
+    which suits a folder with one unreadable part. When the root itself cannot
+    be listed (`skipped` holds "."), nothing was read, and opening, loading and
+    rescanning must all report load_failed rather than an empty library.
+    """
+    library = Library.load([Path(path)], settings)
+    if "." in library.skipped:
+        raise OSError(f"{path}: folder cannot be listed")
+    return library
+
+
 class Api:
     """Methods the page calls; each returns plain JSON-compatible values."""
 
@@ -127,6 +144,9 @@ class Api:
         self._folder = folder
         self._local_lock = threading.RLock()
         self._client_lock = threading.RLock()
+        self._itkc_session_lock = threading.RLock()
+        self._itkc_start_lock = threading.Lock()
+        self._itkc_session: ItkcSearchSession | None = None
         self._search_generation = 0
         self._ctp_operation_lock = threading.Lock()
         self._local_busy = 0
@@ -548,9 +568,11 @@ class Api:
         # read before the window opens; the fallback path may read further slots
         # when the remembered active folder is unusable.
         for code, path in paths.items():
-            self._local_paths.setdefault(code, path)
+            # A folder given on the command line keeps its slot; the check is of
+            # the path the slot holds, not of the stale saved one it replaced.
+            held = self._local_paths.setdefault(code, path)
             try:
-                is_directory = Path(path).is_dir()
+                is_directory = Path(held).is_dir()
             except OSError:
                 is_directory = False
             if not is_directory:
@@ -605,7 +627,7 @@ class Api:
             failed = existing
             revision = self._local_revisions.get(code, 0)
         try:
-            library = Library.load([Path(path)], settings)
+            library = _load_folder(path, settings)
         except (InputError, OSError, NormalizationError):
             # A variant table that touches this folder's delimiters fails the read
             # like a bad manifest (cpe.match.engine check_variants); escaping as an
@@ -783,9 +805,7 @@ class Api:
         try:
             if not Path(path).is_dir():
                 return {"error": "load_failed", "path": path}
-            library = Library.load([Path(path)], settings)
-            if "." in library.skipped:
-                return {"error": "load_failed", "path": path}
+            library = _load_folder(path, settings)
         except (InputError, OSError, NormalizationError):
             return {"error": "load_failed", "path": path}
         with self._local_lock:
@@ -948,7 +968,7 @@ class Api:
             settings = self._library.settings
         try:
             # Reading a large folder must not hold the lock used by status snapshots.
-            library = Library.load([Path(stored)], settings)
+            library = _load_folder(stored, settings)
         except (InputError, OSError, NormalizationError):
             # The path is data, not text: the page words the error from its catalog.
             return {"error": "load_failed", "path": folder}
@@ -1001,7 +1021,7 @@ class Api:
             revision = self._local_revisions.get(source, 0)
             settings = self._library.settings
         try:
-            library = Library.load([Path(folder)], settings)
+            library = _load_folder(folder, settings)
         except (InputError, OSError, NormalizationError):
             # The same failure set as _load_local_slot: an import's own destination
             # that cannot be read back must answer the caller, not raise.
@@ -1408,11 +1428,96 @@ class Api:
         except Exception:
             return {"error": "source_internal"}
 
+    def start_itkc_search(self, request: Any) -> dict[str, Any]:
+        """Start one bounded ITKC session and return metadata only."""
+        try:
+            return self._start_itkc_search(request)
+        except InterruptedError:
+            return {"error": "search_cancelled"}
+        except Exception:
+            return {"error": "source_internal"}
+
+    def _start_itkc_search(self, request: Any) -> dict[str, Any]:
+        if not isinstance(request, dict):
+            return {"error": "bad_request"}
+        if request.get("source") not in (None, "itkc"):
+            return {"error": "bad_request"}
+        _, error = itkc_plan(request)
+        if error is not None:
+            return {"error": error}
+        generation = request.get("generation")
+        if generation is not None:
+            if isinstance(generation, bool) or not isinstance(generation, int):
+                return {"error": "bad_request"}
+            self.invalidate_searches(generation)
+            if generation != self.search_generation():
+                return {"error": "search_cancelled"}
+        else:
+            generation = self.search_generation()
+        with self._itkc_start_lock:
+            if generation != self.search_generation():
+                return {"error": "search_cancelled"}
+            session = ItkcSearchSession(
+                uuid.uuid4().hex,
+                request,
+                copy.deepcopy(self._library.settings),
+                self.itkc_client(),
+                generation,
+                lambda value: self.search_generation() == value,
+            )
+            with self._itkc_session_lock:
+                previous = self._itkc_session
+                if previous is not None:
+                    previous.cancel()
+                self._itkc_session = session
+            return session.start()
+
+    def advance_itkc_search(self, job_id: Any, generation: Any) -> dict[str, Any]:
+        """Fetch and analyze exactly the next collection on explicit advance."""
+        try:
+            if not isinstance(job_id, str) or not job_id:
+                return {"error": "bad_request"}
+            if isinstance(generation, bool) or not isinstance(generation, int):
+                return {"error": "bad_request"}
+            with self._itkc_session_lock:
+                session = self._itkc_session
+            if session is None or session.id != job_id:
+                return {"error": "bad_request"}
+            return session.advance(generation)
+        except InterruptedError:
+            return {"error": "search_cancelled"}
+        except Exception:
+            return {"error": "source_internal"}
+
+    def itkc_search_page(
+        self,
+        job_id: Any,
+        revision: Any,
+        group: Any,
+        start: Any = 0,
+        sort: Any = "source",
+    ) -> dict[str, Any]:
+        """Read a bounded slice of one immutable session revision without network."""
+        try:
+            if not isinstance(job_id, str) or not job_id:
+                return {"error": "bad_request"}
+            with self._itkc_session_lock:
+                session = self._itkc_session
+            if session is None or session.id != job_id:
+                return {"error": "bad_request"}
+            return session.page(revision, group, start, sort)
+        except Exception:
+            return {"error": "source_internal"}
+
     def invalidate_searches(self, generation: int) -> bool:
         if isinstance(generation, bool) or not isinstance(generation, int):
             return False
         with self._client_lock:
             self._search_generation = max(self._search_generation, generation)
+        with self._itkc_session_lock:
+            session = self._itkc_session
+            if session is not None and generation > session.generation:
+                session.cancel()
         return True
 
     def search_generation(self) -> int:
@@ -1564,7 +1669,7 @@ def start_library(
     folder = preferences.get("folder")
     if folder:
         try:
-            return Library.load([Path(folder)], settings), folder
+            return _load_folder(folder, settings), folder
         except (InputError, NormalizationError, OSError):
             # A remembered folder that now conflicts with the settings starts empty,
             # like an unreadable one. Explicit paths above stay strict so cpe.cli can

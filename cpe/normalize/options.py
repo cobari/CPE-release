@@ -68,7 +68,7 @@ def variant_table(
 
 def load_variant_table(path: Path) -> VariantTable:
     try:
-        data = tomllib.loads(path.read_bytes().decode("utf-8"))
+        data = tomllib.loads(path.read_bytes().decode("utf-8-sig"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         raise NormalizationError(f"{path}: not a UTF-8 TOML file ({error})") from None
     if type(data.get("schema")) is not int or data["schema"] != 1:

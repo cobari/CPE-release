@@ -6,55 +6,6 @@
 const PAGE = 100; // bounded cards per result page
 let catalog = {};
 
-// Base styles are always readable. The viewport observer also clips against each
-// result list, so both page scrolling and scrolling inside a panel trigger entry.
-const resultMotion = (() => {
-  const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let seen = new WeakSet();
-  const pending = new Map();
-  const running = new Map();
-  const observer = typeof IntersectionObserver === "function"
-    ? new IntersectionObserver(entries => entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const item = pending.get(entry.target);
-      pending.delete(entry.target);
-      observer.unobserve(entry.target);
-      if (!item || seen.has(item.identity)) return;
-      seen.add(item.identity);
-      if (preference.matches || !entry.target.isConnected || !entry.target.animate) return;
-      const animation = entry.target.animate(
-        [{ transform: "translateY(8px)" }, { transform: "translateY(0)" }],
-        { duration: 240, delay: item.delay, easing: "cubic-bezier(.2,.7,.2,1)" },
-      );
-      running.set(entry.target, animation);
-      const finished = () => { if (running.get(entry.target) === animation) running.delete(entry.target); };
-      animation.finished.then(finished, finished);
-    }), { threshold: 0 })
-    : null;
-  const stop = () => {
-    observer?.disconnect();
-    pending.clear();
-    running.forEach(animation => animation.cancel());
-    running.clear();
-  };
-  preference.addEventListener("change", () => { if (preference.matches) stop(); });
-  return {
-    reset() { stop(); seen = new WeakSet(); },
-    forget(container) {
-      pending.forEach((_, node) => {
-        if (container.contains(node)) { observer?.unobserve(node); pending.delete(node); }
-      });
-      running.forEach((animation, node) => {
-        if (container.contains(node)) { animation.cancel(); running.delete(node); }
-      });
-    },
-    observe(node, identity = node) {
-      // Results appear in place; the screen switch is the only transition.
-      seen.add(identity);
-    },
-  };
-})();
-
 // Translated source links and import status can change the fixed dock's height.
 // Reserve its actual size so the last card remains reachable at every width.
 const dock = document.querySelector(".dock");
@@ -212,7 +163,7 @@ function showView(name, { focus = true } = {}) {
   // A native dialog owns Escape and focus while it is open. Do not move the
   // screen underneath it.
   if (document.querySelector("dialog[open]") && name !== currentView) return;
-  if (name !== "sources" && typeof closeSourceGuide === "function") closeSourceGuide({ restoreFocus: false });
+  if ((name !== "sources" || currentView !== "sources") && typeof closeSourceGuide === "function") closeSourceGuide({ restoreFocus: false });
   currentView = name;
   VIEW_NAMES.forEach(code => {
     viewElement(code)?.classList.toggle("is-hidden", code !== name);
@@ -243,7 +194,7 @@ document.addEventListener("keydown", event => {
   // several screens. A child control may already own this key as well.
   if (event.isComposing || event.keyCode === 229 || event.repeat || event.defaultPrevented) return;
   if (event.key !== "Escape" || document.querySelector("dialog[open]")) return;
-  if (currentView === "sources" && closeSourceGuide()) {
+  if ((currentView === "sources" || currentView === "search") && closeSourceGuide()) {
     event.preventDefault();
     return;
   }
@@ -270,6 +221,7 @@ let languages = [];
 let currentLanguage = "en";
 let localBusy = false;
 let savingSources = false;
+let sourcesSaveQueued = false;
 const LOCAL_SOURCES = ["local", "local2", "local3", "local4"];
 function localInfo(code) { return localState.libraries.find(item => item.id === code); }
 // text_count is what the bridge sends now; the fallback keeps older fixtures and
@@ -501,7 +453,8 @@ function settingsError(answer) {
   status.textContent = errorText(answer.error, answer);
 }
 async function saveSources() {
-  if (savingSources) return;
+  // Selects stay enabled during a save; their change runs once after it.
+  if (savingSources) { sourcesSaveQueued = true; return; }
   savingSources = true; updateSource();
   try {
     const answer = await api().set_sources(sources(), {
@@ -512,7 +465,10 @@ async function saveSources() {
     if (answer.error) { localError(answer); restoreSources(); }
     else localState.selected = answer.sources;
   } catch { localError({ error: "network" }); restoreSources(); }
-  finally { savingSources = false; updateSource(); }
+  finally {
+    savingSources = false; updateSource();
+    if (sourcesSaveQueued) { sourcesSaveQueued = false; await saveSources(); }
+  }
 }
 function restoreSources() {
   const saved = localState.selected.find(code => code.startsWith("docusky:"));
@@ -564,7 +520,9 @@ async function loadLocalSlot(code, { auto = false } = {}) {
     } else {
       localState = answer;
       if (code === answer.active) library = await api().library();
-      clearResults();
+      // A slot that had not loaded cannot be among the shown panels, so an
+      // automatic load clears only results that came from this slot.
+      if (!auto || lastAnswers.some(entry => entry.source === code)) clearResults();
       // A saved slot that finishes loading can make the selection usable; the
       // reason shown for an earlier submit must not outlive it.
       syncSourceChoiceReason();
@@ -1184,8 +1142,14 @@ async function showExternalUnit() {
     externalError({ error: "external_network" });
   }
 }
+// #external-status is a polite live region. The <progress> bar follows every
+// poll, but the status text changes only on a new phase (or cancelling) and at
+// most every STATUS_REFRESH_MS otherwise, so a screen reader is not handed a new
+// byte count four times a second.
+const STATUS_REFRESH_MS = 5000;
 async function waitExternal(job) {
   const phases = { waiting: "external.phase.waiting", requesting: "external.phase.requesting", downloading: "external.phase.downloading", parsing: "external.phase.parsing", reading: "external.phase.reading" };
+  let shownKey = "", shownAt = 0;
   while (true) {
     const state = await api().external_progress(job);
     if (state.error) return state;
@@ -1193,9 +1157,12 @@ async function waitExternal(job) {
     const progress = document.getElementById("external-progress");
     if (state.total > 0) { progress.max = state.total; progress.value = state.received; }
     else progress.removeAttribute("value");
-    document.getElementById("external-status").textContent = state.cancelling
-      ? t("external.cancelling")
-      : t(phases[state.phase] || "external.phase.waiting", { received: numberText(state.received), total: numberText(state.total), requests: numberText(state.requests) });
+    const key = state.cancelling ? "external.cancelling" : (phases[state.phase] || "external.phase.waiting");
+    const now = Date.now();
+    if (key !== shownKey || now - shownAt >= STATUS_REFRESH_MS) {
+      document.getElementById("external-status").textContent = t(key, { received: numberText(state.received), total: numberText(state.total), requests: numberText(state.requests) });
+      shownKey = key; shownAt = now;
+    }
     await new Promise(resolve => setTimeout(resolve, 250));
   }
 }
@@ -1461,7 +1428,7 @@ document.getElementById("external-report").addEventListener("click", async () =>
     if (answer.error) { externalError(answer); return; }
     const status = document.getElementById("external-status");
     status.classList.remove("is-error"); status.textContent = t("external.report.saved", answer);
-  } catch { externalError({ error: "release_write_failed" }); }
+  } catch { externalError({ error: "network" }); }
   finally { external.busy = false; updateExternal(); }
 });
 document.getElementById("external-file").addEventListener("click", async () => {
@@ -1557,7 +1524,6 @@ async function refreshHistoryAvailability() {
     }
     const available = Array.isArray(answer.books) && answer.books.length > 0;
     button.disabled = !available;
-    button.setAttribute("aria-disabled", String(!available));
     note.classList.toggle("is-hidden", available);
   } catch {
     if (check !== historyCheck) return;
@@ -1576,7 +1542,7 @@ document.getElementById("external-history-open").addEventListener("click", async
     externalHistory.books = answer.books;
     document.getElementById("external-history-book").replaceChildren(...answer.books.map(book => new Option(book.title || book.book, book.book)));
     if (answer.books.length) showExternalHistory(); else status.textContent = t("external.history.empty");
-  } catch { status.textContent = t("error.external_history_conflict"); }
+  } catch { status.textContent = t("error.network"); }
 });
 
 // Institute original-text releases (cpe.local.portal, cpe.local.releases): the dialog
@@ -1827,14 +1793,24 @@ for (const region of SOURCE_REGIONS) {
   sourceChips.appendChild(section);
   for (const code of region.sources) sourceRegionGrids.set(code, grid);
 }
+// The disc and the mark are separate shapes so style.css (.source-help) can
+// fill the disc and invert the mark on hover; index.html #mode-help repeats
+// this markup and must keep the same two classes.
 function sourceInfoIcon() {
-  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const svg = "http://www.w3.org/2000/svg";
+  const icon = document.createElementNS(svg, "svg");
   icon.setAttribute("viewBox", "0 0 24 24");
   icon.setAttribute("aria-hidden", "true");
   icon.setAttribute("focusable", "false");
-  const mark = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  mark.setAttribute("d", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 6v.01M12 12v5");
-  icon.append(mark);
+  const disc = document.createElementNS(svg, "circle");
+  disc.setAttribute("class", "info-disc");
+  disc.setAttribute("cx", "12");
+  disc.setAttribute("cy", "12");
+  disc.setAttribute("r", "9");
+  const mark = document.createElementNS(svg, "path");
+  mark.setAttribute("class", "info-mark");
+  mark.setAttribute("d", "M12 9v.01M12 12v5");
+  icon.append(disc, mark);
   return icon;
 }
 const sourceBoxes = ONLINE.map(code => {
@@ -1934,7 +1910,8 @@ async function loadHistorydbItems() {
     return;
   }
   historydbLoadingSite = site;
-  historydbItem = "";
+  // historydbItem keeps the saved choice while the catalog loads;
+  // fillHistorydbItems drops it only if this era's list does not contain it.
   historydbItemSelect.replaceChildren();
   const loading = document.createElement("option");
   loading.value = "";
@@ -1949,7 +1926,7 @@ async function loadHistorydbItems() {
       const failed = document.createElement("option");
       failed.value = "";
       failed.disabled = true;
-      failed.textContent = t("source.historydb.catalog_failed");
+      failed.dataset.i18n = "source.historydb.catalog_failed"; failed.textContent = t("source.historydb.catalog_failed");
       historydbItemSelect.replaceChildren(failed);
       return;
     }
@@ -1960,7 +1937,7 @@ async function loadHistorydbItems() {
     const failed = document.createElement("option");
     failed.value = "";
     failed.disabled = true;
-    failed.textContent = t("source.historydb.catalog_failed");
+    failed.dataset.i18n = "source.historydb.catalog_failed"; failed.textContent = t("source.historydb.catalog_failed");
     historydbItemSelect.replaceChildren(failed);
   } finally {
     historydbLoadingSite = "";
@@ -1973,6 +1950,7 @@ async function loadHistorydbItems() {
 
 historydbSiteSelect.addEventListener("change", async () => {
   historydbSite = historydbSiteSelect.value;
+  historydbItem = "";
   historydbBox.checked = true;
   updateSource();
   loadHistorydbItems();
@@ -2053,7 +2031,7 @@ async function loadNahfItems() {
       const failed = document.createElement("option");
       failed.value = "";
       failed.disabled = true;
-      failed.textContent = t("source.nahf.catalog_failed");
+      failed.dataset.i18n = "source.nahf.catalog_failed"; failed.textContent = t("source.nahf.catalog_failed");
       nahfItemSelect.replaceChildren(failed);
       return;
     }
@@ -2063,7 +2041,7 @@ async function loadNahfItems() {
     const failed = document.createElement("option");
     failed.value = "";
     failed.disabled = true;
-    failed.textContent = t("source.nahf.catalog_failed");
+    failed.dataset.i18n = "source.nahf.catalog_failed"; failed.textContent = t("source.nahf.catalog_failed");
     nahfItemSelect.replaceChildren(failed);
   } finally {
     nahfLoading = false;
@@ -2091,6 +2069,7 @@ const docuskyLabel = document.createElement("span");
 docuskyLabel.dataset.i18n = "source.docusky.database";
 const docuskySelect = document.createElement("select");
 docuskySelect.className = "docusky-database";
+docuskySelect.dataset.i18nAria = "source.docusky.database";
 const reviewedOption = document.createElement("option");
 reviewedOption.value = "docusky";
 reviewedOption.dataset.i18n = "source.docusky";
@@ -2188,7 +2167,7 @@ const localRows = LOCAL_SOURCES.map(code => {
     autoLoadTried.delete(code);
     chooseLocalFolder(code);
   });
-  const remove = document.createElement("button"); remove.type = "button"; remove.className = "link-button local-remove";
+  const remove = document.createElement("button"); remove.type = "button"; remove.className = "open local-remove";
   remove.dataset.i18n = "sources.remove";
   remove.addEventListener("click", () => askRemoveLocal(code));
   actions.append(load, choose, remove);
@@ -2201,7 +2180,8 @@ const localRows = LOCAL_SOURCES.map(code => {
   const skippedSummary = document.createElement("summary"); skippedSummary.dataset.i18n = "library.skipped.summary";
   const skippedText = document.createElement("p"); skippedText.className = "library-skipped";
   skipped.append(skippedSummary, skippedText);
-  row.append(label, actions, detail, pathDetails, skipped);
+  // Actions follow the folder's details as their own row, in reading and Tab order.
+  row.append(label, detail, pathDetails, skipped, actions);
   document.getElementById("local-sources").append(row);
   return { code, row, box, title, load, choose, remove, path, detail, skipped, skippedText, pathDetails };
 });
@@ -2213,7 +2193,6 @@ document.getElementById("add-local-folder").addEventListener("click", () => {
 
 const sourceGuide = document.getElementById("source-guide");
 const sourceGuideLayout = document.getElementById("source-guide-layout");
-const sourceWorkspace = document.getElementById("source-workspace");
 const sourceGuideTitle = document.getElementById("source-guide-title");
 const sourceGuideBody = document.getElementById("source-guide-body");
 const sourceOfficial = document.getElementById("source-guide-official");
@@ -2229,7 +2208,25 @@ sourceOfficialLink.addEventListener("click", event => {
   event.preventDefault();
   if (sourceOfficialUrl) openSourceLink(sourceOfficialUrl);
 });
+// Search-mode help shares the source guide; its keys are defined before
+// updateSourceOfficial, which must tell them apart from source codes.
+const MODE_HELP = Object.freeze({
+  words: Object.freeze({ key: "mode:words", title: "search.single", body: "search.hint.single" }),
+  pair: Object.freeze({ key: "mode:pair", title: "search.compound", body: "search.hint.compound" }),
+});
+function modeHelpKey() { return mode() === "pair" ? MODE_HELP.pair.key : MODE_HELP.words.key; }
+function modeHelpEntry(code) {
+  return code === MODE_HELP.words.key ? MODE_HELP.words
+    : code === MODE_HELP.pair.key ? MODE_HELP.pair
+    : null;
+}
 function updateSourceOfficial(code) {
+  if (modeHelpEntry(code)) {
+    sourceOfficialUrl = "";
+    sourceOfficial.classList.add("is-hidden");
+    sourceOfficialLink.removeAttribute("href");
+    return;
+  }
   sourceOfficialUrl = SOURCE_OFFICIAL[code] || "";
   sourceOfficial.classList.toggle("is-hidden", !sourceOfficialUrl);
   if (sourceOfficialUrl) sourceOfficialLink.href = sourceOfficialUrl;
@@ -2237,6 +2234,14 @@ function updateSourceOfficial(code) {
 }
 
 let sourceGuideCode = "";
+const modeHelpButton = document.getElementById("mode-help");
+if (modeHelpButton) {
+  modeHelpButton.addEventListener("click", () => showSourceGuide(modeHelpKey()));
+  sourceHelpButtons.set(MODE_HELP.words.key, modeHelpButton);
+  sourceHelpButtons.set(MODE_HELP.pair.key, modeHelpButton);
+  sourceOptions.set(MODE_HELP.words.key, modeHelpButton);
+  sourceOptions.set(MODE_HELP.pair.key, modeHelpButton);
+}
 const GUIDE_HEADINGS = Object.freeze({
   scope: "guide.scope",
   provided: "guide.provided",
@@ -2274,13 +2279,32 @@ function renderSourceGuideBody(code) {
     return section;
   }));
 }
+function updateModeHelpButton() {
+  if (!modeHelpButton) return;
+  const entry = modeHelpEntry(modeHelpKey());
+  modeHelpButton.setAttribute("aria-label", t(entry.body));
+  modeHelpButton.setAttribute("title", t(entry.body));
+  modeHelpButton.setAttribute("aria-expanded", String(sourceGuideCode === entry.key));
+}
 function refreshSourceGuide() {
+  if (sourceGuideCode && modeHelpEntry(sourceGuideCode) && modeHelpButton) {
+    sourceGuideCode = modeHelpKey();
+  }
   for (const [code, button] of sourceHelpButtons) {
+    if (modeHelpEntry(code)) continue;
     button.setAttribute("aria-label", code === "local" ? t("library.help.summary")
       : t("source.help_for", { source: t(`source.${code}`) }));
     button.setAttribute("aria-expanded", String(code === sourceGuideCode));
   }
+  updateModeHelpButton();
   if (!sourceGuideCode) return;
+  const activeMode = modeHelpEntry(sourceGuideCode);
+  if (activeMode) {
+    sourceGuideTitle.textContent = t(activeMode.title);
+    sourceGuideBody.textContent = t(activeMode.body);
+    updateSourceOfficial(sourceGuideCode);
+    return;
+  }
   const code = sourceGuideCode;
   sourceGuideTitle.textContent = code === "local" ? t("library.help.summary") : t(`source.${code}`);
   renderSourceGuideBody(code);
@@ -2327,12 +2351,18 @@ function placeSourceGuide() {
   sourceGuide.style.top = `${top}px`;
 }
 
+function mountSourceGuide(code) {
+  const host = modeHelpEntry(code) ? document.body : sourceGuideLayout;
+  if (sourceGuide.parentElement !== host) host.appendChild(sourceGuide);
+}
+
 function closeSourceGuide({ restoreFocus = true } = {}) {
   if (!sourceGuideCode) return false;
   const trigger = sourceHelpButtons.get(sourceGuideCode);
   sourceGuideCode = "";
   if (typeof sourceGuide.hidePopover === "function" && sourceGuide.matches(":popover-open")) sourceGuide.hidePopover();
   sourceGuide.classList.add("is-hidden");
+  if (sourceGuide.parentElement !== sourceGuideLayout) sourceGuideLayout.appendChild(sourceGuide);
   refreshSourceGuide();
   if (restoreFocus) trigger.focus({ preventScroll: true });
   return true;
@@ -2342,6 +2372,7 @@ function showSourceGuide(code) {
   if (!sourceHelpButtons.has(code)) return;
   if (sourceGuideCode === code) { closeSourceGuide(); return; }
   sourceGuideCode = code;
+  mountSourceGuide(code);
   sourceGuide.classList.remove("is-hidden");
   refreshSourceGuide();
   sourceGuideTitle.parentElement.scrollTop = 0;
@@ -2352,6 +2383,13 @@ function showSourceGuide(code) {
   sourceGuideTitle.focus({ preventScroll: true });
 }
 document.getElementById("source-guide-close").addEventListener("click", () => closeSourceGuide());
+sourceGuide.addEventListener("focusout", event => {
+  if (!sourceGuideCode || !event.relatedTarget || sourceGuide.contains(event.relatedTarget)) return;
+  // Pressing a help button focuses it before its click toggles or switches the
+  // guide; closing here would make that click reopen the guide.
+  if (event.relatedTarget.closest?.(".source-help")) return;
+  closeSourceGuide({ restoreFocus: false });
+});
 document.addEventListener("pointerdown", event => {
   if (!sourceGuideCode || sourceGuide.contains(event.target) || event.target.closest(".source-help")) return;
   closeSourceGuide({ restoreFocus: false });
@@ -2467,6 +2505,8 @@ function syncSearchButton() {
   // handler; disabling the button here would make that feedback unreachable.
   button.disabled = searchBusy;
   document.querySelectorAll("#panels .source-retry").forEach(retry => { retry.disabled = searchBusy; });
+  document.querySelectorAll("#panels .continuation-advance").forEach(btn => { btn.disabled = searchBusy; });
+  document.querySelectorAll("#panels .continuation-retry").forEach(btn => { btn.disabled = searchBusy; });
   const stop = typeof document.getElementById === "function" ? document.getElementById("search-stop") : null;
   if (stop) {
     stop.classList.toggle("is-hidden", !active);
@@ -2550,7 +2590,6 @@ function clearResults() {
     run.cleared = true;
     if (!run.stopRequested) void requestSearchStop({ fromClear: true });
     else setStatusKey(run.stopAck === "failed" ? "results.stop_unconfirmed" : "results.stopping");
-    resultMotion.reset();
     lastAnswers = [];
     document.getElementById("panels").replaceChildren();
     updateWelcome();
@@ -2562,7 +2601,6 @@ function clearResults() {
   terminalStatusKey = "";
   activeRun = null;
   api().invalidate_searches?.(searchVersion)?.catch(() => {});
-  resultMotion.reset();
   lastAnswers = [];
   document.getElementById("status").textContent = "";
   document.getElementById("panels").replaceChildren();
@@ -2577,6 +2615,11 @@ if (searchStopButton) searchStopButton.addEventListener("click", () => { void re
 function updateHint() {
   form.classList.toggle("is-compound", mode() === "pair");
   document.getElementById("search-help").textContent = t(mode() === "pair" ? "search.hint.compound" : "search.hint.single");
+  if (sourceGuideCode && modeHelpEntry(sourceGuideCode)) {
+    sourceGuideCode = modeHelpKey();
+    refreshSourceGuide();
+    placeSourceGuide();
+  }
 }
 
 // Marks from the server (spec 11): 【strong】, 〖weak〗, and a backslash before a source
@@ -2654,8 +2697,9 @@ function card(row, number) {
   node.querySelector(".num").textContent = String(number);
   const src = node.querySelector(".src");
   src.textContent = row.title;
-  if (row.link) {
+  if (/^https?:\/\//.test(row.link || "")) {
     // Opens the source's own page in the system browser, not inside the window.
+    src.href = row.link;
     src.dataset.link = row.link;
     src.addEventListener("click", event => { event.preventDefault(); openSourceLink(row.link); });
   } else {
@@ -2739,7 +2783,6 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false, keepHidden 
   if (!Number.isFinite(startValue)) startValue = 0;
   let start = Math.max(0, Math.floor(startValue / PAGE) * PAGE);
   if (start >= rows.length) start = 0;
-  resultMotion.forget(list);
   list.replaceChildren();
   section.querySelector(".label").textContent = t(labelKey);
   section.querySelector(".n").textContent = t("results.count", { n: rows.length });
@@ -2773,7 +2816,6 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false, keepHidden 
   const showPage = (targetStart, move = false) => {
     start = targetStart;
     shown = Math.min(start + PAGE, rows.length);
-    resultMotion.forget(list);
     list.replaceChildren();
     page.dirty = true;
     if (section.isConnected !== false && !section.classList.contains("is-closed")
@@ -2998,7 +3040,6 @@ function sourceSummary(info) {
 
 let lastAnswers = []; // [{source, answer, request}] in panel order; null answers are pending
 function makePanels(names) {
-  resultMotion.reset();
   document.getElementById("welcome-help").classList.add("is-hidden");
   const box = document.getElementById("panels");
   box.className = `panels n${names.length}`;
@@ -3015,7 +3056,6 @@ function makePanels(names) {
         setGroupExpanded(group, group.classList.contains("is-closed"));
       });
     });
-    resultMotion.observe(panel);
     return panel;
   }));
 }
@@ -3059,12 +3099,15 @@ function renderPanel(panel, name, answer, request) {
     link.removeAttribute("href");
     link.onclick = null;
   }
+  const continuation = panel.querySelector(".panel-continuation");
+  status.removeAttribute?.("title");
   if (answer && answer.stopped) {
     status.textContent = t("results.source_stopped");
     status.classList.remove("is-error");
     panel.classList.remove("is-loading");
     likely.classList.add("is-hidden");
     less.classList.add("is-hidden");
+    if (continuation) continuation.classList.add("is-hidden");
     return;
   }
   status.classList.toggle("is-error", Boolean(answer && answer.error));
@@ -3073,20 +3116,26 @@ function renderPanel(panel, name, answer, request) {
     status.textContent = t("results.searching");
     likely.classList.add("is-hidden");
     less.classList.add("is-hidden");
+    if (continuation) continuation.classList.add("is-hidden");
     return;
   }
   if (answer.error) {
     status.textContent = errorText(answer.error, answer);
     likely.classList.add("is-hidden");
     less.classList.add("is-hidden");
+    if (continuation) continuation.classList.add("is-hidden");
     return;
   }
+  // A text folder is named as in Sources (its folder name); the full path is
+  // the line's tooltip rather than two wrapped lines in every result card.
   status.textContent = LOCAL_SOURCES.includes(name)
-    ? t("library.folder", { n: numberText(textCount(localInfo(name))), folder: localInfo(name)?.folder || "" })
+    ? t("library.folder", { n: numberText(textCount(localInfo(name))), folder: localLabel(name) })
     : sourceSummary(answer.source);
+  if (LOCAL_SOURCES.includes(name) && localInfo(name)?.folder) status.title = localInfo(name).folder;
   if (name === "ships" && answer.source?.external_only === true && external) {
     likely.classList.add("is-hidden");
     less.classList.add("is-hidden");
+    if (continuation) continuation.classList.add("is-hidden");
     const link = external.querySelector("a");
     link.textContent = t("source.external.open");
     link.href = answer.external_search_url;
@@ -3120,8 +3169,16 @@ function renderPanel(panel, name, answer, request) {
     group.querySelector(".group-toggle").setAttribute("aria-expanded", String(!group.classList.contains("is-closed")));
   });
   panel.dataset.received = "true";
-  fill(likely, sorted(answer.likely), likelyLabel, false, referenceOnly);
-  fill(less, sorted(answer.less), lessLabel, referenceOnly);
+  const entry = (typeof lastAnswers !== "undefined" && Array.isArray(lastAnswers) ? lastAnswers.find(e => e.source === name) : null) || { source: name, answer, request };
+  if (answer.session) {
+    renderSessionContinuation(panel, entry);
+    fillSessionGroup(likely, entry, "likely", likelyLabel, false, referenceOnly);
+    fillSessionGroup(less, entry, "less", lessLabel, referenceOnly);
+  } else {
+    if (continuation) continuation.classList.add("is-hidden");
+    fill(likely, sorted(answer.likely || []), likelyLabel, false, referenceOnly);
+    fill(less, sorted(answer.less || []), lessLabel, referenceOnly);
+  }
   if (referenceOnly) likely.classList.add("is-hidden");
 }
 function renderAll() {
@@ -3207,7 +3264,8 @@ function settlePending(run, token) {
   maybeFinishRun(run);
 }
 function runErrorCount(run) {
-  return run.entries.filter(entry => entry.answer?.error && !entry.answer.stopped).length;
+  return run.entries.filter(entry => (entry.answer?.error || entry.answer?.session?.advanceError)
+    && !entry.answer.stopped).length;
 }
 function finishRun(run) {
   if (!run || run.finished || activeRun !== run) return;
@@ -3220,8 +3278,11 @@ function finishRun(run) {
     // state is the generic stopped message, or blank when the rows were cleared.
     terminalStatusKey = run.cleared ? "" : "results.stopped";
   } else {
+    const hasPausedItkc = (run.entries || []).some(entry => entry.source === "itkc" && entry.answer?.session?.state === "paused");
     terminalStatusKey = run.presentationFailed ? "error.source_internal"
-      : runErrorCount(run) ? "results.complete_errors" : "results.complete";
+      : runErrorCount(run) ? "results.complete_errors"
+      : hasPausedItkc ? "results.itkc_paused"
+      : "results.complete";
   }
   setStatusKey(terminalStatusKey, { preserveExternal: true });
   if (run.cleared) {
@@ -3277,8 +3338,6 @@ async function requestSearchStop({ fromClear = false } = {}) {
   maybeFinishRun(run);
   return true;
 }
-// Public alias used by the stop control; both names share one lifecycle.
-const stopSearch = requestSearchStop;
 
 async function receiveSource(run, entry, index, token) {
   try {
@@ -3286,10 +3345,45 @@ async function receiveSource(run, entry, index, token) {
       || run.version !== searchVersion || activeRun !== run) return;
     const source = entry.source;
     let answer;
-    try {
-      answer = await api().search(entry.request);
-    } catch {
-      answer = { error: "network" };
+    if (source === "itkc" && typeof api === "function" && typeof api().start_itkc_search === "function") {
+      sessionPageCache.clear();
+      try {
+        const meta = await api().start_itkc_search(entry.request);
+        if (meta && meta.error && !meta.id) {
+          answer = { error: meta.error };
+        } else if (meta) {
+          answer = {
+            source: meta.source,
+            mode: entry.request.mode,
+            session: {
+              id: meta.id,
+              state: meta.state,
+              revision: meta.revision,
+              displayedRevision: meta.revision,
+              completed: meta.completed,
+              total: meta.total,
+              next_collection: meta.next_collection,
+              counts: meta.counts,
+              displayedCounts: { ...meta.counts },
+              warnings: meta.warnings || [],
+              error: meta.error,
+            },
+          };
+          if (meta.state === "failed" && meta.error) {
+            answer.error = meta.error;
+          }
+        } else {
+          answer = { error: "source_internal" };
+        }
+      } catch {
+        answer = { error: "network" };
+      }
+    } else {
+      try {
+        answer = await api().search(entry.request);
+      } catch {
+        answer = { error: "network" };
+      }
     }
     if (!run || run.finished || run.stopRequested || run.cleared
       || run.version !== searchVersion || activeRun !== run) return;
@@ -3343,6 +3437,393 @@ async function retrySource(index) {
     if (run.pending.size === 0) maybeFinishRun(run);
     throw error;
   }
+}
+
+const sessionPageCache = new Map();
+
+function sessionPageKey(sessionId, revision, sort, group, start) {
+  return `${sessionId}:${revision}:${sort}:${group}:${start}`;
+}
+
+function fillSessionGroup(section, entry, group, labelKey, keepVisibleWhenEmpty = false, keepHidden = false) {
+  section._sessionLoadToken = null;
+  section.setAttribute("aria-busy", "false");
+  const list = section.querySelector(".list");
+  const navigation = section.querySelector(".result-pages");
+  const pageErrorEl = section.querySelector(".page-error");
+  const loadingEl = section.querySelector(".page-loading");
+  if (pageErrorEl) pageErrorEl.classList.add("is-hidden");
+  if (loadingEl) loadingEl.classList.add("is-hidden");
+
+  const session = entry.answer?.session;
+  const displayedRev = session ? (session.displayedRevision ?? session.revision) : 0;
+  const total = session && session.displayedCounts ? (session.displayedCounts[group] || 0) : 0;
+  const sortSelect = typeof document !== "undefined" && typeof document.getElementById === "function"
+    ? document.getElementById("sort") : null;
+  const currentSort = sortSelect ? sortSelect.value : "source";
+  const currentLang = typeof currentLanguage === "string" ? currentLanguage : "en";
+
+  let startValue = Number(section.dataset.start || 0);
+  if (!Number.isFinite(startValue)) startValue = 0;
+  let start = Math.max(0, Math.floor(startValue / PAGE) * PAGE);
+  if (start >= total) start = 0;
+
+  list.replaceChildren();
+  section.querySelector(".label").textContent = t(labelKey);
+  section.querySelector(".n").textContent = t("results.count", { n: total });
+  section.classList.toggle("is-hidden", keepHidden || (!keepVisibleWhenEmpty && total === 0 && section.classList.contains("less")));
+
+  if (!total) {
+    resultPages.delete(section);
+    const jumpEl = section.querySelector(".jump");
+    if (jumpEl) jumpEl.hidden = true;
+    const jumpTo = section.querySelector(".jump-to");
+    if (jumpTo) jumpTo.onkeydown = null;
+    const jumpBtn = section.querySelector(".jump-go");
+    if (jumpBtn) jumpBtn.onclick = null;
+    if (navigation) navigation.hidden = true;
+    section.dataset.start = "0";
+    section.dataset.shown = String(PAGE);
+    const empty = document.createElement("p");
+    empty.className = "card none";
+    empty.textContent = t("results.none");
+    list.appendChild(empty);
+    return;
+  }
+
+  let shown = start;
+  const syncPages = () => {
+    if (!navigation) return;
+    navigation.hidden = total <= PAGE;
+    const prev = navigation.querySelector(".page-previous");
+    if (prev) prev.disabled = start === 0;
+    const next = navigation.querySelector(".page-next");
+    if (next) next.disabled = shown >= total;
+    const range = navigation.querySelector(".page-range");
+    if (range) {
+      range.textContent = t("results.page_range", {
+        from: numberText(start + 1),
+        to: numberText(shown),
+        total: numberText(total),
+      });
+    }
+  };
+
+  const showSessionPage = async (targetStart, move = false) => {
+    section._sessionLoadToken = null;
+    section.setAttribute("aria-busy", "false");
+    if (loadingEl) loadingEl.classList.add("is-hidden");
+    start = targetStart;
+    shown = Math.min(start + PAGE, total);
+    section.dataset.start = String(start);
+    section.dataset.shown = String(shown);
+    syncPages();
+
+    if (section.isConnected === false || section.classList.contains("is-closed") || section.classList.contains("is-hidden")) {
+      page.dirty = true;
+      return;
+    }
+
+    page.dirty = false;
+    const cacheKey = sessionPageKey(session.id, displayedRev, currentSort, group, start);
+    if (sessionPageCache.has(cacheKey)) {
+      const rows = sessionPageCache.get(cacheKey);
+      sessionPageCache.delete(cacheKey);
+      sessionPageCache.set(cacheKey, rows);
+      list.replaceChildren(...rows.map((row, i) => card(row, start + i + 1)));
+      if (pageErrorEl) pageErrorEl.classList.add("is-hidden");
+      if (move) section.scrollIntoView?.({ block: "start" });
+      return;
+    }
+
+    const reqToken = { session, displayedRev, currentSort, currentLang, group, start };
+    section._sessionLoadToken = reqToken;
+
+    try {
+      if (pageErrorEl) pageErrorEl.classList.add("is-hidden");
+      section.setAttribute("aria-busy", "true");
+      if (loadingEl) {
+        loadingEl.textContent = t("sources.loading");
+        loadingEl.classList.remove("is-hidden");
+      }
+      list.replaceChildren();
+      const apiObj = typeof api === "function" ? api() : null;
+      if (!apiObj || typeof apiObj.itkc_search_page !== "function") return;
+      const res = await apiObj.itkc_search_page(session.id, displayedRev, group, start, currentSort);
+
+      if (section._sessionLoadToken !== reqToken) return;
+      if (section.isConnected === false || !lastAnswers.includes(entry)) return;
+      if (entry.answer?.session !== session) return;
+      if ((session.displayedRevision ?? session.revision) !== displayedRev) return;
+      const liveSort = typeof document !== "undefined" && typeof document.getElementById === "function"
+        ? (document.getElementById("sort")?.value || "source") : "source";
+      if (liveSort !== currentSort) return;
+      if ((typeof currentLanguage === "string" ? currentLanguage : "en") !== currentLang) return;
+
+      if (res && res.error) {
+        if (pageErrorEl) {
+          const msgEl = pageErrorEl.querySelector(".page-error-message");
+          if (msgEl) msgEl.textContent = errorText(res.error, res) || t("itkc.page_error");
+          const retryBtn = pageErrorEl.querySelector(".page-retry");
+          if (retryBtn) retryBtn.onclick = () => showSessionPage(start);
+          pageErrorEl.classList.remove("is-hidden");
+        }
+        return;
+      }
+
+      const rows = (res && Array.isArray(res.rows)) ? res.rows : [];
+      sessionPageCache.set(cacheKey, rows);
+      // Only a few visible/adjacent slices belong in JavaScript. Python owns
+      // the full session; revisiting an evicted slice is a local bridge read.
+      while (sessionPageCache.size > 4) sessionPageCache.delete(sessionPageCache.keys().next().value);
+      list.replaceChildren(...rows.map((row, i) => card(row, start + i + 1)));
+      if (pageErrorEl) pageErrorEl.classList.add("is-hidden");
+      if (move) section.scrollIntoView?.({ block: "start" });
+    } catch {
+      if (section._sessionLoadToken !== reqToken) return;
+      if (section.isConnected === false || !lastAnswers.includes(entry)) return;
+      if (pageErrorEl) {
+        const msgEl = pageErrorEl.querySelector(".page-error-message");
+        if (msgEl) msgEl.textContent = t("itkc.page_error");
+        const retryBtn = pageErrorEl.querySelector(".page-retry");
+        if (retryBtn) retryBtn.onclick = () => showSessionPage(start);
+        pageErrorEl.classList.remove("is-hidden");
+      }
+    } finally {
+      if (section._sessionLoadToken === reqToken) {
+        section.setAttribute("aria-busy", "false");
+        if (loadingEl) loadingEl.classList.add("is-hidden");
+      }
+    }
+  };
+
+  const page = { dirty: true, render: () => { if (page.dirty) showSessionPage(start); } };
+  resultPages.set(section, page);
+
+  if (navigation) {
+    const prev = navigation.querySelector(".page-previous");
+    if (prev) {
+      prev.onclick = () => {
+        section._sessionJumpToken = null;
+        if (start > 0) showSessionPage(Math.max(0, start - PAGE), true);
+      };
+    }
+    const next = navigation.querySelector(".page-next");
+    if (next) {
+      next.onclick = () => {
+        section._sessionJumpToken = null;
+        if (shown < total) showSessionPage(shown, true);
+      };
+    }
+  }
+
+  showSessionPage(start);
+
+  setupJump(section, total, async number => {
+    const jumpToken = {};
+    section._sessionJumpToken = jumpToken;
+    const targetStart = pageStartFor(number);
+    if (page.dirty || targetStart < start || targetStart >= shown) {
+      await showSessionPage(targetStart);
+    }
+    if (section._sessionJumpToken !== jumpToken || resultPages.get(section) !== page) return;
+    const target = list.querySelector(`.card[data-number="${number}"]`);
+    if (!target) return;
+    const align = () => {
+      if (resultPages.get(section) !== page || page.dirty || section.isConnected === false
+        || target.isConnected === false || section.classList.contains("is-closed")
+        || section.classList.contains("is-hidden")) return;
+      target.scrollIntoView?.({ block: "start" });
+    };
+    align();
+    requestAnimationFrame(() => requestAnimationFrame(align));
+    document.fonts?.ready?.then?.(align);
+  });
+}
+
+function renderSessionContinuation(panel, entry) {
+  const continuation = panel.querySelector(".panel-continuation");
+  if (!continuation) return;
+  const session = entry.answer?.session;
+  if (!session) {
+    continuation.classList.add("is-hidden");
+    return;
+  }
+  continuation.classList.remove("is-hidden");
+  const scopeEl = continuation.querySelector(".continuation-scope");
+  if (scopeEl) scopeEl.textContent = t("itkc.scope_hint");
+
+  const progressEl = continuation.querySelector(".continuation-progress");
+  if (progressEl) {
+    progressEl.textContent = t("itkc.progress", { completed: session.completed, total: session.total });
+  }
+
+  const statusEl = continuation.querySelector(".continuation-status");
+  const advanceBtn = continuation.querySelector(".continuation-advance");
+  const applyBtn = continuation.querySelector(".continuation-apply");
+  const retryBtn = continuation.querySelector(".continuation-retry");
+
+  const displayedRev = session.displayedRevision ?? session.revision;
+  const hasUnapplied = session.revision > displayedRev;
+  if (hasUnapplied && applyBtn) {
+    const dispTotal = (session.displayedCounts?.likely || 0) + (session.displayedCounts?.less || 0);
+    const curTotal = (session.counts?.likely || 0) + (session.counts?.less || 0);
+    const diff = curTotal - dispTotal;
+    applyBtn.textContent = diff > 0 ? t("itkc.apply", { n: diff }) : t("itkc.apply_same");
+    applyBtn.classList.remove("is-hidden");
+    applyBtn.disabled = Boolean(session.advancing);
+    applyBtn.onclick = () => applySessionResults(entry, panel);
+  } else if (applyBtn) {
+    applyBtn.classList.add("is-hidden");
+    applyBtn.onclick = null;
+  }
+
+  const isStopped = Boolean(panel.dataset.stopped) || session.state === "cancelled";
+  const isComplete = session.completed >= session.total || session.state === "complete";
+
+  if (isStopped) {
+    if (advanceBtn) {
+      advanceBtn.classList.add("is-hidden");
+      advanceBtn.disabled = true;
+    }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("results.stopped");
+      statusEl.classList.remove("is-error");
+    }
+    return;
+  }
+
+  if (session.advancing) {
+    if (advanceBtn) {
+      advanceBtn.classList.remove("is-hidden");
+      advanceBtn.disabled = true;
+    }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) {
+      const c = { code: session.next_collection };
+      const nextName = c.code ? t(`source.itkc.${c.code}`) : "";
+      statusEl.textContent = t("itkc.advancing", { name: nextName });
+      statusEl.classList.remove("is-error");
+    }
+    return;
+  }
+
+  if (session.advanceError) {
+    const isCap = session.advanceError === "source_cap";
+    if (advanceBtn) {
+      advanceBtn.classList.add("is-hidden");
+    }
+    if (statusEl) {
+      statusEl.textContent = errorText(session.advanceError, entry.answer);
+      statusEl.classList.add("is-error");
+    }
+    if (retryBtn) {
+      if (isCap) {
+        retryBtn.classList.add("is-hidden");
+      } else {
+        const c = { code: session.next_collection };
+        const nextName = c.code ? t(`source.itkc.${c.code}`) : "";
+        retryBtn.textContent = t("itkc.advance_retry", { name: nextName });
+        retryBtn.classList.remove("is-hidden");
+        retryBtn.disabled = searchBusy;
+        retryBtn.onclick = () => advanceItkcSession(entry, panel);
+      }
+    }
+    return;
+  }
+
+  if (retryBtn) retryBtn.classList.add("is-hidden");
+
+  if (isComplete) {
+    if (advanceBtn) advanceBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("itkc.complete", { total: session.total });
+      statusEl.classList.remove("is-error");
+    }
+  } else {
+    // Paused state
+    if (advanceBtn) {
+      advanceBtn.classList.remove("is-hidden");
+      advanceBtn.disabled = searchBusy;
+      advanceBtn.textContent = t("itkc.advance");
+      advanceBtn.title = t("itkc.advance_hint");
+      advanceBtn.onclick = () => advanceItkcSession(entry, panel);
+    }
+    if (statusEl) {
+      const c = { code: session.next_collection };
+      const nextName = c.code ? t(`source.itkc.${c.code}`) : "";
+      statusEl.textContent = t("itkc.paused", { next: nextName });
+      statusEl.classList.remove("is-error");
+    }
+  }
+}
+
+async function advanceItkcSession(entry, panel) {
+  const run = typeof activeRun === "undefined" ? null : activeRun;
+  if (!run || !run.finished || searchBusy || run.stopRequested || run.cleared
+    || !lastAnswers.includes(entry)) return;
+  const session = entry.answer?.session;
+  if (!session || session.state === "cancelled" || session.completed >= session.total) return;
+  if (session.advancing) return;
+
+  session.advancing = true;
+  session.advanceError = null;
+  run.finished = false;
+  run.stopAck = "none";
+
+  const token = trackPending(run);
+  try {
+    renderSessionContinuation(panel, entry);
+    setStatusKey("results.searching");
+    syncSearchButton();
+    const gen = entry.request.generation ?? run.version;
+    const apiObj = typeof api === "function" ? api() : null;
+    if (!apiObj || typeof apiObj.advance_itkc_search !== "function") return;
+    const res = await apiObj.advance_itkc_search(session.id, gen);
+
+    if (!run || run.cleared || run.stopRequested || activeRun !== run) return;
+
+    if (res?.id === session.id) {
+      session.state = res.state;
+      session.revision = res.revision;
+      session.completed = res.completed;
+      session.next_collection = res.next_collection;
+      session.counts = res.counts;
+      session.source = res.source;
+      session.advanceError = res.state === "failed" ? res.error : null;
+    } else if (res && res.error) {
+      if (res.error === "source_cap") {
+        session.state = "failed";
+        session.error = res.error;
+        session.advanceError = res.error;
+      } else {
+        session.advanceError = res.error;
+      }
+    } else {
+      session.advanceError = "source_internal";
+    }
+  } catch {
+    if (!run || run.cleared || run.stopRequested || activeRun !== run) return;
+    session.advanceError = "network";
+  } finally {
+    session.advancing = false;
+    settlePending(run, token);
+    if (activeRun === run && !run.cleared && lastAnswers.includes(entry) && panel.isConnected !== false) {
+      try { renderSessionContinuation(panel, entry); } catch { run.presentationFailed = true; }
+    }
+  }
+}
+
+function applySessionResults(entry, panel) {
+  const session = entry.answer?.session;
+  if (!session) return;
+  session.displayedRevision = session.revision;
+  session.displayedCounts = { ...session.counts };
+  if (session.source) {
+    entry.answer.source = session.source;
+  }
+  renderPanel(panel, entry.source, entry.answer, entry.request);
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();

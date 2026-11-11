@@ -24,7 +24,7 @@ def _parse_patterns(raw: bytes, path: Path) -> dict[str, dict[str, Any]]:
     # Validate before building the ID map; duplicate IDs would replace earlier
     # patterns and hide a malformed configuration.
     load_patterns(raw, str(path))
-    data = tomllib.loads(raw.decode("utf-8"))
+    data = tomllib.loads(raw.decode("utf-8-sig"))
     return {entry["id"]: entry for entry in data.get("pattern", [])}
 
 

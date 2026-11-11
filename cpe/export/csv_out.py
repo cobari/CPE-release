@@ -6,14 +6,61 @@ import bisect
 import csv
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 from cpe.match import segment as seg
-from cpe.match.dsl import parse
+from cpe.match.dsl import Slot, parse
 from cpe.match.result import Result
 from cpe.normalize.text import NormalizedText
 
 Spans = Sequence[tuple[int, int]]
+
+# Common spreadsheet formula/control introducers. A leading tab inside a quoted
+# field is the CSV-only text guard; JSONL and source files remain unchanged. This
+# reduces a known CSV-injection class but is not a claim that every spreadsheet
+# application is safe after import.
+FORMULA_PREFIXES = (
+    "=",
+    "+",
+    "-",
+    "@",
+    "\t",
+    "\r",
+    "\n",
+    "\x00",
+    "\ufeff",
+    "＝",
+    "＋",
+    "－",
+    "＠",
+)
+_FORMULA_AFTER_SPACE = ("=", "+", "-", "@", "＝", "＋", "－", "＠")
+_LEADING_CONTROL_CHARS = "\x00\ufeff"
+
+
+def excel_safe(value: str) -> str:
+    """Prefix a CSV cell when a spreadsheet could read it as a formula.
+
+    Leading whitespace/control characters are preserved, but a formula
+    introducer after them is still guarded, including the fullwidth variants
+    listed by OWASP. Dangerous cells get a leading tab inside a quoted CSV field.
+    The returned value never strips or otherwise rewrites the stored text. Empty
+    cells and the display ellipsis (`…`) are untouched. The guard is applied only
+    by CSV writers and is not a universal spreadsheet safety claim.
+    """
+    if not value:
+        return value
+    index = 0
+    while index < len(value) and (
+        value[index].isspace() or value[index] in _LEADING_CONTROL_CHARS
+    ):
+        index += 1
+    first = value[index : index + 1]
+    if value.startswith(FORMULA_PREFIXES) or (first and first in _FORMULA_AFTER_SPACE):
+        return "\t" + value
+    return value
+
 
 COLUMNS = (
     "result_id",
@@ -97,6 +144,10 @@ class TextView:
     # Sentence starts, kept beside `sentences` so each result's context lookup
     # does not rebuild the list.
     starts: tuple[int, ...]
+    # Provenance of the obtained text edges. Context must show an ellipsis when
+    # it reaches a truncated text edge even if the last sentence has punctuation.
+    text_start: seg.TextEdge
+    text_end: seg.TextEdge
 
 
 def text_view(
@@ -118,6 +169,8 @@ def text_view(
         sentences,
         hidden_spans(normalized),
         tuple(sentence.start for sentence in sentences),
+        text_start,
+        text_end,
     )
 
 
@@ -152,9 +205,15 @@ def context(
     finish = max(norm.src_span(closing.start, stop).end, src_end)
     before = escape(shown(view.reference, begin, src_start, view.hidden))
     after = escape(shown(view.reference, src_end, finish, view.hidden))
-    if before and opening.boundary_start == "truncated":
+    if before and (
+        opening.boundary_start == "truncated"
+        or (view.text_start == "truncated" and begin <= 0)
+    ):
         before = "…" + before
-    if after and closing.boundary_end == "truncated":
+    if after and (
+        closing.boundary_end == "truncated"
+        or (view.text_end == "truncated" and stop >= len(norm.text))
+    ):
         after = after + "…"
     return before, after
 
@@ -193,8 +252,11 @@ def row(
         boundary_end=result.segment.boundary_end,
         normalization=normalization,
     )
-    if result.slots:
-        first = result.slots[0]
+    # spec 11: the first internal slot of the pattern. On an `adjacent` row that
+    # slot can be the one the diagnostic left out, so slots[0] would be the next.
+    name = first_internal_slot(result.pattern)
+    first = next((hit for hit in result.slots if hit.name == name), None)
+    if first is not None:
         values["slot_A"] = shown(reference, first.src.start, first.src.end, hidden)
     if result.fixed:
         values["offset_start"] = str(result.fixed[0].src.start)
@@ -298,6 +360,19 @@ def escape(text: str) -> str:
     return "".join("\\" + c if c in MARKUP else c for c in text)
 
 
+@cache
+def first_internal_slot(pattern: str) -> str | None:
+    """Name of the pattern's first internal slot, or None without one."""
+    return next(
+        (
+            element.name
+            for element in parse(pattern).between
+            if isinstance(element, Slot)
+        ),
+        None,
+    )
+
+
 def pattern_literals(pattern: str) -> list[str]:
     """Every option of every fixed element, from the parsed expression.
 
@@ -360,6 +435,13 @@ def write(
     ]
     # utf-8-sig writes the BOM that lets Excel detect UTF-8 (plan 9).
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=COLUMNS, lineterminator="\n")
+        writer = csv.DictWriter(
+            stream,
+            fieldnames=COLUMNS,
+            lineterminator="\n",
+            quoting=csv.QUOTE_ALL,
+        )
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(
+            {column: excel_safe(value) for column, value in row.items()} for row in rows
+        )

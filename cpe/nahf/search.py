@@ -9,6 +9,7 @@ the user to choose one collection and then sends one article query for the first
 from __future__ import annotations
 
 import html
+import http.client
 import json
 import re
 import threading
@@ -233,7 +234,7 @@ class NahfClient:
                     opener = urllib.request.build_opener(SafeRedirectHandler())
                     with opener.open(request, timeout=self.timeout) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise NahfError("search_failed") from error
             if len(data) > MAX_RESPONSE_BYTES:
                 raise NahfError("search_large")

@@ -15,6 +15,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from cpe.export.csv_out import excel_safe
 from cpe.itkc.client import (
     FIELD_DATA_ID,
     ApiError,
@@ -188,7 +189,7 @@ def _targets(value: Any) -> tuple[dict[str, str], ...]:
 
 def _load(path: Path) -> _Config:
     try:
-        with path.open(encoding="utf-8", newline="") as stream:
+        with path.open(encoding="utf-8-sig", newline="") as stream:
             data = tomllib.loads(stream.read())
     except (tomllib.TOMLDecodeError, UnicodeError) as error:
         raise ProbeConfigError(f"invalid UTF-8 TOML config: {error}") from None
@@ -221,7 +222,7 @@ def _load(path: Path) -> _Config:
         if "sample_file" in entry:
             sample = path.parent / _text(entry["sample_file"], "sample_file")
             try:
-                with sample.open(encoding="utf-8", newline="") as stream:
+                with sample.open(encoding="utf-8-sig", newline="") as stream:
                     rows = [json.loads(line) for line in stream if line.strip()]
                 targets += _targets(rows)
             except (json.JSONDecodeError, UnicodeError) as error:
@@ -255,9 +256,17 @@ def _form(experiment: _Experiment) -> str:
         columns += ["link_status"]
     columns += ["judgement", "notes"]
     stream = io.StringIO(newline="")
-    writer = csv.DictWriter(stream, fieldnames=columns, lineterminator="\n")
+    writer = csv.DictWriter(
+        stream,
+        fieldnames=columns,
+        lineterminator="\n",
+        quoting=csv.QUOTE_ALL,
+    )
     writer.writeheader()
-    writer.writerows(experiment.targets)
+    writer.writerows(
+        {column: excel_safe(value) for column, value in target.items()}
+        for target in experiment.targets
+    )
     return "\ufeff" + stream.getvalue()
 
 
@@ -294,12 +303,15 @@ def _report(experiment: _Experiment, observed: dict[str, Any], mode: str) -> str
         "targets",
     ):
         lines.append(f"- {key}: {observed[key]}")
+    planned = {request.id: request.params for request in experiment.requests}
     lines += [
         "",
         "## Per-request counts",
         "",
-        "| Request | totalCount | Documents |",
-        "| --- | ---: | ---: |",
+        "Requested start/rows are shown as configured; gaps are not filled.",
+        "",
+        "| Request | totalCount | Documents | Start | Rows |",
+        "| --- | ---: | ---: | ---: | ---: |",
     ]
     for response in observed["results"]:
         label = (
@@ -308,7 +320,11 @@ def _report(experiment: _Experiment, observed: dict[str, Any], mode: str) -> str
             .replace("\n", " ")
             .replace("\r", " ")
         )
-        lines.append(f"| {label} | {response['total']} | {response['documents']} |")
+        params = planned.get(str(response["request"]), {})
+        lines.append(
+            f"| {label} | {response['total']} | {response['documents']} "
+            f"| {params.get('start', '')} | {params.get('rows', '')} |"
+        )
     lines += [
         "",
         "No conclusion is inferred from counts.",

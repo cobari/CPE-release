@@ -38,6 +38,7 @@ from collections.abc import Callable, Sequence
 from datetime import date
 from pathlib import Path
 
+from cpe.export.csv_out import excel_safe
 from cpe.export.safe import check_outputs, staged
 from cpe.itkc.client import (
     FIELD_ARTICLE,
@@ -242,9 +243,13 @@ def _run(
     # target atomically so a failed write never destroys an existing CSV.
     with staged([args.output], force=args.force) as (staged_output,):
         with staged_output.open("w", encoding="utf-8-sig", newline="") as stream:
-            writer = csv.writer(stream, lineterminator="\n")
+            writer = csv.writer(
+                stream,
+                lineterminator="\n",
+                quoting=csv.QUOTE_ALL,
+            )
             writer.writerow(HEADER)
-            writer.writerows(rows)
+            writer.writerows([excel_safe(value) for value in row] for row in rows)
     _log(
         f"done: {checked:,} candidates checked, {len(rows):,} matches in "
         f"{len(hit_docs):,} documents -> {args.output}"

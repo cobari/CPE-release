@@ -9,6 +9,7 @@ provider links. It does not paginate, fetch article pages, or store source text.
 from __future__ import annotations
 
 import html
+import http.client
 import http.cookiejar
 import re
 import ssl
@@ -118,6 +119,9 @@ class _Node:
                 yield from part.walk()
 
 
+MAX_DEPTH = 256
+
+
 class _Builder(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -125,6 +129,11 @@ class _Builder(HTMLParser):
         self.stack = [self.root]
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # walk() and text() recurse once per open element; a result page is far
+        # shallower, so deeper (unclosed) markup is an unexpected layout rather
+        # than a RecursionError reported as an internal error.
+        if len(self.stack) > MAX_DEPTH:
+            raise IthError("search_layout")
         node = _Node(tag, {key: value or "" for key, value in attrs})
         self.stack[-1].parts.append(node)
         if tag not in _VOID:
@@ -254,7 +263,7 @@ class IthClient:
                     assert self._opener is not None
                     with self._opener.open(request, timeout=self.timeout) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise IthError("search_failed") from error
             if len(data) > MAX_RESPONSE_BYTES:
                 raise IthError("search_large")

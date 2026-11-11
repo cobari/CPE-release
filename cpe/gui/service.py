@@ -9,6 +9,7 @@ them into catalog text (AGENTS.md "Language").
 
 from __future__ import annotations
 
+import os
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, replace
@@ -16,9 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from cpe.cancellation import Checkpoint
-from cpe.export import csv_out
+from cpe.export import csv_out, jsonl
 from cpe.itkc.query import QueryError
 from cpe.itkc.query import parse as parse_query
+from cpe.local.paths import is_directory_link, is_within
 from cpe.local.search import csv_row, normalize_query, search_text
 from cpe.local.txt import (
     BUNDLE_SUFFIX,
@@ -193,39 +195,54 @@ def _folder_files(folder: Path) -> tuple[list[Path], list[str]]:
     """The .txt and .md files and text bundles under a folder in path order, plus the
     relative paths of subfolders that could not be listed.
 
-    Hidden components are left out. Directory symlinks are not followed, as before:
-    a loop through one would scan until it failed rather than finish, and a link
-    pointing outside the folder would load texts the researcher did not open.
-    A subfolder that cannot be listed, or an entry that disappears while the scan
-    runs, is reported instead of aborting the whole folder; `Library.load` records
-    its path in `skipped`.
+    Hidden components are left out. Directory symlinks and Windows junctions (and
+    other reparse-point directories) are not followed: a loop through one would
+    scan until it failed rather than finish, and a link pointing outside the
+    folder would load texts the researcher did not open. The resolved path is
+    also checked against the opened root, so another outside-root reparse form is
+    skipped even when the link-type check misses it. A subfolder that cannot be
+    listed, or an entry that disappears while the scan runs, is reported instead
+    of aborting the whole folder; `Library.load` records its path in `skipped`.
     """
     files: list[Path] = []
     unreadable: list[str] = []
+    try:
+        root_resolved = folder.resolve()
+    except (OSError, RuntimeError):
+        root_resolved = folder.absolute()
     pending = [folder]
     while pending:
         directory = pending.pop()
         try:
-            entries = list(directory.iterdir())
+            # scandir returns each entry's type with the listing (and, on Windows,
+            # its stat data), so a large or network folder is not stat-ed per test.
+            with os.scandir(directory) as listing:
+                entries = list(listing)
         except OSError:
             unreadable.append(directory.relative_to(folder).as_posix())
             continue
         for entry in entries:
             if entry.name.startswith("."):
                 continue
+            path = Path(entry.path)
             try:
+                # Follows symlinks, so a broken link is reported as unreadable.
                 entry.stat()
             except OSError:
-                unreadable.append(entry.relative_to(folder).as_posix())
+                unreadable.append(path.relative_to(folder).as_posix())
                 continue
             if entry.is_dir():
-                if not entry.is_symlink():
-                    pending.append(entry)
+                # `entry.stat()` above already reported a broken link as
+                # unreadable. A live directory link or an outside-root path is
+                # skipped silently, like the documented directory-symlink rule.
+                if is_directory_link(path) or not is_within(root_resolved, path):
+                    continue
+                pending.append(path)
             elif entry.is_file() and (
-                entry.suffix.lower() in TEXT_SUFFIXES
+                path.suffix.lower() in TEXT_SUFFIXES
                 or entry.name.lower().endswith(BUNDLE_SUFFIX)
             ):
-                files.append(entry)
+                files.append(path)
     return sorted(files), sorted(unreadable)
 
 
@@ -257,7 +274,12 @@ def text_from(
 
 
 def search_pair(
-    library: Library, first: str, second: str, *, checkpoint: Checkpoint = None
+    library: Library,
+    first: str,
+    second: str,
+    *,
+    checkpoint: Checkpoint = None,
+    include_records: bool = False,
 ) -> dict[str, Any]:
     """Two-box search (spec 14.1): FIRST {A} SECOND {B}, FIRST always first."""
     first, second = first.strip(), second.strip()
@@ -300,6 +322,8 @@ def search_pair(
         text = by_id[result.text_id]
         key = (result.text_id, result.segment.start, result.segment.end)
         row = _pair_row(result, text, frozenset(paired[key]), seconds, library.settings)
+        if include_records:
+            row["record"] = jsonl.to_record(result)
         (less if row["reasons"] else likely).append(row)
     return {"mode": "pair", "likely": likely, "less": less}
 
@@ -362,7 +386,11 @@ def _pair_row(
 
 
 def search_words(
-    library: Library, query: str, *, checkpoint: Checkpoint = None
+    library: Library,
+    query: str,
+    *,
+    checkpoint: Checkpoint = None,
+    include_records: bool = False,
 ) -> dict[str, Any]:
     """One-box word search (spec 14.2): every sentence that satisfies the query."""
     query = query.strip()
@@ -410,6 +438,8 @@ def search_words(
                         "reasons": [],
                     }
                 )
+                if include_records:
+                    rows[-1]["record"] = record
     except QueryError:
         return {"error": "query_limit"}
     return {"mode": "words", "likely": rows, "less": []}

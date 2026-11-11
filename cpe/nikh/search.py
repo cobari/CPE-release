@@ -14,6 +14,7 @@ between starts, has a session cap and a response-size cap, and stores nothing.
 from __future__ import annotations
 
 import html
+import http.client
 import re
 import threading
 import time
@@ -30,8 +31,7 @@ AGENT = "classic-pattern-explorer (research tool; personal non-commercial use)"
 
 Transport = Callable[[urllib.request.Request, float], bytes]
 _TAG = re.compile(r"<[^>]+>")
-_TOTAL = re.compile(r'name="totalCount"\s+value="(\d+)"')
-_COUNT_W = re.compile(r'name="countW"\s+value="(\d+)"')
+_COUNT_W = re.compile(r'name=["\']countW["\']\s+value=["\'](\d+)["\']')
 _RESULT = re.compile(
     r'<div class="result-box">\s*'
     r'<a href="javascript:goView\(\'([A-Za-z0-9_]+)\',\s*\d+\);" '
@@ -75,10 +75,10 @@ def clean(fragment: str) -> str:
 def parse(raw: bytes) -> Fetched:
     """First-page results from one search response, preserving the excerpt."""
     text = raw.decode("utf-8", errors="replace")
-    # countW is the original-text tab's own total; totalCount combines translation
-    # and original results, so it is only a fallback when countW is absent.
-    match = _COUNT_W.search(text) or _TOTAL.search(text)
-    total = int(match.group(1)) if match else 0
+    match = _COUNT_W.search(text)
+    if not match:
+        raise SillokError("search_result_layout")
+    total = int(match.group(1))
     items: list[Item] = []
     for found in _RESULT.finditer(text):
         article_id, title, snippet = found.groups()
@@ -88,7 +88,7 @@ def parse(raw: bytes) -> Fetched:
         items.append(Item(article_id, clean(title), snippet))
         if len(items) >= PAGE_SIZE:
             break
-    if total and not items:
+    if (total > 0 and not items) or total < len(items):
         raise SillokError("search_result_layout")
     return Fetched(total, tuple(items))
 
@@ -138,7 +138,7 @@ class SillokClient:
                         request, timeout=self.timeout
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise SillokError("search_failed") from error
             if len(data) > MAX_RESPONSE_BYTES:
                 raise SillokError("search_large")

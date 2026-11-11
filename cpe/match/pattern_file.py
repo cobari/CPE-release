@@ -91,7 +91,7 @@ def _unknown(mapping: dict[str, Any], known: tuple[str, ...], path: str) -> None
 
 def loads(content: bytes, path: str = "<input>") -> list[PatternSpec]:
     try:
-        data = tomllib.loads(content.decode("utf-8"))
+        data = tomllib.loads(content.decode("utf-8-sig"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         raise PatternFileError(f"{path}: not a UTF-8 TOML file ({error})") from None
     _unknown(data, _TOP_KEYS, path)

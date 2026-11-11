@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.0.0
+# Classic Pattern Explorer 3.1
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer là một ứng dụng máy tính và công cụ dòng 
 
 ## Phạm vi tìm kiếm
 
-Phiên bản 3.0.0 tổ chức các kết nối trực tuyến thành 5 khu vực tìm kiếm với 18 nguồn trực tuyến, bên cạnh các thư mục văn bản cục bộ trên máy tính. Các nguồn trực tuyến trả về đoạn trích hoặc mục thư mục giới hạn theo hạn mức của từng nguồn.
+Phiên bản 3.1 tổ chức các kết nối trực tuyến thành 5 khu vực tìm kiếm với 18 nguồn trực tuyến, bên cạnh các thư mục văn bản cục bộ trên máy tính. Các nguồn trực tuyến trả về đoạn trích hoặc mục thư mục giới hạn theo hạn mức của từng nguồn.
 
 | | Vị trí văn bản | Kết quả nhận được |
 |---|---|---|
@@ -21,7 +21,7 @@ Kết quả trực tuyến là các đoạn văn hoặc mục thư mục do máy
 
 ### Windows (Tệp thực thi)
 
-1. Truy cập [Trang phát hành v3.0.0](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) và tải xuống tệp thực thi Windows x64 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe).
+1. Truy cập [Trang phát hành v3.1](https://github.com/cobari/CPE-release/releases/tag/v3.1) và tải xuống tệp thực thi Windows x64 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe).
 2. Nhấp đúp vào `cpe-gui.exe` để mở cửa sổ tìm kiếm. Không cần cài đặt Python hay uv.
 3. Tệp thực thi sử dụng [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Nếu ứng dụng không khởi động, hãy cài đặt WebView2 Runtime từ liên kết trên.
 
@@ -31,7 +31,7 @@ Kết quả trực tuyến là các đoạn văn hoặc mục thư mục do máy
 
 Tệp thực thi Windows không chạy được trên macOS hoặc Linux. Vui lòng sử dụng gói phân phối đầy đủ:
 
-1. Tải gói mã nguồn (`Source code .zip` hoặc `.tar.gz`) từ [Trang phát hành v3.0.0](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) và giải nén.
+1. Tải gói mã nguồn (`Source code .zip` hoặc `.tar.gz`) từ [Trang phát hành v3.1](https://github.com/cobari/CPE-release/releases/tag/v3.1) và giải nén.
 2. Giữ nguyên toàn bộ cấu trúc thư mục đã giải nén và chạy tệp khởi chạy phù hợp:
    - **macOS**: Nhấp đúp vào `cpe-gui.command`. (Finder sẽ mở trong cửa sổ Terminal. Ở lần chạy đầu tiên, nếu xuất hiện cảnh báo bảo mật, hãy nhấp chuột phải vào tệp và chọn "Open".)
    - **Linux**: Chạy `cpe-gui.sh`. (Chọn "Run in terminal" trong trình quản lý tệp hoặc chạy từ shell.)
@@ -173,7 +173,7 @@ A. Tệp `cpe-gui.exe` được biên dịch cho Windows 64-bit (x64). Nếu nh�
 
 - Kho lưu trữ này bao gồm gói phần mềm thời gian chạy, danh mục dịch thuật, tài nguyên trang web, các trình khởi chạy, khóa phụ thuộc thời gian chạy và giấy phép.
 - Thư mục `docs/` chứa các trang web của dự án cho từng ngôn ngữ giao diện, và `discoverability.md` ghi lại cách thức giới thiệu kho lưu trữ và các trang web.
-- Phiên bản gói: `3.0.0`; thẻ Git: `v3.0.0`. Ảnh chụp nhanh mã nguồn chính xác được ghi lại trong `release.json`.
+- Phiên bản gói: `3.1`; thẻ Git: `v3.1`. Ảnh chụp nhanh mã nguồn chính xác được ghi lại trong `release.json`.
 - Được phát hành theo Giấy phép MIT (`LICENSE`).
 - Dự án nghiên cứu cá nhân độc lập, không liên kết với ITKC hay các cơ quan khác. Để tôn trọng bản quyền và điều khoản sử dụng, không có kho ngữ liệu độc quyền, bản dịch hiện đại hay phản hồi API thô nào được đóng gói kèm theo.
 

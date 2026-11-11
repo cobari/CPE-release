@@ -58,7 +58,9 @@ def record_era(record: dict[str, str]) -> dict[str, Any] | None:
 
     def year(key: str, unknown: str) -> int | None:
         value = record.get(key, "").strip()
-        return int(value) if value.isdigit() and value not in ("0", unknown) else None
+        # isdecimal(), not isdigit(): superscript digits pass isdigit() but int()
+        # rejects them.
+        return int(value) if value.isdecimal() and value not in ("0", unknown) else None
 
     born, died = year("저자생년", "0"), year("저자몰년", "9999")
     if born is None and died is None:
@@ -73,7 +75,11 @@ def excerpts(record: dict[str, str]) -> list[str]:
 
 
 def record_texts(record: dict[str, str], collection: str) -> list[LocalText]:
-    data_id = record.get(FIELD_DATA_ID, "")
+    data_id = record.get(FIELD_DATA_ID, "").strip()
+    if not data_id:
+        # Without the provider's record ID there is no stable text identity or
+        # link. Skip the record instead of inventing an `itkc:#1` identity.
+        return []
     title = " ".join(
         part
         for part in (

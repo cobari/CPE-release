@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "classic-pattern-explorer"
-version = "3.0.0"
+version = "3.1"
 description = "Pattern search and verification for Literary Sinitic source text."
 readme = "README.md"
 license = "MIT"
@@ -20,6 +20,33 @@ dependencies = [
 
 [project.scripts]
 cpe = "cpe.cli:main"
+cpe-mcp = "cpe.mcp.runner:main"
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.3,<3",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["cpe"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/cpe",
+    "/patterns",
+    "/hatch_build.py",
+    "/cpe-gui.command",
+    "/cpe-gui.sh",
+    "/itkc_search.py",
+    "/pyproject.toml",
+    "/uv.lock",
+    "/LICENSE",
+    "/README*.md",
+    "/release.json",
+    "/discoverability.md",
+    "/docs/mcp.md",
+    "/docs/mcp-parity.md",
+]
+
+[tool.hatch.build.targets.sdist.hooks.custom]
+path = "hatch_build.py"

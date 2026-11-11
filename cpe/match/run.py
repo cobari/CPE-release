@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from cpe.export import csv_out, jsonl, run_file
-from cpe.export.safe import check_input_collisions, check_outputs, staged
+from cpe.export.safe import (
+    check_input_collisions,
+    check_outputs,
+    check_prefix,
+    staged,
+)
 from cpe.local.txt import InputError, LocalText, read_inputs, text_options
 from cpe.match.engine import (
     Settings,
@@ -32,6 +37,7 @@ class Outputs:
 
 
 def outputs_for(prefix: Path) -> Outputs:
+    check_prefix(prefix)
     return Outputs(
         prefix.with_name(prefix.name + ".csv"),
         prefix.with_name(prefix.name + ".jsonl"),

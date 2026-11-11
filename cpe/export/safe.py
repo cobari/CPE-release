@@ -13,6 +13,12 @@ from pathlib import Path
 from cpe.local.file_lock import exclusive
 
 
+def check_prefix(prefix: Path) -> None:
+    """--out is a file-name prefix; a folder or drive root has no name to extend."""
+    if not prefix.name:
+        raise IsADirectoryError(f"{prefix}: --out needs a file name prefix")
+
+
 def check_input_collisions(outputs: Sequence[Path], inputs: Sequence[Path]) -> None:
     """Keep an output replacement from destroying one of its input files."""
     sources = {os.path.normcase(str(path.resolve())) for path in inputs}

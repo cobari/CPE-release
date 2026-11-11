@@ -72,22 +72,27 @@ def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
 
 def parse_response(content: bytes) -> tuple[int, list[dict[str, str]]]:
     root = ET.fromstring(content)
-    header = root.find("header")
-    head = (
-        {f.get("name", ""): _field_text(f) for f in header.iter("field")}
-        if header is not None
-        else {}
-    )
+    headers = root.findall("header")
+    if len(headers) != 1:
+        raise ET.ParseError("expected one result header")
+    totals = [
+        _field_text(field)
+        for field in headers[0].iter("field")
+        if field.get("name") == FIELD_TOTAL
+    ]
+    # An absent or ambiguous count is an unknown response, not evidence of zero.
+    if len(totals) != 1 or not totals[0].isascii() or not totals[0].isdecimal():
+        raise ET.ParseError("invalid totalCount")
     try:
-        total = int(head.get(FIELD_TOTAL) or 0)
-        if total < 0:
-            raise ValueError
+        total = int(totals[0])
     except ValueError:
         raise ET.ParseError("invalid totalCount") from None
     docs = [
         {f.get("name", ""): _field_text(f) for f in doc.iter("field")}
         for doc in root.iter("doc")
     ]
+    if len(docs) > total:
+        raise ET.ParseError("document count exceeds totalCount")
     return total, docs
 
 

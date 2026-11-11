@@ -13,6 +13,7 @@ store source text.
 
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import threading
@@ -202,7 +203,7 @@ class VietDienClient:
                         request, timeout=self.timeout
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise VietDienError("search_failed") from error
             if len(data) > MAX_RESPONSE_BYTES:
                 raise VietDienError("search_large")

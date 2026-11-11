@@ -38,9 +38,11 @@
       <p id="welcome-help" data-i18n="welcome.help" data-ui-copy data-ui-copy-action="sources"></p>
     </section>
     <form class="search is-compound" id="search">
-      <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
-        <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
-        <label data-i18n-title="search.hint.compound"><input type="radio" name="mode" value="pair" checked> <span data-i18n="search.compound"></span></label>
+      <div class="mode-picker" id="mode-picker">
+        <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
+          <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
+          <label data-i18n-title="search.hint.compound"><input type="radio" name="mode" value="pair" checked> <span data-i18n="search.compound"></span></label>
+        </div>
       </div>
       <div class="inputs">
         <div class="boxes words">
@@ -57,9 +59,12 @@
           <span class="field"><label for="second" data-i18n="search.second.label"></label><span class="input-wrap"><input id="second" autocomplete="off" data-i18n-aria="search.second.label" data-i18n-placeholder="search.second.placeholder" data-i18n-title="search.hint.compound" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
         </div>
       </div>
-      <button class="go" type="submit" data-i18n="search.submit"></button>
+      <div class="search-actions">
+        <button type="button" class="source-help mode-help" id="mode-help" data-i18n-aria="search.mode" aria-controls="source-guide" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle class="info-disc" cx="12" cy="12" r="9"/><path class="info-mark" d="M12 9v.01M12 12v5"/></svg></button>
+        <button class="go" type="submit" data-i18n="search.submit"></button>
+      </div>
       <div class="search-meta">
-        <p class="search-help" id="search-help"></p>
+        <p class="visually-hidden" id="search-help"></p>
         <div class="search-scope" id="search-scope" role="group" aria-labelledby="search-scope-label">
           <span class="scope-label" id="search-scope-label"></span>
           <ul class="scope-list" id="search-scope-list"></ul>
@@ -103,12 +108,14 @@
       <h3 data-i18n="sources.local"></h3>
       <div class="local-sources" id="local-sources"></div>
       <p class="view-empty is-hidden" id="local-empty" data-i18n="sources.empty"></p>
-      <button type="button" class="open add-local-folder" id="add-local-folder" data-i18n="local.add_folder"></button>
-      <p class="local-status" id="local-status" role="status" aria-live="polite"></p>
-      <div class="source-help-row" id="local-files-help-row">
-        <span data-i18n="library.help.summary"></span>
-        <button type="button" class="source-help" id="local-files-help" data-i18n-title="library.help.summary" aria-controls="source-guide" aria-expanded="false"></button>
+      <div class="local-footer">
+        <button type="button" class="open add-local-folder" id="add-local-folder" data-i18n="local.add_folder"></button>
+        <div class="source-help-row" id="local-files-help-row">
+          <span data-i18n="library.help.summary"></span>
+          <button type="button" class="source-help" id="local-files-help" data-i18n-title="library.help.summary" aria-controls="source-guide" aria-expanded="false"></button>
+        </div>
       </div>
+      <p class="local-status" id="local-status" role="status" aria-live="polite"></p>
     </section>
     <section class="view-section">
       <h3 data-i18n="sources.online"></h3>
@@ -140,17 +147,16 @@
       <h2 id="import-title" tabindex="-1" data-i18n="nav.import"></h2>
     </div>
     <p class="view-intro" data-i18n="import.intro"></p>
-    <label class="local-target"><span data-i18n="local.import_target"></span><select id="local-import-target"></select></label>
+    <label class="local-target"><span data-i18n="local.import_target"></span><span class="select-wrap"><select id="local-import-target"></select></span></label>
     <p class="local-status" id="settings-status" role="status" aria-live="polite"></p>
     <div class="import-menu">
       <button type="button" class="import-row" id="import-originals">
         <span class="import-row-text"><strong data-i18n="import.originals"></strong><span data-i18n="import.originals.help"></span></span>
-        <span class="import-chev" aria-hidden="true">›</span>
       </button>
-      <button type="button" class="import-row import-row-secondary import-row-history" id="external-history-open" disabled>
-        <span data-i18n="external.history.open"></span>
-        <span class="import-row-empty is-hidden" id="external-history-note" data-i18n="external.history.none"></span>
-      </button>
+      <div class="import-history">
+        <h3 class="import-subhead" id="external-history-heading"><button type="button" class="import-row import-row-secondary import-row-history" id="external-history-open" aria-haspopup="dialog" aria-controls="external-history-dialog" disabled><span data-i18n="external.history.title"></span><span class="import-chev" aria-hidden="true">›</span></button></h3>
+        <p class="import-row-empty is-hidden" id="external-history-note" data-i18n="external.history.none"></p>
+      </div>
     </div>
     <section class="import-providers is-hidden" id="import-providers" aria-labelledby="import-providers-title">
       <div class="view-head">
@@ -426,6 +432,7 @@
   </div>
   <div class="dialog-actions">
     <span class="dialog-actions-end">
+      <form method="dialog"><button class="open" value="cancel" data-i18n="dialog.cancel"></button></form>
       <button type="button" class="go danger" id="remove-confirm" data-i18n="sources.remove_action"></button>
     </span>
   </div>
@@ -437,20 +444,37 @@
 <template id="panel">
   <section class="panel">
     <header class="panel-head"><h2 class="panel-title"></h2><p class="panel-query is-hidden"><span class="query-mode"></span><span class="query-value" lang="und"></span></p><p class="panel-status" role="status"></p><button type="button" class="link-button source-retry is-hidden" data-i18n="search.retry_source" data-i18n-title="search.retry_source_hint"></button></header>
+    <div class="panel-continuation is-hidden">
+      <p class="continuation-scope" data-i18n="itkc.scope_hint"></p>
+      <div class="continuation-body">
+        <p class="continuation-progress"></p>
+        <p class="continuation-status" role="status" aria-live="polite"></p>
+        <div class="continuation-actions">
+          <button type="button" class="link-button continuation-advance" data-i18n="itkc.advance" data-i18n-title="itkc.advance_hint"></button>
+          <button type="button" class="link-button continuation-apply is-hidden"></button>
+          <button type="button" class="link-button continuation-retry is-hidden"></button>
+        </div>
+      </div>
+    </div>
     <!-- Shown while this source is searching; the status line above says so in words. -->
     <div class="panel-loading" aria-hidden="true"><span class="spinner"></span></div>
     <p class="external-find external-source is-hidden"><a class="link-button" href="#" target="_blank" rel="noopener" data-i18n="source.external.open"></a></p>
     <section class="group likely is-hidden">
-      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist><button type="button" class="jump-go"></button></span></div>
+      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="true"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true"></span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist><button type="button" class="jump-go"></button></span></div>
+      <p class="page-loading is-hidden" role="status" data-i18n="sources.loading"></p>
+      <p class="page-error is-hidden" role="alert"><span class="page-error-message"></span> <button type="button" class="link-button page-retry" data-i18n="itkc.page_retry"></button></p>
       <nav class="result-pages" hidden data-i18n-aria="results.page_navigation" data-i18n-title="results.page_hint"><button type="button" class="link-button page-previous" data-i18n="results.previous_page"></button><span class="page-range" role="status" aria-live="polite"></span><button type="button" class="link-button page-next" data-i18n="results.next_page"></button></nav>
       <div class="list"></div>
     </section>
     <section class="group less is-closed is-hidden">
-      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true">⌄</span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist><button type="button" class="jump-go"></button></span></div>
+      <div class="group-head"><h3><button type="button" class="group-toggle" aria-expanded="false"><span class="label"></span> <span class="n"></span><span class="chev" aria-hidden="true"></span></button></h3><span class="jump"><input type="number" min="1" inputmode="numeric" class="jump-to" data-i18n-aria="jump.label" data-i18n-placeholder="jump.placeholder" data-i18n-title="jump.label"><datalist></datalist><button type="button" class="jump-go"></button></span></div>
       <p class="group-note is-hidden"></p>
+      <p class="page-loading is-hidden" role="status" data-i18n="sources.loading"></p>
+      <p class="page-error is-hidden" role="alert"><span class="page-error-message"></span> <button type="button" class="link-button page-retry" data-i18n="itkc.page_retry"></button></p>
       <nav class="result-pages" hidden data-i18n-aria="results.page_navigation" data-i18n-title="results.page_hint"><button type="button" class="link-button page-previous" data-i18n="results.previous_page"></button><span class="page-range" role="status" aria-live="polite"></span><button type="button" class="link-button page-next" data-i18n="results.next_page"></button></nav>
       <div class="list"></div>
     </section>
+
   </section>
 </template>
 <template id="card">

@@ -23,6 +23,7 @@ page answers from its translation tab, which is not the source text.
 from __future__ import annotations
 
 import html
+import http.client
 import re
 import threading
 import time
@@ -147,6 +148,10 @@ def _items(region: str) -> tuple[Item, ...]:
         if link is None:
             continue
         level_id, title = link.groups()
+        # article_url accepts only this ID shape; an ID outside it is an
+        # unexpected page layout, reported before any row is built.
+        if not _LEVEL_ID.fullmatch(level_id):
+            raise HistoryDbError("search_result_layout")
         snippet = _SNIPPET.search(chunk)
         found.append(
             Item(
@@ -246,7 +251,7 @@ class HistoryDbClient:
                         request, timeout=self.timeout
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
-            except (OSError, ValueError) as error:
+            except (OSError, http.client.HTTPException, ValueError) as error:
                 raise HistoryDbError("search_failed") from error
             if len(data) > MAX_RESPONSE_BYTES:
                 raise HistoryDbError("search_large")

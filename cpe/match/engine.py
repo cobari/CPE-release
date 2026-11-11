@@ -529,7 +529,10 @@ class _Matcher:
         upper = observed
         forbidden_in_text = False
         for literal in open_slot.nots:
-            found = text.find(literal, b)
+            # Only occurrences ending by t can lower `upper` (never above t) or
+            # make the literal forbidden in this segment, so the search stops at t
+            # instead of scanning the rest of the text for every placement.
+            found = text.find(literal, b, t)
             if found >= 0:
                 # Ends from found + len(literal) on contain the literal.
                 upper = min(upper, found + len(literal) - 1)

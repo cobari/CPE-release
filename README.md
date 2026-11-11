@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.0.0
+# Classic Pattern Explorer 3.1
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ It is a digital humanities research aid, not a grammar oracle or syntactic parse
 
 ## What It Searches
 
-Version 3.0.0 organizes online connections into five browsing regions covering 18 online sources, alongside local text folders. Online sources return bounded excerpts or catalogue references according to provider query limits.
+Version 3.1 organizes online connections into five browsing regions covering 18 online sources, alongside local text folders. Online sources return bounded excerpts or catalogue references according to provider query limits.
 
 | | Where the text is | What you get |
 |---|---|---|
@@ -21,7 +21,7 @@ Online results are passages or records returned by provider endpoints within que
 
 ### Windows (Executable)
 
-1. Go to the [v3.0.0 Release Page](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) and download the Windows x64 executable [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.0.0/cpe-gui.exe).
+1. Go to the [v3.1 Release Page](https://github.com/cobari/CPE-release/releases/tag/v3.1) and download the Windows x64 executable [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe).
 2. Double-click `cpe-gui.exe` to open the search window. Neither Python nor uv is required.
 3. The executable uses the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If the application does not start, install the WebView2 Runtime from the link.
 
@@ -31,7 +31,7 @@ Online results are passages or records returned by provider endpoints within que
 
 The Windows executable does not run on macOS or Linux. Please use the full distribution package:
 
-1. Download the source package (`Source code .zip` or `.tar.gz`) from the [v3.0.0 Release Page](https://github.com/cobari/CPE-release/releases/tag/v3.0.0) and unpack it.
+1. Download the source package (`Source code .zip` or `.tar.gz`) from the [v3.1 Release Page](https://github.com/cobari/CPE-release/releases/tag/v3.1) and unpack it.
 2. Keep the entire unzipped folder intact and run the appropriate launcher:
    - **macOS**: Double-click `cpe-gui.command`. (Finder opens it in a Terminal window. On the first launch, if prompted with a security warning, right-click the file and choose "Open".)
    - **Linux**: Run `cpe-gui.sh`. (Select "Run in terminal" in your file manager or run it from a shell.)
@@ -173,7 +173,7 @@ A. The distributed `cpe-gui.exe` is built for 64-bit Windows (x64). If double-cl
 
 - This repository contains the runtime package, translation catalogs, web assets, launchers, runtime dependency lock, and license.
 - The `docs/` folder holds the project's web pages, one for each interface language, and `discoverability.md` records how the repository and its pages are described.
-- Package version: `3.0.0`; Git tag: `v3.0.0`. Exact source snapshot recorded in `release.json`.
+- Package version: `3.1`; Git tag: `v3.1`. Exact source snapshot recorded in `release.json`.
 - Released under the MIT License (`LICENSE`).
 - An independent personal project unaffiliated with ITKC. To respect copyright and terms of use, no proprietary database corpus, modern translation, or raw API response is bundled.
 

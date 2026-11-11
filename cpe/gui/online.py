@@ -117,41 +117,71 @@ def _itkc_keyword_for_query(query: str) -> str | None:
     return " ".join(words) if words is not None else None
 
 
+def itkc_plan(request: dict[str, Any]) -> tuple[dict[str, str] | None, str | None]:
+    """Validate one ITKC request and return its fixed search fields.
+
+    The plan is shared by the existing one-shot route and the session route so
+    the copy's alternatives, query, and error codes cannot drift.
+    """
+    if not isinstance(request, dict):
+        return None, "bad_request"
+    if request.get("mode") == "pair":
+        first = str(request.get("first", "")).strip()
+        second = str(request.get("second", "")).strip()
+        if not first or not second:
+            return None, "empty"
+        if "|" in first + second:
+            return None, "itkc_alternatives"
+        if not _pair_boxes_valid(first, second):
+            return None, "bad_box"
+        return {
+            "mode": "pair",
+            "first": first,
+            "second": second,
+            "keyword": f"{first} {second}",
+        }, None
+    if request.get("mode") == "words":
+        query = str(request.get("query", "")).strip()
+        if not query:
+            return None, "empty"
+        try:
+            found = _itkc_keyword_for_query(query)
+        except QueryError:
+            return None, "bad_query"
+        if found is None:
+            return None, "itkc_query"
+        return {"mode": "words", "query": query, "keyword": found}, None
+    return None, "bad_request"
+
+
 def search_itkc(
     request: dict[str, Any],
     client: ITKCClient,
     settings: Settings,
     checkpoint: Checkpoint = None,
+    collections: Sequence[str] = adapter.COLLECTIONS,
+    *,
+    include_records: bool = False,
 ) -> dict[str, Any]:
-    if request.get("mode") == "pair":
-        first = str(request.get("first", "")).strip()
-        second = str(request.get("second", "")).strip()
-        if not first or not second:
-            return {"error": "empty"}
-        if "|" in first + second:
-            return {"error": "itkc_alternatives"}
-        if not _pair_boxes_valid(first, second):
-            return {"error": "bad_box"}
-        keyword = f"{first} {second}"
-    elif request.get("mode") == "words":
-        query = str(request.get("query", "")).strip()
-        if not query:
-            return {"error": "empty"}
-        try:
-            found = _itkc_keyword_for_query(query)
-        except QueryError:
-            return {"error": "bad_query"}
-        if found is None:
-            return {"error": "itkc_query"}
-        keyword = found
-    else:
+    plan, error = itkc_plan(request)
+    if error is not None:
+        return {"error": error}
+    if not collections or any(
+        collection not in adapter.COLLECTIONS for collection in collections
+    ):
         return {"error": "bad_request"}
+    assert plan is not None
+    keyword = plan["keyword"]
     try:
-        fetched = (
-            adapter.fetch(keyword, client, checkpoint=checkpoint)
-            if checkpoint
-            else adapter.fetch(keyword, client)
-        )
+        if collections is adapter.COLLECTIONS and checkpoint is None:
+            fetched = adapter.fetch(keyword, client)
+        else:
+            fetched = adapter.fetch(
+                keyword,
+                client,
+                collections=collections,
+                checkpoint=checkpoint,
+            )
     except CallCapReached:
         return {"error": "source_cap"}
     except LocalStorageError:
@@ -168,10 +198,21 @@ def search_itkc(
         ],
         settings,
     )
-    if request.get("mode") == "pair":
-        answer = search_pair(library, first, second, checkpoint=checkpoint)
+    if plan["mode"] == "pair":
+        answer = search_pair(
+            library,
+            plan["first"],
+            plan["second"],
+            checkpoint=checkpoint,
+            include_records=include_records,
+        )
     else:
-        answer = search_words(library, query, checkpoint=checkpoint)
+        answer = search_words(
+            library,
+            plan["query"],
+            checkpoint=checkpoint,
+            include_records=include_records,
+        )
     answer["source"] = {
         "name": "itkc",
         "collections": [
@@ -211,6 +252,8 @@ def search_ndl(
     client: ndl.NdlClient,
     settings: Settings,
     checkpoint: Checkpoint = None,
+    *,
+    include_records: bool = False,
 ) -> dict[str, Any]:
     if request.get("mode") == "pair":
         first = str(request.get("first", "")).strip()
@@ -253,9 +296,17 @@ def search_ndl(
         settings,
     )
     if request.get("mode") == "pair":
-        answer = search_pair(library, first, second, checkpoint=checkpoint)
+        answer = search_pair(
+            library,
+            first,
+            second,
+            checkpoint=checkpoint,
+            include_records=include_records,
+        )
     else:
-        answer = search_words(library, query, checkpoint=checkpoint)
+        answer = search_words(
+            library, query, checkpoint=checkpoint, include_records=include_records
+        )
     answer["source"] = {
         "name": "ndl",
         "phrase": phrase,
@@ -270,6 +321,8 @@ def search_cbeta(
     client: cbeta.CbetaClient,
     settings: Settings,
     checkpoint: Checkpoint = None,
+    *,
+    include_records: bool = False,
 ) -> dict[str, Any]:
     """CBETA: the longer element (or longest word) as the phrase, excerpts matched here.
 
@@ -315,9 +368,17 @@ def search_cbeta(
         settings,
     )
     if request.get("mode") == "pair":
-        answer = search_pair(library, first, second, checkpoint=checkpoint)
+        answer = search_pair(
+            library,
+            first,
+            second,
+            checkpoint=checkpoint,
+            include_records=include_records,
+        )
     else:
-        answer = search_words(library, query, checkpoint=checkpoint)
+        answer = search_words(
+            library, query, checkpoint=checkpoint, include_records=include_records
+        )
     answer["source"] = {
         "name": "cbeta",
         "phrase": phrase,
@@ -332,6 +393,8 @@ def search_docusky(
     client: docusky.DocuskyClient,
     settings: Settings,
     checkpoint: Callable[[], None] | None = None,
+    *,
+    include_records: bool = False,
 ) -> dict[str, Any]:
     """Search a reviewed profile or a public catalogue database."""
     try:
@@ -375,9 +438,17 @@ def search_docusky(
         return {"error": "source_failed"}
     library = Library([text_from(local, settings) for local in fetched.texts], settings)
     if request.get("mode") == "pair":
-        answer = search_pair(library, first, second)
+        answer = search_pair(
+            library,
+            first,
+            second,
+            checkpoint=checkpoint,
+            include_records=include_records,
+        )
     else:
-        answer = search_words(library, query)
+        answer = search_words(
+            library, query, checkpoint=checkpoint, include_records=include_records
+        )
     answer["source"] = {
         "name": "docusky",
         "phrase": phrase,
