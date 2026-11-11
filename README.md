@@ -15,7 +15,7 @@ Version 3.1 organizes online connections into five browsing regions covering 18 
 | **Your own texts** | A folder on your computer: UTF-8 `.txt` and `.md` files, works imported from the Chinese Text Project (CTP/CText, ctext.org) with your own API key (saved as `.txt`), and the `.texts.jsonl` bundles the program writes when it converts institute originals downloaded from Korea's public data portal (National Institute of Korean History, Institute for the Translation of Korean Classics, Academy of Korean Studies, etc.) | The text of each file is searched in full; the search covers what the files contain |
 | **Online excerpt and catalogue search** | 18 online sources across five browsing regions (Korea 8, Japan 4, China 1, Taiwan 4, Vietnam 1); an Internet connection is needed | Passages or catalogue records returned by each source around a hit, often cut at both ends, within provider query limits |
 
-Online results are passages or records returned by provider endpoints within query limits . An empty result does not show that a pattern never occurs in that historical corpus. Before citing an example, open its source link and check the full passage.
+Online results are passages or records returned by provider endpoints within query limits. An empty result does not show that a pattern never occurs in that historical corpus. Before citing an example, open its source link and check the full passage.
 
 ## Getting Started
 
@@ -85,7 +85,7 @@ You can select up to four sources at once from your local text folders and 18 on
   - **Kyujanggak historical documents · originals**: Searches Seoul National University's Kyujanggak historical-document database (GMS), one keyword without spaces, up to 80 characters. Reads only the first 20 references from one native response. Shows titles, document numbers, parties, source dates, types and available inline original-text excerpts, at most 600 characters. Some results supply metadata only; lazy content is not requested. Transcriptions can contain Idu, uncertainty and editorial notation; language and sentence boundaries are not determined. No grammatical match or grade is assigned. Titles open the official original-text viewer. Old books, chronicle collections, royal protocols and modern-government groups are outside this route. Overlap with other institutional document holdings is unmeasured. No next page, additional article text, image or translation is fetched or stored. Personal non-commercial research only; retain Kyujanggak and document attribution, with no redistribution.
 - **Japan (4)**:
   - **National Diet Library, Japan (NDL)**: Searches OCR text from NDL's classical books (NDL Lab). NDL requires a phrase of at least two characters. CPE sends the longer element or longest term and checks the remaining conditions in the supplied excerpts. OCR may contain recognition errors; excerpts have no punctuation and may be cut at both ends. Check the page image through the title link before citing. Only the first 50 books are checked. Nothing is stored.
-  - **SAT Daizōkyō Text Database**: Searches the University of Tokyo SAT Daizōkyō Text Database with one word or phrase. Only the first group of up to 30 line hits is read; each result shows the Taishō page and line range, a keyword-in-context excerpt and a detail link. The excerpt is cut at both ends, and image-only glyphs are kept as ?. SAT's Taishō text overlaps the connected CBETA canon, so this route adds line references rather than new holdings. Terms distinguish scholarly or nonprofit text use; image collections are separate. No pagination, detail-page fetch or storage.
+  - **SAT Daizōkyō Text Database**: Searches the University of Tokyo SAT Daizōkyō Text Database with one word or phrase. Only the first group of up to 30 line hits is read; each result shows the Taishō page and line range, a keyword-in-context excerpt and a detail link. The excerpt is cut at both ends, and image-only glyphs are kept as □. SAT's Taishō text overlaps the connected CBETA canon, so this route adds line references rather than new holdings. Terms distinguish scholarly or nonprofit text use; image collections are separate. No pagination, detail-page fetch or storage.
   - **University of Tokyo Old Japanese Diaries · official search**: Opens the University of Tokyo Historiographical Institute's public 古記録フルテキストデータベース (full-text database of historical diaries) in your browser. It searches diary texts in kanbun, including Teishinkoki and Kyureki, across the database. Use one keyword without spaces. The official page provides excerpts, source dates, volume and page references, and available image links. Editorial notes and uncertain characters remain as supplied. This connection does not fetch, store or verify results inside CPE. Scholarly use only; retain attribution and follow the Institute's restrictions on redistribution.
   - **CanD Chinese and Japanese poetry · references**: Searches the body field of Hankeidou's privately edited CanD poetry database across its collections, including Japanese anthologies. Uses one keyword of up to 10 characters without spaces or wildcards, with provider variant expansion OFF. Reads one native response and displays its first 20 bibliographic headings, retaining titles, authors and native source locators. The response also contains poems and Japanese readings; CPE discards those bodies and commentary. No sentence, literal occurrence or grammatical match is verified. Titles open the provider's edition overview, not an individual poem. Returned characters remain unchanged; the provider edits glyphs and punctuation. Chinese works partly overlap existing sources; institution-wide overlap is unmeasured. No pagination, separate text request or storage. Personal non-commercial research only; retain CanD and edition attribution and respect the provider's copying restrictions.
 - **China (1)**:
@@ -146,6 +146,19 @@ uv run --locked cpe match patterns/mvp.toml my-text.txt --out results
 # Search ITKC via command line
 uv run --locked python itkc_search.py --help
 ```
+
+---
+
+### Local MCP Server (AI Integration)
+
+The unpublished 3.1 candidate includes an optional local stdio MCP (Model Context Protocol) server based on the official Python SDK v2. It exposes 20 structured tools covering the 4 local library slots, all 18 online adapters, provider catalogues, staged ITKC collection sessions, full Literary Sinitic pattern DSL search, safe corpus imports, and direct CSV/JSONL exports.
+
+`ash
+# Start the MCP server on stdio (requires the optional 'mcp' extra)
+uv run --extra mcp cpe mcp path/to/texts
+`
+
+Standalone Windows packages also include cpe-mcp.exe, which accepts the same startup arguments. The server runs over standard input/output (stdin/stdout) with no GUI window or HTTP server. See [MCP installation, options, and tools](docs/mcp.md) and the [feature equivalence matrix](docs/mcp-parity.md). This candidate implementation does not claim certification on live proprietary AI clients (e.g. Claude Desktop, Claude Code) or live third-party services.
 
 ---
 

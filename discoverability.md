@@ -12,7 +12,7 @@ to confirm deployment. Search Console ownership verification is a separate step.
 
 As shown by `gh repo view cobari/CPE-release`:
 
-- **Description**: `Classic Pattern Explorer (CPE): Desktop and CLI pattern search for Literary Sinitic (Classical Chinese), with ITKC, CBETA and NDL excerpt search and local XML import.`
+- **Description**: `Classic Pattern Explorer (CPE): Desktop, CLI, and MCP pattern search for Literary Sinitic (Classical Chinese), with 18 online source connections and local text imports.`
 - **Topics** (10): `literary-sinitic`, `classical-chinese`, `digital-humanities`,
   `itkc`, `cbeta`, `korean-studies`, `sinology`, `corpus-linguistics`, `hanja`,
   `python`.

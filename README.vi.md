@@ -15,7 +15,7 @@ Phiên bản 3.1 tổ chức các kết nối trực tuyến thành 5 khu vực 
 | **Văn bản của bạn** | Thư mục trên máy tính của bạn: các tệp UTF-8 `.txt` và `.md`, các tác phẩm nhập từ Chinese Text Project (CTP/CText, ctext.org) bằng khóa API của bạn (lưu thành `.txt`), và các gói `.texts.jsonl` do chương trình chuyển đổi từ tài liệu gốc của các viện nghiên cứu thuộc Cổng dữ liệu công cộng Hàn Quốc (Viện Lịch sử Quốc gia Hàn Quốc, Viện Dịch thuật Kinh điển Hàn Quốc, Viện Nghiên cứu Hàn Quốc học Trung ương, v.v.) | Toàn văn mỗi tệp đều được tìm kiếm; phạm vi bao quát toàn bộ nội dung tệp |
 | **Tìm kiếm đoạn trích và thư mục trực tuyến** | 18 nguồn trực tuyến thuộc 5 khu vực tìm kiếm (Hàn Quốc 8, Nhật Bản 4, Trung Quốc 1, Đài Loan 4, Việt Nam 1); yêu cầu kết nối Internet | Các đoạn văn hoặc mục thư mục do nguồn trả về quanh vị trí khớp (thường bị cắt ở hai đầu), trong giới hạn số lượng của từng nguồn |
 
-Kết quả trực tuyến là các đoạn văn hoặc mục thư mục do máy chủ nhà cung cấp trả về theo giới hạn truy vấn . Việc không tìm thấy kết quả không chứng minh rằng mẫu câu đó không bao giờ xuất hiện trong kho tư liệu lịch sử. Trước khi trích dẫn, hãy luôn mở liên kết xuất xứ để kiểm tra toàn bộ ngữ cảnh.
+Kết quả trực tuyến là các đoạn văn hoặc mục thư mục do máy chủ nhà cung cấp trả về theo giới hạn truy vấn. Việc không tìm thấy kết quả không chứng minh rằng mẫu câu đó không bao giờ xuất hiện trong kho tư liệu lịch sử. Trước khi trích dẫn, hãy luôn mở liên kết xuất xứ để kiểm tra toàn bộ ngữ cảnh.
 
 ## Bắt đầu sử dụng
 
@@ -85,7 +85,7 @@ Bạn có thể chọn tối đa bốn nguồn cùng lúc từ các thư mục v
   - **Tài liệu lịch sử Kyujanggak · nguyên văn**: Tìm trong CSDL tài liệu lịch sử Kyujanggak (GMS) của Đại học Quốc gia Seoul, một từ khóa không dấu cách, tối đa 80 ký tự. Chỉ đọc 20 tham chiếu đầu tiên từ một phản hồi gốc. Hiển thị tiêu đề, số văn bản, các bên, niên đại nguồn, loại và trích đoạn nguyên văn nội tuyến nếu có, tối đa 600 ký tự. Một số kết quả chỉ có siêu dữ liệu; nội dung tải chậm không được yêu cầu. Bản đọc/bản phiên văn có thể chứa chữ Idu, ký hiệu chưa chắc chắn và ký hiệu biên tập; ngôn ngữ và ranh giới câu không được xác định. Không gán kết quả khớp ngữ pháp hay mức đánh giá. Tiêu đề mở trình xem nguyên văn chính thức. Sách cổ, biên niên sử, nghi lễ hoàng gia và nhóm văn bản chính quyền hiện đại nằm ngoài tuyến này. Mức trùng với tư liệu của các viện khác chưa được đo. Không tải hay lưu trang tiếp theo, thêm văn bản bài, hình ảnh hay bản dịch. Chỉ dùng cho nghiên cứu cá nhân phi thương mại; hãy giữ tên Kyujanggak và ghi nguồn văn bản, không phân phối lại.
 - **Nhật Bản (4)**:
   - **Thư viện Quốc hội Nhật Bản (NDL)**: Tìm trong văn bản OCR sách cổ của NDL (NDL Lab). NDL chỉ tìm được cụm từ hai ký tự trở lên, nên thành tố dài hơn (hoặc từ dài nhất) được gửi đi và phần còn lại được kiểm tra trên ứng dụng. NDL trả về trích đoạn OCR không có dấu câu, có thể có lỗi nhận dạng và bị cắt ở cả hai đầu; hãy đối chiếu ảnh trang qua liên kết tiêu đề trước khi trích dẫn. 50 sách đầu tiên được kiểm tra. Không lưu trữ nội dung nào.
-  - **CSDL văn bản Đại tạng kinh SAT**: Tìm trong CSDL văn bản Đại tạng kinh SAT của Đại học Tokyo bằng một từ hoặc cụm từ. Chỉ đọc nhóm đầu tiên gồm tối đa 30 vị trí dòng khớp; mỗi kết quả hiển thị trang và khoảng dòng Đại Chính, trích đoạn từ khóa trong ngữ cảnh và liên kết chi tiết. Trích đoạn bị cắt ở cả hai đầu, và ký tự chỉ có trên ảnh được giữ là ?. Văn bản Đại Chính của SAT trùng với đại tạng CBETA đã kết nối, nên tuyến này thêm tham chiếu dòng chứ không thêm tư liệu mới. Điều khoản phân biệt việc dùng văn bản cho học thuật hoặc phi lợi nhuận; bộ sưu tập hình ảnh là riêng. Không phân trang, không tải trang chi tiết và không lưu trữ.
+  - **CSDL văn bản Đại tạng kinh SAT**: Tìm trong CSDL văn bản Đại tạng kinh SAT của Đại học Tokyo bằng một từ hoặc cụm từ. Chỉ đọc nhóm đầu tiên gồm tối đa 30 vị trí dòng khớp; mỗi kết quả hiển thị trang và khoảng dòng Đại Chính, trích đoạn từ khóa trong ngữ cảnh và liên kết chi tiết. Trích đoạn bị cắt ở cả hai đầu, và ký tự chỉ có trên ảnh được giữ là □. Văn bản Đại Chính của SAT trùng với đại tạng CBETA đã kết nối, nên tuyến này thêm tham chiếu dòng chứ không thêm tư liệu mới. Điều khoản phân biệt việc dùng văn bản cho học thuật hoặc phi lợi nhuận; bộ sưu tập hình ảnh là riêng. Không phân trang, không tải trang chi tiết và không lưu trữ.
   - **Nhật ký cổ Nhật Bản, Đại học Tokyo · tìm kiếm chính thức**: Mở CSDL toàn văn Nhật ký cổ Nhật Bản công khai của Viện Sử học, Đại học Tokyo trong trình duyệt. Công cụ tìm trong các nhật ký viết bằng Hán văn Nhật Bản, tức kanbun, gồm Teishinkoki và Kyureki, trên toàn bộ cơ sở dữ liệu. Dùng một từ khóa không có dấu cách. Trang chính thức cung cấp trích đoạn, niên đại nguồn, tham chiếu quyển và trang, cùng liên kết ảnh nếu có. Chú thích biên tập và ký tự chưa chắc chắn được giữ như nguồn cung cấp. Kết nối này không tải, không lưu và không xác minh kết quả bên trong CPE. Chỉ dùng cho học thuật; hãy ghi nguồn và tuân thủ hạn chế phân phối lại của Viện.
   - **Thơ Trung Quốc và Nhật Bản CanD · tham chiếu**: Tìm trong trường nội dung của CSDL thơ CanD do Hankeidou tự biên tập trên các bộ sưu tập, kể cả tuyển tập Nhật Bản. Dùng một từ khóa tối đa 10 ký tự, không dấu cách và không ký tự đại diện, với chế độ mở rộng biến thể của nhà cung cấp TẮT. Đọc một phản hồi gốc và hiển thị 20 đề mục thư mục đầu tiên, giữ tiêu đề, tác giả và chỉ dẫn nguồn gốc. Phản hồi còn chứa bài thơ và cách đọc tiếng Nhật; CPE bỏ các phần nội dung và bình chú đó. Không xác minh câu, lần xuất hiện nguyên văn hay kết quả khớp ngữ pháp. Tiêu đề mở trang tổng quan ấn bản của nhà cung cấp, không mở từng bài thơ. Ký tự trả về giữ nguyên; nhà cung cấp tự sửa tự hình và dấu câu. Tác phẩm Trung Quốc trùng một phần với các nguồn hiện có; mức trùng ở cấp viện chưa được đo. Không phân trang, không yêu cầu văn bản riêng và không lưu trữ. Chỉ dùng cho nghiên cứu cá nhân phi thương mại; hãy giữ tên CanD và ấn bản, tôn trọng hạn chế sao chép của nhà cung cấp.
 - **Trung Quốc (1)**:
@@ -146,6 +146,19 @@ uv run --locked cpe match patterns/mvp.toml my-text.txt --out results
 # Tìm kiếm ITKC qua dòng lệnh
 uv run --locked python itkc_search.py --help
 ```
+
+---
+
+### Máy chủ MCP cục bộ (Tích hợp AI)
+
+Phiên bản ứng viên 3.1 chưa công bố bao gồm máy chủ stdio MCP (Model Context Protocol) cục bộ tùy chọn dựa trên Python SDK v2 chính thức. Máy chủ cung cấp 20 công cụ có cấu trúc bao quát 4 ngăn thư viện cục bộ, toàn bộ 18 bộ điều hợp nguồn trực tuyến, danh mục nhà cung cấp, phiên làm việc theo giai đoạn cho các bộ sưu tập ITKC, tìm kiếm DSL mẫu câu Hán văn, quy trình nhập ngữ liệu an toàn và xuất trực tiếp tệp CSV/JSONL.
+
+`ash
+# Khởi động máy chủ MCP qua stdio (yêu cầu gói bổ sung 'mcp')
+uv run --extra mcp cpe mcp path/to/texts
+`
+
+Các gói phân phối Windows độc lập cũng kèm theo tệp cpe-mcp.exe chấp nhận các tham số khởi động tương tự. Máy chủ giao tiếp qua luồng nhập/xuất chuẩn (stdin/stdout), không mở cửa sổ đồ họa hay máy chủ HTTP. Xem [Hướng dẫn cài đặt, tùy chọn và công cụ MCP](docs/mcp.md) cùng [Bảng đối chiếu tính năng 3.1](docs/mcp-parity.md). Bản cài đặt ứng viên này không tuyên bố đã được chứng nhận tương thích trên các ứng dụng AI thương mại cụ thể (như Claude Desktop, Claude Code) hoặc các dịch vụ trực tuyến bên thứ ba.
 
 ---
 

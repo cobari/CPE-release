@@ -68,7 +68,7 @@ startup:
 | `--library SLOT FOLDER` | None | Assigns specific folders to slots (`local`, `local2`, `local3`, `local4`). |
 | `--read-root PATH` | None | Authorizes tool reads under `PATH`. Can be repeated for multiple roots. |
 | `--write-root PATH` | None | Authorizes tool writes/reads under an existing folder `PATH`. Tool writes are disabled unless granted; explicitly configured state and ITKC log files are separate host destinations. |
-| `--enable-online SOURCE` | None | Allows access to an online repository (`itkc`, `ndl`, `cbeta`, `docusky:PROFILE`, or `all`). |
+| `--enable-online SOURCE` | None | Allows access to an online repository (`all`, `docusky:PROFILE`, or any of the 18 online source identifiers: `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `thdl`, `csid`, `cand`, `kyudb`). Repeat as needed. |
 | `--itkc-log PATH` | None | Required local request log path whenever `itkc` is enabled. |
 | `--enable-import PROVIDER`| None | Allows network import providers (`portal`, `ctp`, `gutenberg`, `ndl`, `rise`, `cbeta`, `nikh-partial`, or `all`). |
 | `--workspace-state PATH` | Memory | Dedicated, locked MCP JSON state file outside corpus folders and source sidecars. Desktop GUI preferences are never used automatically. |
@@ -76,6 +76,10 @@ startup:
 | `--language CODE` | System | Saved interface language setting; MCP descriptions and error codes remain English (`ko`, `ja`, `zh-Hans`, `zh-Hant`, `vi`, `en`). |
 | `--sort ORDER` | `source` | Default sort order (`source`, `era`, `era-desc`). |
 | `--variants TOML` | None | Variant mapping table for normalization. |
+| `--variation-selectors CHOICE` | `keep` | Normalization handling for Unicode variation selectors (`keep` or `delete`). |
+| `--whitespace CHOICE` | `keep` | Normalization handling for horizontal whitespace (`keep` or `delete`). |
+| `--line-breaks CHOICE` | `delete` | Normalization handling for line breaks (`delete` or `keep`). |
+| `--notes CHOICE` | `barrier` | Interlinear note treatment during pattern matching (`barrier` or `join`). |
 | `--note-markers OPEN CLOSE` | None | Interlinear note delimiter pair. |
 | `--annotation-markers OPEN CLOSE` | None | Attached annotation delimiter pair. |
 
