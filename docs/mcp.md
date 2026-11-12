@@ -3,7 +3,7 @@
 Classic Pattern Explorer exposes its research corpus search, library management,
 import pipelines and export engines to AI clients through a local stdio MCP
 (Model Context Protocol) server. The GUI, CLI and MCP server share the same CPE
-core version (`3.1`, currently an unpublished release candidate). MCP is an
+core version (`3.1`). MCP is an
 additional headless interface, not a second matcher or a public web service.
 This implementation uses the official
 [Python SDK v2](https://py.sdk.modelcontextprotocol.io/).

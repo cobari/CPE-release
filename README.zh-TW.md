@@ -151,7 +151,7 @@ uv run --locked python itkc_search.py --help
 
 ### 本機 MCP 伺服器（AI 整合）
 
-未公開的 3.1 候選版本包含基於官方 Python SDK v2 的本機 stdio MCP (Model Context Protocol) 伺服器。提供 20 個結構化工具，涵蓋 4 個本機文獻庫插槽、全部 18 個線上資料來源轉接器、典藏目錄、分步 ITKC 典籍集工作階段、漢文句型 DSL 檢索、安全的語料匯入流程以及 CSV/JSONL 直接匯出。
+3.1 版本包含基於官方 Python SDK v2 的本機 stdio MCP (Model Context Protocol) 伺服器。提供 20 個結構化工具，涵蓋 4 個本機文獻庫插槽、全部 18 個線上資料來源轉接器、典藏目錄、分步 ITKC 典籍集工作階段、漢文句型 DSL 檢索、安全的語料匯入流程以及 CSV/JSONL 直接匯出。
 
 ```sh
 # 透過 stdio 啟動 MCP 伺服器，並允許傳送本機原文
@@ -160,7 +160,7 @@ uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 
 預設僅傳回參照與中繼資料。若要傳回本機原文，主機須在完成自身權利審查後指定 `--allow-source-text local`。線上存取與匯入是分開的：`--enable-online` 新增提供者存取，`--enable-import` 新增匯入存取，但若沒有對應的 `--allow-source-text SOURCE` 授權，仍不會傳回原文。沒有 `all` 授權。此授權不是提供者授權，也不保證雲端處理、模型回答或保留行為合法。詳情請參閱 [MCP 安裝、選項與工具指南](docs/mcp.md) 及 [3.1 功能對應表](docs/mcp-parity.md)。
 
-獨立 Windows 發行套件中亦隨附接受相同啟動引數的 cpe-mcp.exe。伺服器透過標準輸入/輸出（stdin/stdout）進行通訊，不會開啟 GUI 視窗或 HTTP 伺服器。本候選實作不聲稱已獲得特定商用 AI 用戶端（如 Claude Desktop、Claude Code 等）或外部線上服務的認證。
+獨立 Windows 發行套件中亦隨附接受相同啟動引數的 cpe-mcp.exe。伺服器透過標準輸入/輸出（stdin/stdout）進行通訊，不會開啟 GUI 視窗或 HTTP 伺服器。本實作不聲稱已獲得特定商用 AI 用戶端（如 Claude Desktop、Claude Code 等）或外部線上服務的認證。
 
 ---
 

@@ -2,7 +2,7 @@
   "version": "3.1",
   "tag": "v3.1",
   "source_repository": "https://github.com/cobari/CPE",
-  "source_commit": "c416d00361e0bb165b5b05d72374067cd5c63332",
+  "source_commit": "524f0ff2f2cbb63ecb042d5fe0b2c91b9b0567bc",
   "interface_languages": [
     "ko",
     "ja",
@@ -12,7 +12,7 @@
     "en"
   ],
   "online_source_connections": 18,
-  "published": false,
+  "published": true,
   "source_working_tree_modified": false,
   "source_snapshot": {
     "cpe/__init__.py": "ad4d40d70e17b5769090eb831e4d73056d41a9a94a8dc3ebc5562801ad610e94",
@@ -152,20 +152,20 @@
     "cpe-gui.sh": "06e4f07a8d2cf5dcb20114a9a84bf62938bbdfd16e882d7dab34b3a21ae7aa63",
     "itkc_search.py": "a0e2a4981039b02cf0e0695e3174e10a12e123b22d160abf39e1cf3197540b40",
     "LICENSE": "d8f4d85ec92bc8e93c3a883c9aaae65c5ab9a921c4de38fb52e83d1c172e27f4",
-    "docs/mcp.md": "50a22ba4131b23dcf2a0e470ead3372a158a9d89f6edf2f9d96140f1f2d958e2",
-    "docs/mcp-parity.md": "3e3683c625e3a85d209f16f91ab393e21d261d8bf8710df0a709a82a317e657a",
+    "docs/mcp.md": "091ef8b05e250436fd0f99c0a0fe40a34ecc24af63811d9f353f1c12c7d0bbf1",
+    "docs/mcp-parity.md": "3c32fcd0571f18c8ef36ba76f7380b931532c1d54fafa328cfcd312b50db11ad",
     "docs/mcp-dsl-classification.md": "003e50e8072359363b0c340ad77d7d42c73564970363e9598469f8fe375905e8",
     "docs/mcp-data-policy.md": "0097c2f9bf5e69f4217cce8cafc6980c9f056f7a353ffea402e8c74364cc01eb"
   },
   "native_launch_tested": true,
   "native_test_scope": "Windows with installed WebView2; synthetic local pair/word search, six locales and help; no live providers or clean-machine test.",
   "development_config_snapshot": {
-    "pyproject.toml": "6ea7cfbcd7c1ea9fc0eb79649ada73eace98ae5478f1b78f6033736e43808565",
-    "uv.lock": "61576b4d1caecae5a7da30bbb4a4e14e87eeb4077a00f3da5cd92400741879b0"
+    "pyproject.toml": "756f628e044b1c61e4127dd2ddf02b2c00422044403ad543beb73d31541766ee",
+    "uv.lock": "827b05460e826bf0b34a0de57d83a41646089f2c01cb4411b194080ff426506b"
   },
   "distribution_config_snapshot": {
-    "pyproject.toml": "59d58b9821130e87cb15f2039feccbedb043f3bda67ab678b9acea638d51b0c2",
-    "uv.lock": "98f5e15718343a2c95083732d8048ca6b3e4ebe86ca4f7e91e1ae567c49f57a7"
+    "pyproject.toml": "50ce317cdee0f00e5632212ef1b27220736f3e9e65435c1566656b333255c5f6",
+    "uv.lock": "08db44726a7fd38174468a8b945f0f4788c36268ec15c8628bcd0fd218b9ed29"
   },
   "mcp": {
     "transport": "stdio",
@@ -201,5 +201,18 @@
     "text_grant": "host_startup_only",
     "data_policy": "docs/mcp-data-policy.md",
     "client_scope": "Official Python SDK subprocess tests; not Claude application certification."
+  },
+  "binary_source_commit": "c416d00361e0bb165b5b05d72374067cd5c63332",
+  "release_url": "https://github.com/cobari/CPE-release/releases/tag/v3.1",
+  "released_on": "2026-11-12",
+  "executables": {
+    "cpe-gui.exe": {
+      "sha256": "a7428439af6d38235357dc5ef3a4bd883e7def8760f990ac9fd0372c2ad0f051",
+      "bytes": 17554881
+    },
+    "cpe-mcp.exe": {
+      "sha256": "9ab736a7e2633cbbbceed4b1c2ec21d3453272c2b4c25b3dd03cf4cacfd0cf58",
+      "bytes": 34751683
+    }
   }
 }
