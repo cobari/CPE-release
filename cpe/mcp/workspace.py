@@ -601,7 +601,10 @@ class Workspace:
         researcher_confirmed: bool = False,
     ) -> dict[str, Any]:
         if action == "progress":
-            return self.api.external_progress(job_id)
+            answer = self.api.external_progress(job_id)
+            return (
+                self.disclosure.import_metadata(answer) if self.disclosure else answer
+            )
         if action == "cancel":
             return {"cancelled": self.api.cancel_external(job_id)}
         if action == "unit":
@@ -637,7 +640,12 @@ class Workspace:
             except PolicyError as error:
                 return {"error": error.code}
             if action == "history":
-                return self.api.external_history()
+                answer = self.api.external_history()
+                return (
+                    self.disclosure.import_metadata(answer)
+                    if self.disclosure
+                    else answer
+                )
             if action == "report":
                 return self.api.save_external_report(token)
             if action == "commit":

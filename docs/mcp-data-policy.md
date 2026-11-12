@@ -99,6 +99,13 @@ The startup flags have different jobs:
 other metadata remain available. A grant is fixed for the process lifetime; no
 tool parameter can widen it.
 
+RISE preview diagnostics and saved history receipts can also contain original
+before/after context in `details.slices`. Without `import:rise`, that array is
+omitted at any nested receipt/progress location and replaced by
+`source_slices_withheld`, `source_slices_count` and `source_text_scope` metadata.
+The stored local receipt is unchanged. This covers both MCP response copies;
+preview/history metadata does not implicitly grant source-text delivery.
+
 ## 3. Source rights are not one category
 
 The lead's review records an entry for all 18 online routes, but this is **not**

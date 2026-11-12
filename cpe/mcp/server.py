@@ -71,7 +71,7 @@ def create_server(
         workspace.disclosure = policy
 
     def present(payload: dict[str, Any]) -> CallToolResult:
-        return _result(policy.source(policy.search(payload)))
+        return _result(policy.import_metadata(policy.source(policy.search(payload))))
 
     server: MCPServer[Any] = MCPServer(
         "Classic Pattern Explorer",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, cast
 
 from cpe.mcp.sources import LOCAL_SOURCE_IDS, valid_source
 
@@ -75,7 +75,11 @@ class DisclosurePolicy:
         )
 
     def describe(self, scope: str = "") -> dict[str, Any]:
-        base = scope.split(":", 1)[0]
+        base = (
+            scope.split(":", 1)[1]
+            if scope.startswith("import:")
+            else scope.split(":", 1)[0]
+        )
         return {
             "mode": "source_text" if self.allows(scope) else "references_only",
             "source_id": scope,
@@ -149,3 +153,32 @@ class DisclosurePolicy:
         if isinstance(result.get("id"), str) and self.valid(result["id"]):
             result["disclosure"] = self.describe(result["id"])
         return result
+
+    def import_metadata(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Withhold RISE source slices in preview and saved provenance trees.
+
+        RISE details.slices contains source before/after context, not just IDs.
+        Receipts preserve those details, so filtering only search rows or the
+        current preview leaves a second source-text channel through history.
+        """
+
+        def project(value: Any) -> Any:
+            if isinstance(value, list):
+                return [project(item) for item in value]
+            if not isinstance(value, dict):
+                return copy.deepcopy(value)
+            result = {key: project(item) for key, item in value.items()}
+            details = result.get("details")
+            if (
+                isinstance(details, dict)
+                and "slices" in details
+                and not self.allows("import:rise")
+            ):
+                slices = details.pop("slices")
+                details["source_slices_withheld"] = True
+                if isinstance(slices, list):
+                    details["source_slices_count"] = len(slices)
+                details["source_text_scope"] = "import:rise"
+            return result
+
+        return cast(dict[str, Any], project(payload))
