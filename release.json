@@ -158,7 +158,7 @@
     "docs/mcp-data-policy.md": "0097c2f9bf5e69f4217cce8cafc6980c9f056f7a353ffea402e8c74364cc01eb"
   },
   "native_launch_tested": false,
-  "native_test_scope": "Rebuilt cpe-gui.exe from a2ed4d9 and recaptured 6-locale preview images via headless Edge WebView engine; automated MCP, parity, packaging, release safety, GUI i18n, and site bundle checks ran locally. Live interactive window launch and cpe-mcp.exe rebuild (locked on disk by active external cpe-mcp.exe processes) remain pending.",
+  "native_test_scope": "Rebuilt both cpe-gui.exe and cpe-mcp.exe from a2ed4d9 and recaptured 6-locale preview images via headless Edge WebView engine; automated MCP, parity, packaging, release safety, GUI i18n, and site bundle checks ran locally. Live interactive GUI window launch remains pending.",
   "development_config_snapshot": {
     "pyproject.toml": "c1abb02cc0d4a67b38d189914afd296866ff567c20e1258a68f9e9b00607dcf5",
     "uv.lock": "5cfa634e16d8aab329d071feccb4905cb36326deb43bc0e8d9298fd075e96c46"
@@ -202,7 +202,7 @@
     "data_policy": "docs/mcp-data-policy.md",
     "client_scope": "Official Python SDK subprocess tests; not Claude application certification."
   },
-  "binary_source_commit": "mixed (cpe-gui.exe: a2ed4d9, cpe-mcp.exe: c416d00)",
+  "binary_source_commit": "a2ed4d9b776a643143dc13695b3cdf30ee5d20fc",
   "release_url": "https://github.com/cobari/CPE-release/releases/tag/v3.2",
   "released_on": "2026-11-15",
   "executables": {
@@ -212,9 +212,9 @@
       "source_commit": "a2ed4d9b776a643143dc13695b3cdf30ee5d20fc"
     },
     "cpe-mcp.exe": {
-      "sha256": "9ab736a7e2633cbbbceed4b1c2ec21d3453272c2b4c25b3dd03cf4cacfd0cf58",
-      "bytes": 34751683,
-      "source_commit": "c416d00361e0bb165b5b05d72374067cd5c63332"
+      "sha256": "fe1ad06c63b2bbe9cb45c94527b05297ffcbd684cb34aa282872b771cfc577d1",
+      "bytes": 34763087,
+      "source_commit": "a2ed4d9b776a643143dc13695b3cdf30ee5d20fc"
     }
   }
 }
