@@ -2,20 +2,20 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
-Classic Pattern Explorer là một ứng dụng máy tính và công cụ dòng lệnh giúp tìm kiếm các đoạn có thể chứa mẫu câu, chẳng hạn như 以…爲 hoặc 雖…而, trong các văn bản Hán văn nguyên tác (Literary Sinitic). Mỗi kết quả được hiển thị kèm ngữ cảnh từ văn bản hoặc đoạn trích do nguồn cung cấp, cùng liên kết xuất xứ (khi có) để nhà nghiên cứu có thể tự đọc và đưa ra nhận định. Giao diện hỗ trợ tiếng Việt, tiếng Hàn, tiếng Nhật, tiếng Trung giản thể, tiếng Trung phồn thể và tiếng Anh; việc thay đổi ngôn ngữ giao diện không bao giờ làm biến đổi hay thay thế văn bản gốc.
+Classic Pattern Explorer là một ứng dụng máy tính và công cụ dòng lệnh giúp tìm kiếm các đoạn có thể chứa mẫu câu, chẳng hạn như 以…爲 hoặc 雖…而, trong các văn bản Hán văn (Literary Sinitic). Mỗi kết quả được hiển thị kèm ngữ cảnh từ văn bản hoặc đoạn trích do nguồn cung cấp, cùng liên kết xuất xứ (khi có) để nhà nghiên cứu có thể tự đọc và đưa ra nhận định. Giao diện hỗ trợ tiếng Việt, tiếng Hàn, tiếng Nhật, tiếng Trung giản thể, tiếng Trung phồn thể và tiếng Anh; việc thay đổi ngôn ngữ giao diện không bao giờ làm biến đổi hay thay thế văn bản gốc.
 
 Đây là một công cụ hỗ trợ nghiên cứu nhân văn số, không phải là bộ phân tích cú pháp hay phán quyết ngữ pháp tự động. Công cụ thu thập các kết quả khả dĩ, và trong chế độ Tìm kiếm cặp, phân loại chúng theo các dấu hiệu cấu trúc thành nhóm kết quả khả năng phù hợp cao và thấp hơn; việc đọc và phán đoán ngữ nghĩa hoàn toàn thuộc về nhà nghiên cứu.
 
 ## Phạm vi tìm kiếm
 
-Phiên bản 3.1 tổ chức các kết nối trực tuyến thành 5 khu vực tìm kiếm với 18 nguồn trực tuyến, bên cạnh các thư mục văn bản cục bộ trên máy tính. Các nguồn trực tuyến trả về đoạn trích hoặc mục thư mục giới hạn theo hạn mức của từng nguồn.
+Phiên bản 3.1 tổ chức các kết nối trực tuyến theo 5 khu vực với 18 nguồn trực tuyến, bên cạnh các thư mục văn bản cục bộ trên máy tính. Các nguồn trực tuyến trả về đoạn trích hoặc bản ghi thư mục giới hạn theo hạn mức của từng nguồn.
 
 | | Vị trí văn bản | Kết quả nhận được |
 |---|---|---|
 | **Văn bản của bạn** | Thư mục trên máy tính của bạn: các tệp UTF-8 `.txt` và `.md`, các tác phẩm nhập từ Chinese Text Project (CTP/CText, ctext.org) bằng khóa API của bạn (lưu thành `.txt`), và các gói `.texts.jsonl` do chương trình chuyển đổi từ tài liệu gốc của các viện nghiên cứu thuộc Cổng dữ liệu công cộng Hàn Quốc (Viện Lịch sử Quốc gia Hàn Quốc, Viện Dịch thuật Kinh điển Hàn Quốc, Học viện Nghiên cứu Hàn Quốc, v.v.) | Toàn văn mỗi tệp đều được tìm kiếm; phạm vi bao quát toàn bộ nội dung tệp |
-| **Tìm kiếm đoạn trích và thư mục trực tuyến** | 18 nguồn trực tuyến thuộc 5 khu vực tìm kiếm (Hàn Quốc 8, Nhật Bản 4, Trung Quốc 1, Đài Loan 4, Việt Nam 1); yêu cầu kết nối Internet | Các đoạn văn hoặc mục thư mục do nguồn trả về quanh vị trí khớp (thường bị cắt ở hai đầu), trong giới hạn số lượng của từng nguồn |
+| **Tìm kiếm đoạn trích và thư mục trực tuyến** | 18 nguồn trực tuyến thuộc 5 khu vực (Hàn Quốc 8, Nhật Bản 4, Trung Quốc 1, Đài Loan 4, Việt Nam 1); yêu cầu kết nối Internet | Các đoạn văn hoặc bản ghi thư mục do nguồn trả về quanh vị trí khớp (thường bị cắt ở hai đầu), trong giới hạn số lượng của từng nguồn |
 
-Kết quả trực tuyến là các đoạn văn hoặc mục thư mục do máy chủ nhà cung cấp trả về theo giới hạn truy vấn. Việc không tìm thấy kết quả không chứng minh rằng mẫu câu đó không bao giờ xuất hiện trong kho tư liệu lịch sử. Trước khi trích dẫn, hãy luôn mở liên kết xuất xứ để kiểm tra toàn bộ ngữ cảnh.
+Kết quả trực tuyến là các đoạn văn hoặc bản ghi thư mục do máy chủ nhà cung cấp trả về theo giới hạn truy vấn. Việc không tìm thấy kết quả không chứng minh rằng mẫu câu đó không bao giờ xuất hiện trong kho tư liệu lịch sử. Trước khi trích dẫn, hãy luôn mở liên kết xuất xứ để kiểm tra toàn bộ ngữ cảnh.
 
 ## Bắt đầu sử dụng
 
