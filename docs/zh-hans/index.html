@@ -32,8 +32,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Classic Pattern Explorer 检索界面（简体中文）。">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="古典句式检索器：汉文句式候选项检索与上下文核对">
-  <meta name="twitter:description" content="在汉文（古汉语文言文）文献中检索句式模式候选项，阅读原典文脉并核对来源链接。面向本地文献与精选在线数据库的数字人文研究辅助工具。">
+  <meta name="twitter:title" content="Classic Pattern Explorer：文言文（汉文）原文句式候选检索">
+  <meta name="twitter:description" content="免费汉文（文言文）研究辅助工具：查找原文中的句式候选用例，查看上下文和出处。支持本地文本及指定在线数据库，适用于 Windows、macOS 和 Linux。">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hans.png">
   <meta name="twitter:image:alt" content="Classic Pattern Explorer 检索界面（简体中文）。">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"免费汉文（文言文）研究辅助工具：查找原文中的句式候选用例，查看上下文和出处。支持本地文本及指定在线数据库，适用于 Windows、macOS 和 Linux。","url":"https://cobari.github.io/CPE-release/zh-hans/","softwareVersion":"3.1","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"zh-Hans","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
@@ -84,7 +84,7 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>从 v3.1 发布页面下载 <code>cpe-gui.exe</code> 双击运行即可，无需预装 Python。基于 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 运行时</a> 运行；若窗口未能打开，请安装该运行时。</p>
+          <p>从 v3.1 发布页面下载 <code>cpe-gui.exe</code> 双击运行即可，无需预装 Python。需要安装 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 运行时</a> 才能运行；若窗口未能打开，请安装该运行时。</p>
         </div>
         <div class="platform-item">
           <h3>macOS 与 Linux</h3>
@@ -96,7 +96,7 @@
         </div>
         <div class="platform-item">
           <h3>本地 MCP 服务器</h3>
-          <p>3.1 候选版本包含本地 stdio MCP 服务器，提供涵盖本地语料、18 个在线数据源、数据导入与导出的 20 个学术研究工具。详情请参阅 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 指南</a>。</p>
+          <p>3.1 版另附可选的本地 stdio MCP 服务器，提供涵盖本地文件夹、18 个在线数据源以及数据导入与导出的 20 个研究工具。详情请参阅 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 指南</a>。</p>
         </div>
       </div>
 
@@ -144,7 +144,7 @@
           <p>离线检索所选文件夹中 UTF-8 .txt、.md 文件的全文，以及程序通过支持的导入功能保存的 .texts.jsonl 文本合集文件。</p>
           <ul>
             <li>从韩国公共数据门户下载国史编纂委员会、韩国古典翻译院、韩国学中央研究院的古籍资料，保存为可检索的文本合集文件。</li>
-            <li>Chinese Text Project（CTP/CText, ctext.org）：单个章节可在 CTP 允许的情况下无需密钥尝试获取；整部著作的章节列表需要自备 CTP API 密钥，实际可用范围由 CTP 决定。</li>
+            <li>Chinese Text Project（CTP/CText, ctext.org）：若 CTP 允许，单章内容可在无密钥情况下尝试获取；获取整部著作的章节目录则需要自备 CTP API 密钥，实际可用范围均以 CTP 为准。</li>
             <li>MPIWG 稀见地方志中所选的部分章节、支持的古登堡计划及 NDL 资料、CBETA 与国史编纂委员会 XML 文件。</li>
             <li>自行准备的纯文本文件。</li>
           </ul>
@@ -168,23 +168,23 @@
     <section id="guidance" class="guidance-section" aria-labelledby="guidance-title">
       <h2 id="guidance-title">解读检索结果时的注意事项</h2>
       <div class="guidance-copy">
-        <p>检索无结果并不代表该句式未曾使用。 “组合检索”的分组依据结构线索，旨在辅助研读，并不代表语法结论。</p>
+        <p>检索无结果并不代表该句式未曾使用。“组合检索”的分组依据结构线索，旨在辅助研读，并不代表语法结论。</p>
         <p>引用用例前，请打开提供的出处链接确认完整原文与前后文。</p>
-        <p>NDL 与 Việt Điển 的 OCR 文本可能存在识别误差，引用前请核对原始图像。</p>
+        <p>NDL 与 Việt Điện 的 OCR 文本可能存在识别误差，引用前请核对原始图像。</p>
       </div>
     </section>
 
     <section id="usage" class="guidance-section" aria-labelledby="usage-title">
       <h2 id="usage-title">数据利用与使用条件</h2>
       <div class="guidance-copy">
-        <p>在线检索仅在提供方返回限制内获取有限摘录或书目记录，不执行全库下载或整篇爬取。 在线检索受各数据源返回的文句和资料信息范围限制，且存在单次检索结果上限。</p>
+        <p>在线检索仅在提供方查询限制内获取有限摘录或书目记录，不执行全库下载或整篇爬取。在线检索仅能核查各数据源实际返回的摘录与书目信息，并受其单次结果上限约束。</p>
         <p>MPIWG 方志的每次预览最多读取所选卷目的50个源单元，可将支持的部分保存为本地可检索文本。这些单位并不对应纸质书籍的页码；不提供整部语料库的在线检索。</p>
         <p>为减轻数据源服务器负担，程序限制了请求间隔与频次。下载的资料受各机构使用条款约束。</p>
       </div>
     </section>
   </main>
   <footer class="site-foot">
-    <p>版本 3.1（标签 v3.1）。MIT 许可证。与所连接的各学术机构或数据库无任何附属关系的独立个人项目。各数据库原文语料、现代译文及 API 原始响应均不随软件包分发。</p>
+    <p>版本 3.1（标签 v3.1）。MIT 许可证。本项目为独立个人项目，与所连接的各学术机构或数据库均无隶属关系。各数据库原文语料、现代译文及 API 原始响应均不随软件分发。</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub 上的源码与发布</a></p>
     <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">提交意见与建议（Google 表单）</a></p>
   </footer>

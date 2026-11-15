@@ -8,7 +8,7 @@ It is a digital humanities research aid, not a grammar oracle or syntactic parse
 
 ## What It Searches
 
-Version 3.1 organizes online connections into five browsing regions covering 18 online sources, alongside local text folders. Online sources return bounded excerpts or catalogue references according to provider query limits.
+Version 3.1 organizes online connections into five regions covering 18 online sources, alongside local text folders. Online sources return bounded excerpts or catalogue references according to provider query limits.
 
 | | Where the text is | What you get |
 |---|---|---|

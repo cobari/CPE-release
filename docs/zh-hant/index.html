@@ -32,8 +32,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Classic Pattern Explorer 檢索介面（繁體中文）。">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="古典句式檢索器：漢文句式候選項檢索與上下文核對">
-  <meta name="twitter:description" content="在漢文（古漢語文言文）文獻中檢索句式模式候選項，閱讀原典文脈並核對來源連結。面向本機文獻與精選線上資料庫的數位人文研究輔助工具。">
+  <meta name="twitter:title" content="Classic Pattern Explorer：文言文（漢文）原文句式候選檢索">
+  <meta name="twitter:description" content="免費漢文（文言文）研究輔助工具：查找原文中的句式候選用例，查看前後文與出處。支援本機文字檔及指定線上資料庫，適用於 Windows、macOS 與 Linux。">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hant.png">
   <meta name="twitter:image:alt" content="Classic Pattern Explorer 檢索介面（繁體中文）。">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"免費漢文（文言文）研究輔助工具：查找原文中的句式候選用例，查看前後文與出處。支援本機文字檔及指定線上資料庫，適用於 Windows、macOS 與 Linux。","url":"https://cobari.github.io/CPE-release/zh-hant/","softwareVersion":"3.1","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
@@ -96,7 +96,7 @@
         </div>
         <div class="platform-item">
           <h3>本機 MCP 伺服器</h3>
-          <p>3.1 候選版本包含本機 stdio MCP 伺服器，提供涵蓋本機語料、18 個線上資料來源、資料匯入與匯出的 20 個學術研究工具。詳情請參閱 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 指南</a>。</p>
+          <p>3.1 版另附可選的本機 stdio MCP 伺服器，提供涵蓋本機資料夾、18 個線上資料來源以及資料匯入與匯出的 20 個研究工具。詳情請參閱 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 指南</a>。</p>
         </div>
       </div>
 
@@ -144,7 +144,7 @@
           <p>離線檢索所選資料夾中 UTF-8 .txt、.md 檔案的全文，以及程式透過支援的匯入功能儲存的 .texts.jsonl 文字集檔案。</p>
           <ul>
             <li>從韓國公共資料入口網站下載國史編纂委員會、韓國古典翻譯院、韓國學中央研究院的古籍資料，儲存為可檢索的文字集檔案。</li>
-            <li>Chinese Text Project（CTP/CText, ctext.org）：單一章節可在 CTP 允許的情況下無需金鑰嘗試取得；整部著作的章節清單需要自備 CTP API 金鑰，實際可用範圍由 CTP 決定。</li>
+            <li>Chinese Text Project（CTP/CText, ctext.org）：若 CTP 允許，單一章節可在無金鑰的情況下嘗試取得；取得整部著作的章節目錄則需自備 CTP API 金鑰，實際可用範圍均以 CTP 為準。</li>
             <li>MPIWG 稀見地方志中所選的部分章節、支援的古騰堡計畫及 NDL 資料、CBETA 與國史編纂委員會 XML 檔案。</li>
             <li>自行準備的純文字檔案。</li>
           </ul>
@@ -152,10 +152,10 @@
 
         <article class="scope-col">
           <h3>線上資料來源檢索</h3>
-          <div class="scope-sub">18個資料源的摘錄與書目記錄，需要網路連線</div>
-          <p>向支援的線上來源發送檢索詞，查閱傳回的文句或書目資訊；部分來源則改為開啟其官方檢索頁面。遵守提供方的結果筆數限制。依5個國家與地區分類：</p>
+          <div class="scope-sub">來自 18 個資料來源的摘錄與書目記錄（需要網路連線）</div>
+          <p>向支援的線上來源發送檢索詞，查閱回傳的文句或書目資訊；部分來源則改為開啟其官方檢索頁面。遵守提供方的結果筆數限制。依5個國家與地區分類：</p>
           <ul>
-            <li><strong>韓國（8）：</strong> 韓國古典綜合資料庫 (ITKC)、東洋古典綜合資料庫 (Cyber Seodang)、韓國史資料庫綜合檢索、朝鮮王朝實錄·國史編纂委員會檢索、東北亞歷史財團 東北亞歷史網檢索、NRICH 木簡釋文（韓國）、韓國學中央研究院 古文書資料館、奎章閣古文書 · 原文檢索。</li>
+            <li><strong>韓國（8）：</strong> 韓國古典綜合資料庫 (ITKC)、東洋古典綜合資料庫 (Cyber Seodang)、韓國史資料庫綜合檢索、朝鮮王朝實錄 · 國史編纂委員會檢索、東北亞歷史財團 東北亞歷史網檢索、NRICH 木簡釋文（韓國）、韓國學中央研究院 古文書資料館、奎章閣古文書 · 原文檢索。</li>
             <li><strong>日本（4）：</strong> 日本國立國會圖書館 (NDL)、SAT大正新脩大藏經文本資料庫、東京大學古記錄全文DB · 官方檢索、CanD 中國與日本漢詩 · 書目參考。</li>
             <li><strong>中國（1）：</strong> 浙江大學 CSID · 錄文檢索。</li>
             <li><strong>臺灣（4）：</strong> CBETA 漢文佛典、DocuSky · 佛寺志靈應故事、中央研究院臺灣史研究所 臺灣文獻全文資料庫、臺灣歷史數位圖書館 · 古契書。</li>
@@ -168,23 +168,23 @@
     <section id="guidance" class="guidance-section" aria-labelledby="guidance-title">
       <h2 id="guidance-title">解讀檢索結果時的注意事項</h2>
       <div class="guidance-copy">
-        <p>檢索無結果並不代表該句式未曾使用。 「組合檢索」依結構線索將候選用例分組，旨在輔助研讀，並不代表語法結論。</p>
+        <p>檢索無結果並不代表該句式未曾使用。「組合檢索」依結構線索將候選用例分組，旨在輔助研讀，並不代表語法結論。</p>
         <p>引用用例前，請開啟提供的出處連結，核對完整原文與前後文。</p>
-        <p>NDL 與 Việt Điển 的 OCR 文本可能存在辨識誤差，引用前請核對原書圖像底本。</p>
+        <p>NDL 與 Việt Điện 的 OCR 文本可能存在辨識誤差，引用前請核對原書圖像底本。</p>
       </div>
     </section>
 
     <section id="usage" class="guidance-section" aria-labelledby="usage-title">
       <h2 id="usage-title">資料利用與使用條件</h2>
       <div class="guidance-copy">
-        <p>線上檢索僅在提供方傳回限制內取得有限摘錄或書目記錄，不執行全庫下載或全文抓取。 線上檢索可核對的範圍取決於各來源回傳的摘錄與資料資訊，單次結果數也有上限。</p>
+        <p>線上檢索僅在提供方查詢限制內取得有限摘錄或書目記錄，不執行全庫下載或全文抓取。線上檢索可核對的範圍取決於各來源回傳的摘錄與資料資訊，單次結果數也有上限。</p>
         <p>MPIWG 方志每次預覽最多讀取所選卷目的50個來源單元，可將支援的部分儲存為本機可檢索文字。這些單位並不對應紙本書籍的頁碼；不提供整部語料庫的線上檢索。</p>
         <p>為減輕資料來源伺服器負擔，程式限制了請求間隔與頻次。下載的資料受各機構使用條款約束。</p>
       </div>
     </section>
   </main>
   <footer class="site-foot">
-    <p>版本 3.1（標籤 v3.1）。MIT 授權條款。與所連線的各學術機構或資料庫無任何附屬關係的獨立個人專案。各資料庫原文語料、現代譯文及 API 原始回應均不隨軟體套件散布。</p>
+    <p>版本 3.1（標籤 v3.1）。MIT 授權條款。本專案為獨立個人專案，與所連線的各學術機構或資料庫均無隸屬關係。各資料庫原文語料、現代譯文及 API 原始回應均不隨軟體套件散布。</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub 上的原始碼與發布</a></p>
     <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">提供意見與建議（Google 表單）</a></p>
   </footer>

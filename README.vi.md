@@ -12,7 +12,7 @@ Phiên bản 3.1 tổ chức các kết nối trực tuyến thành 5 khu vực 
 
 | | Vị trí văn bản | Kết quả nhận được |
 |---|---|---|
-| **Văn bản của bạn** | Thư mục trên máy tính của bạn: các tệp UTF-8 `.txt` và `.md`, các tác phẩm nhập từ Chinese Text Project (CTP/CText, ctext.org) bằng khóa API của bạn (lưu thành `.txt`), và các gói `.texts.jsonl` do chương trình chuyển đổi từ tài liệu gốc của các viện nghiên cứu thuộc Cổng dữ liệu công cộng Hàn Quốc (Viện Lịch sử Quốc gia Hàn Quốc, Viện Dịch thuật Kinh điển Hàn Quốc, Viện Nghiên cứu Hàn Quốc học Trung ương, v.v.) | Toàn văn mỗi tệp đều được tìm kiếm; phạm vi bao quát toàn bộ nội dung tệp |
+| **Văn bản của bạn** | Thư mục trên máy tính của bạn: các tệp UTF-8 `.txt` và `.md`, các tác phẩm nhập từ Chinese Text Project (CTP/CText, ctext.org) bằng khóa API của bạn (lưu thành `.txt`), và các gói `.texts.jsonl` do chương trình chuyển đổi từ tài liệu gốc của các viện nghiên cứu thuộc Cổng dữ liệu công cộng Hàn Quốc (Viện Lịch sử Quốc gia Hàn Quốc, Viện Dịch thuật Kinh điển Hàn Quốc, Học viện Nghiên cứu Hàn Quốc, v.v.) | Toàn văn mỗi tệp đều được tìm kiếm; phạm vi bao quát toàn bộ nội dung tệp |
 | **Tìm kiếm đoạn trích và thư mục trực tuyến** | 18 nguồn trực tuyến thuộc 5 khu vực tìm kiếm (Hàn Quốc 8, Nhật Bản 4, Trung Quốc 1, Đài Loan 4, Việt Nam 1); yêu cầu kết nối Internet | Các đoạn văn hoặc mục thư mục do nguồn trả về quanh vị trí khớp (thường bị cắt ở hai đầu), trong giới hạn số lượng của từng nguồn |
 
 Kết quả trực tuyến là các đoạn văn hoặc mục thư mục do máy chủ nhà cung cấp trả về theo giới hạn truy vấn. Việc không tìm thấy kết quả không chứng minh rằng mẫu câu đó không bao giờ xuất hiện trong kho tư liệu lịch sử. Trước khi trích dẫn, hãy luôn mở liên kết xuất xứ để kiểm tra toàn bộ ngữ cảnh.

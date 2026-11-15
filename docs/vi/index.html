@@ -32,8 +32,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Màn hình tìm kiếm Classic Pattern Explorer bằng tiếng Việt.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Classic Pattern Explorer: tìm kiếm mẫu câu Hán văn và kiểm tra ngữ cảnh">
-  <meta name="twitter:description" content="Công cụ hỗ trợ nghiên cứu nhân văn số giúp tìm kiếm các mẫu câu trong văn bản Hán văn cổ, đối chiếu ngữ cảnh và liên kết nguồn để học giả tự đánh giá.">
+  <meta name="twitter:title" content="Classic Pattern Explorer: tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn">
+  <meta name="twitter:description" content="Công cụ miễn phí giúp tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-vi.png">
   <meta name="twitter:image:alt" content="Màn hình tìm kiếm Classic Pattern Explorer bằng tiếng Việt.">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"Công cụ miễn phí giúp tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn, đọc ngữ cảnh và kiểm tra nguồn. Tìm trên tệp của bạn và các nguồn trực tuyến được hỗ trợ.","url":"https://cobari.github.io/CPE-release/vi/","softwareVersion":"3.1","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"vi","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
@@ -60,7 +60,7 @@
   <main id="main">
     <section class="hero">
       <div class="hero-copy">
-        <h1>Tìm các đoạn có thể chứa mẫu câu trong văn bản Hán văn nguyên tác</h1>
+        <h1>Tìm đoạn có thể chứa mẫu câu trong văn bản Hán văn nguyên tác</h1>
         <p class="lead">Classic Pattern Explorer giúp tìm các đoạn có thể chứa mẫu câu như <span class="pattern" lang="lzh">以…爲</span> hoặc <span class="pattern" lang="lzh">雖…而</span> trong văn bản Hán văn. Bạn có thể đọc ngữ cảnh được cung cấp và mở liên kết nguồn khi có để tự đối chiếu.</p>
       </div>
       <div class="actions">
@@ -96,7 +96,7 @@
         </div>
         <div class="platform-item">
           <h3>Máy chủ MCP cục bộ</h3>
-          <p>Bản ứng viên 3.1 bao gồm máy chủ stdio MCP cục bộ cung cấp 20 công cụ nghiên cứu bao quát các thư mục văn bản, 18 nguồn trực tuyến, nhập và xuất ngữ liệu. Xem <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">hướng dẫn MCP</a> để biết chi tiết.</p>
+          <p>Phiên bản 3.1 có thêm tùy chọn máy chủ stdio MCP cục bộ với 20 công cụ nghiên cứu cho thư mục văn bản, 18 nguồn trực tuyến, nhập và xuất dữ liệu. Xem <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">hướng dẫn MCP</a> để biết chi tiết.</p>
         </div>
       </div>
 
@@ -112,7 +112,7 @@
         </div>
         <div class="step-item">
           <h4>3. Đối chiếu ngữ cảnh và kiểm tra nguồn</h4>
-          <p>Xem kết quả hoặc thông tin thư mục được trả về. Mở liên kết nguồn khi có để đối chiếu ngữ cảnh gốc. Với Tìm kiếm cặp, xem thêm văn bản A/B và nhóm theo dấu hiệu cấu trúc nếu được cung cấp.</p>
+          <p>Xem kết quả hoặc thông tin thư mục được trả về. Mở liên kết nguồn khi có để đối chiếu ngữ cảnh gốc. Trong Tìm kiếm cặp, xem thêm văn bản A/B và cách phân nhóm theo dấu hiệu cấu trúc nếu có.</p>
         </div>
       </div>
     </section>
@@ -130,7 +130,7 @@
         </div>
         <div class="method-item">
           <h3>Công cụ hỗ trợ, không phải bộ phân tích cú pháp</h3>
-          <p>Trong Tìm kiếm cặp, công cụ chỉ phân loại kết quả thành nhóm khả năng phù hợp cao và thấp hơn. Cách phân nhóm này không phải kết luận ngữ pháp; việc đọc và đánh giá vẫn thuộc về bạn.</p>
+          <p>Trong Tìm kiếm cặp, công cụ chỉ phân loại kết quả thành nhóm khả năng phù hợp cao và thấp. Cách phân nhóm này không phải kết luận ngữ pháp; việc đọc và đánh giá vẫn thuộc về bạn.</p>
         </div>
       </div>
     </section>
@@ -141,7 +141,7 @@
         <article class="scope-col">
           <h3>Văn bản của bạn</h3>
           <div class="scope-sub">Toàn văn trên máy tính của bạn</div>
-          <p>Thư mục bạn chọn: các tệp UTF-8 .txt và .md, cùng các tệp .texts.jsonl do ứng dụng tạo ra khi nhập tài liệu gốc từ các viện nghiên cứu. Toàn văn mỗi tệp đều được tìm kiếm ngoại tuyến.</p>
+          <p>Thư mục bạn chọn: các tệp UTF-8 .txt và .md, cùng các tệp .texts.jsonl do ứng dụng chuyển đổi từ tài liệu gốc của các viện nghiên cứu. Toàn văn mỗi tệp đều được tìm kiếm ngoại tuyến.</p>
           <ul>
             <li>Tài liệu gốc từ Cổng dữ liệu công cộng Hàn Quốc của Viện Lịch sử Quốc gia Hàn Quốc (NIKH), Viện Dịch thuật Kinh điển Hàn Quốc và Học viện Nghiên cứu Hàn Quốc được lưu thành gói văn bản có thể tìm kiếm.</li>
             <li>Chinese Text Project (CTP/CText, ctext.org): có thể thử tải một chương mà không cần khóa nếu CTP cho phép; danh mục toàn bộ chương của tác phẩm yêu cầu khóa API CTP của bạn.</li>
@@ -152,13 +152,13 @@
 
         <article class="scope-col">
           <h3>Tìm kiếm nguồn trực tuyến</h3>
-          <div class="scope-sub">Đoạn trích và thư mục từ 18 nguồn; yêu cầu kết nối Internet</div>
-          <p>Gửi từ khóa đến các nguồn được hỗ trợ và xem đoạn trích hoặc thông tin thư mục được trả về; một số nguồn sẽ mở trang tìm kiếm chính thức thay vì trả về kết quả. Số kết quả tuân theo giới hạn của từng nguồn. Các nguồn được chia theo 5 khu vực tìm kiếm:</p>
+          <div class="scope-sub">Đoạn trích và thư mục từ 18 nguồn; cần kết nối Internet</div>
+          <p>Gửi từ khóa đến các nguồn được hỗ trợ và xem đoạn trích hoặc thông tin thư mục được trả về; một số nguồn sẽ mở trang tìm kiếm chính thức thay vì trả về kết quả. Số kết quả tuân theo giới hạn của từng nguồn. Các nguồn được chia theo 5 khu vực:</p>
           <ul>
             <li><strong>Hàn Quốc (8):</strong> CSDL Kinh điển Hàn Quốc (ITKC), Cyber Seodang (CSDL Kinh điển phương Đông), Tra cứu tổng hợp CSDL Lịch sử Hàn Quốc, Thực lục triều Joseon · tìm kiếm NIKH, Tra cứu Mạng Lịch sử Đông Bắc Á của NAHF, Thẻ gỗ NRICH (Hàn Quốc), Lưu trữ bản thảo lịch sử Hàn Quốc AKS, Tài liệu lịch sử Kyujanggak · nguyên văn.</li>
-            <li><strong>Nhật Bản (4):</strong> Thư viện Quốc hội Nhật Bản (NDL), CSDL văn bản Đại tạng kinh SAT, Nhật ký cổ Nhật Bản, Đại học Tokyo · tìm kiếm chính thức, Thơ Trung Quốc và Nhật Bản CanD · tham chiếu.</li>
-            <li><strong>Trung Quốc (1):</strong> CSDL văn bia Trung Quốc, Đại học Chiết Giang · tìm bản phiên văn.</li>
-            <li><strong>Đài Loan (4):</strong> Đại tạng kinh Hán văn CBETA, DocuSky · 佛寺志靈應故事, CSDL toàn văn Đài Loan ITH, Academia Sinica, Thư viện số Lịch sử Đài Loan · Văn khế cổ.</li>
+            <li><strong>Nhật Bản (4):</strong> Thư viện Quốc hội Nhật Bản (NDL), CSDL văn bản Đại tạng kinh SAT, Nhật ký cổ Nhật Bản (Đại học Tokyo) · tìm kiếm chính thức, Thơ Trung Quốc và Nhật Bản CanD · tham chiếu.</li>
+            <li><strong>Trung Quốc (1):</strong> CSDL văn bia Trung Quốc (Đại học Chiết Giang) · tìm bản phiên văn.</li>
+            <li><strong>Đài Loan (4):</strong> Đại tạng kinh Hán văn CBETA, DocuSky · 佛寺志靈應故事, CSDL toàn văn Đài Loan (ITH, Academia Sinica), Thư viện số Lịch sử Đài Loan · Văn khế cổ.</li>
             <li><strong>Việt Nam (1):</strong> Kho OCR Hán-Nôm Việt Điện.</li>
           </ul>
         </article>

@@ -32,8 +32,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Classic Pattern Explorer 검색 화면(한국어 인터페이스).">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="고전문형탐색기: 한문 문형 후보 검색과 원문 맥락 확인">
-  <meta name="twitter:description" content="한문(漢文) 문헌에서 문형 후보를 찾고, 제공된 원문과 앞뒤 문맥을 검토하여 연구자 스스로 판단할 수 있도록 돕는 연구 보조 도구입니다.">
+  <meta name="twitter:title" content="Classic Pattern Explorer: 한문 원문의 문형 후보 검색">
+  <meta name="twitter:description" content="한문 원문에서 문형 후보를 찾고 문맥과 출처를 확인하는 무료 연구 도구입니다. 내 컴퓨터의 텍스트와 지원하는 온라인 자료를 검색하며 Windows·macOS·Linux에서 사용할 수 있습니다.">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-ko.png">
   <meta name="twitter:image:alt" content="Classic Pattern Explorer 검색 화면(한국어 인터페이스).">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"한문 원문에서 문형 후보를 찾고 문맥과 출처를 확인하는 무료 연구 도구입니다. 내 컴퓨터의 텍스트와 지원하는 온라인 자료를 검색하며 Windows·macOS·Linux에서 사용할 수 있습니다.","url":"https://cobari.github.io/CPE-release/ko/","softwareVersion":"3.1","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
@@ -96,7 +96,7 @@
         </div>
         <div class="platform-item">
           <h3>로컬 MCP 서버</h3>
-          <p>3.1 후보판에는 로컬 폴더, 18개 온라인 자료원, 가져오기 및 내보내기를 아우르는 20개 연구 도구를 제공하는 로컬 stdio MCP 서버가 포함되어 있습니다. 자세한 내용은 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 안내</a>를 보세요.</p>
+          <p>3.1 버전에는 로컬 폴더, 18개 온라인 자료원, 가져오기와 내보내기를 지원하는 20개 연구 도구를 제공하는 선택형 로컬 stdio MCP 서버가 포함되어 있습니다. 자세한 내용은 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 안내</a>를 보세요.</p>
         </div>
       </div>
 
@@ -112,7 +112,7 @@
         </div>
         <div class="step-item">
           <h4>3. 문맥 대조 및 원문 확인</h4>
-          <p>제공된 결과나 서지 정보를 살피고, 출처 링크가 있으면 원문 문맥을 대조하세요. 복합 검색에서는 A·B 원문과 구조적 단서에 따른 그룹이 제공되는 경우 함께 검토하세요.</p>
+          <p>제공된 결과나 서지 정보를 살피고, 출처 링크가 있으면 원문 문맥을 대조하세요. 복합 검색에서는 A·B 원문과 구조적 단서에 따른 분류가 제공될 경우 함께 검토하세요.</p>
         </div>
       </div>
     </section>
@@ -126,7 +126,7 @@
         </div>
         <div class="method-item">
           <h3>6개 인터페이스 언어</h3>
-          <p>한국어, 일본어, 중국어 간체, 중국어 번체, 베트남어, 영어. 화면 언어를 바꿔도 원문 표기는 절대 변환되거나 변경되지 않습니다.</p>
+          <p>한국어, 일본어, 중국어 간체, 중국어 번체, 베트남어, 영어를 지원합니다. 화면 언어를 바꿔도 원문 표기는 변환되거나 바뀌지 않습니다.</p>
         </div>
         <div class="method-item">
           <h3>구문 분석기가 아닌 연구 보조 도구</h3>
@@ -140,7 +140,7 @@
       <div class="scope-dossier">
         <article class="scope-col">
           <h3>내 컴퓨터의 텍스트</h3>
-          <div class="scope-sub">내 컴퓨터의 전체 텍스트</div>
+          <div class="scope-sub">내 컴퓨터에 저장된 텍스트 전체</div>
           <p>직접 고른 폴더의 UTF-8 .txt·.md 파일과, 지원하는 가져오기 기능으로 저장한 .texts.jsonl 텍스트 묶음 파일의 본문 전체를 오프라인에서 검색합니다.</p>
           <ul>
             <li>공공데이터포털에서 지원하는 국사편찬위원회·한국고전번역원·한국학중앙연구원의 원문 자료를 내려받아 검색할 수 있는 텍스트 묶음으로 저장합니다.</li>
@@ -153,7 +153,7 @@
         <article class="scope-col">
           <h3>온라인 자료 검색</h3>
           <div class="scope-sub">18개 자료원의 발췌문·서지 정보, 인터넷 연결 필요</div>
-          <p>자료원에 검색어를 보내고, 제공된 본문이나 자료 정보를 확인합니다. 일부 자료원은 그 대신 공식 검색 페이지를 엽니다. 제공처의 건수 제한이 적용됩니다. 5개 탐색 지역으로 분류되어 있습니다.</p>
+          <p>자료원에 검색어를 보내고, 제공된 본문이나 서지 정보를 확인합니다. 일부 자료원은 대신 공식 검색 페이지를 엽니다. 각 제공처의 건수 제한이 적용되며, 5개 지역으로 나뉘어 있습니다.</p>
           <ul>
             <li><strong>한국(8):</strong> 한국고전종합DB (ITKC), 동양고전종합DB (사이버서당), 한국사데이터베이스 통합검색, 조선왕조실록 · 국사편찬위원회 검색, 동북아역사넷 검색, 국립문화유산연구원(NRICH) · 목간 판독문, 한국학중앙연구원 고문서자료관, 규장각 고문서 · 원문 검색.</li>
             <li><strong>일본(4):</strong> 일본 국립국회도서관 (NDL), SAT 대정신수대장경 텍스트 데이터베이스, 도쿄대 고기록 전문DB · 공식 검색, CanD 중국·일본 한시 · 서지 참고.</li>
@@ -169,8 +169,8 @@
       <h2 id="guidance-title">결과를 해석할 때 주의할 점</h2>
       <div class="guidance-copy">
         <p>결과가 없다고 해서 그 문형이 쓰이지 않았다는 뜻은 아닙니다. 복합 검색의 후보 구분은 검토를 돕는 구조적 단서일 뿐이며, 문법적 해석을 확정하지는 않습니다.</p>
-        <p>용례를 인용하기 전에는 제공되는 출처 링크를 열어 전체 원문과 문맥을 확인하세요.</p>
-        <p>NDL 및 Việt Điển의 OCR 텍스트에는 인식 오류가 있을 수 있으니, 인용하기 전에 원본 이미지를 확인하세요.</p>
+        <p>용례를 인용하기 전에는 출처 링크를 열어 원문 전체와 앞뒤 문맥을 확인하세요.</p>
+        <p>NDL 및 Việt Điện의 OCR 텍스트에는 인식 오류가 있을 수 있으니, 인용하기 전에 원본 이미지를 확인하세요.</p>
       </div>
     </section>
 
