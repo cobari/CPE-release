@@ -566,19 +566,21 @@ def tls_context() -> ssl.SSLContext:
     context = ssl.create_default_context()
     # This provider's chain lacks an SKI. Keep trust-chain and hostname checks;
     # Python 3.13+'s extra strict profile otherwise rejects the public endpoint.
-    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    context.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
     return context
 
 
-def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
+def urllib_transport(
+    url: str, params: dict[str, Any], timeout: float, *, limit: int = MAX_BYTES
+) -> bytes:
     request = urllib.request.Request(
         f"{url}?{urllib.parse.urlencode(params)}", headers={"User-Agent": AGENT}
     )
     with urllib.request.urlopen(
         request, timeout=timeout, context=tls_context()
     ) as response:
-        data: bytes = response.read(MAX_BYTES + 1)
-    if len(data) > MAX_BYTES:
+        data: bytes = response.read(limit + 1)
+    if len(data) > limit:
         raise DocuskyError("response byte limit exceeded")
     return data
 
@@ -628,7 +630,10 @@ class DocuskyClient:
             self._last = self.clock()
             self.calls += 1
             try:
-                raw = self.transport(url, params, self.timeout)
+                if self.transport is urllib_transport:
+                    raw = urllib_transport(url, params, self.timeout, limit=bound)
+                else:
+                    raw = self.transport(url, params, self.timeout)
                 if len(raw) > bound:
                     raise DocuskyError("response byte limit exceeded")
                 response = json.loads(raw)

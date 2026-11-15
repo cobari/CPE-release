@@ -141,12 +141,15 @@ def work_urn(address: str, client: CtpClient) -> str:
     return urn
 
 
+MAX_SUBSECTION_DEPTH = 64
+
+
 def chapters(urn: str, client: CtpClient) -> tuple[str, list[Chapter]]:
     """The work's title and its chapters in order, walking subsections depth first."""
     data = client.call("gettext", urn=urn)
     title = _title(data) or urn
     found: list[Chapter] = []
-    _collect(urn, data, client, found)
+    _collect(urn, data, client, found, seen=set(), depth=0)
     return title, found
 
 
@@ -158,8 +161,19 @@ def _title(data: dict[str, Any]) -> str:
 
 
 def _collect(
-    urn: str, data: dict[str, Any], client: CtpClient, out: list[Chapter]
+    urn: str,
+    data: dict[str, Any],
+    client: CtpClient,
+    out: list[Chapter],
+    *,
+    seen: set[str],
+    depth: int,
 ) -> None:
+    if urn in seen:
+        raise CtpError("source_failed", "cyclic subsections")
+    if depth > MAX_SUBSECTION_DEPTH:
+        raise CtpError("source_failed", "subsection depth exceeded")
+    seen.add(urn)
     title = _title(data)
     text = data.get("fulltext")
     if text is not None and (
@@ -177,7 +191,16 @@ def _collect(
     ):
         raise CtpError("source_failed", "subsections must be a list of source URNs")
     for sub in subsections:
-        _collect(sub, client.call("gettext", urn=sub), client, out)
+        if sub in seen:
+            raise CtpError("source_failed", "cyclic subsections")
+        _collect(
+            sub,
+            client.call("gettext", urn=sub),
+            client,
+            out,
+            seen=seen,
+            depth=depth + 1,
+        )
 
 
 def page_link(urn: str) -> str:

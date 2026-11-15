@@ -22,6 +22,7 @@ from cpe.match.engine import (
     check_variants,
     long_segment_warning,
     match_text,
+    prepare_pattern,
     sentence_delimiters,
 )
 from cpe.match.pattern_file import PatternSpec, loads
@@ -109,11 +110,14 @@ def match_specs(
             for text in texts
         ],
     )
+    prepared = [prepare_pattern(spec, options) for spec in specs] if inputs_ else []
     found = [
         (text_index, pattern_index, result)
         for text_index, text_input in enumerate(inputs_)
-        for pattern_index, spec in enumerate(specs)
-        for result in match_text(spec, text_input, settings)
+        for pattern_index, (spec, prepared_spec) in enumerate(
+            zip(specs, prepared, strict=True)
+        )
+        for result in match_text(spec, text_input, settings, prepared=prepared_spec)
     ]
     results = assign_ids(found)
     warnings = [

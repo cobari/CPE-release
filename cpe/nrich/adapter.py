@@ -303,7 +303,7 @@ class NrichClient:
                         },
                         self.timeout,
                     )
-                except (OSError, ValueError) as error:
+                except (OSError, http.client.HTTPException, ValueError) as error:
                     raise NrichError(str(error)) from None
                 if checkpoint:
                     checkpoint()

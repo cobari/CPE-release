@@ -347,6 +347,12 @@ body:has(.source-dialog[open]) { overflow: hidden; }
   transform: none;
   box-shadow: none;
 }
+.dialog-head .dialog-close:disabled {
+  background: var(--disabled-bg);
+  color: var(--disabled-fg);
+  border: 1px dashed var(--disabled-border);
+  cursor: not-allowed;
+}
 .go.danger:not(:disabled) { background: var(--danger-bg); color: var(--danger-text); border-color: transparent; }
 .go.danger:hover:not(:disabled) { background: var(--danger-hover); }
 .source-dialog .dialog-head form { margin: 0; }

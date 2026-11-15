@@ -59,7 +59,7 @@ class CbetaError(RuntimeError):
 
 def _context() -> ssl.SSLContext:
     context = ssl.create_default_context()
-    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    context.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
     return context
 
 
@@ -136,11 +136,26 @@ def excerpt_text(kwic: str) -> str:
 
 def reader_link(result: dict[str, Any]) -> str:
     work, juan = str(result.get("work", "")), result.get("juan")
-    if not re.fullmatch(r"[A-Z]{1,2}[0-9]+[a-zA-Z]?", work) or not isinstance(
-        juan, int
+    if (
+        not re.fullmatch(r"[A-Z]{1,2}[0-9]+[a-zA-Z]?", work)
+        or isinstance(juan, bool)
+        or not isinstance(juan, int)
     ):
         return ""
     return f"{READER_URL}{work}_{juan:03d}"
+
+
+def _result_key(result: dict[str, Any], valid_juan: bool) -> tuple[str, str]:
+    if "file" in result:
+        raw = result.get("file")
+        if not isinstance(raw, str) or not raw.strip():
+            raise CbetaError("result file is required")
+        file_id = raw.strip()
+        return file_id, file_id
+    work = result.get("work")
+    if isinstance(work, str) and work.strip() and valid_juan:
+        return work.strip(), ""
+    raise CbetaError("result identifier is required")
 
 
 def result_texts(result: dict[str, Any]) -> list[LocalText]:
@@ -148,7 +163,8 @@ def result_texts(result: dict[str, Any]) -> list[LocalText]:
         str(part) for part in (result.get("title"), result.get("byline")) if part
     )
     juan = result.get("juan")
-    if isinstance(juan, int):
+    valid_juan = isinstance(juan, int) and not isinstance(juan, bool)
+    if valid_juan:
         title = f"{title} {juan}"
     container = result.get("kwics")
     if container is None:
@@ -160,32 +176,38 @@ def result_texts(result: dict[str, Any]) -> list[LocalText]:
         return []
     if not isinstance(kwics, list):
         raise CbetaError("kwic results must be a list")
-    texts = []
+    excerpts: list[tuple[int, str, Any]] = []
     for index, item in enumerate(kwics, start=1):
         if not isinstance(item, dict) or not isinstance(item.get("kwic", ""), str):
             raise CbetaError("kwic must contain source text")
         text = excerpt_text(item.get("kwic", ""))
-        if not text:
-            continue
-        texts.append(
-            LocalText(
-                path=Path(),
-                text_id=f"cbeta:{result.get('file', '')}:{juan}#{index}",
-                reference=text,
-                range="excerpt",
-                boundary_start="truncated",
-                boundary_end="truncated",
-                punctuation="modern",
-                full_stop="sentence",
-                text_type="original",
-                title=title or str(result.get("work", "")),
-                source=reader_link(result),
-                edition=f"CBETA {result.get('file', '')} {item.get('lb', '')}".strip(),
-                sha256="",
-                bom=False,
-            )
+        if text:
+            excerpts.append((index, text, item.get("lb", "")))
+    if not excerpts:
+        return []
+    key_id, file_id = _result_key(result, valid_juan)
+    juan_id = str(juan) if valid_juan else ""
+    link = reader_link(result)
+    work = str(result.get("work", ""))
+    return [
+        LocalText(
+            path=Path(),
+            text_id=f"cbeta:{key_id}:{juan_id}#{index}",
+            reference=text,
+            range="excerpt",
+            boundary_start="truncated",
+            boundary_end="truncated",
+            punctuation="modern",
+            full_stop="sentence",
+            text_type="original",
+            title=title or work or key_id,
+            source=link,
+            edition=f"CBETA {file_id} {lb}".strip(),
+            sha256="",
+            bom=False,
         )
-    return texts
+        for index, text, lb in excerpts
+    ]
 
 
 @dataclass(frozen=True)
@@ -203,8 +225,8 @@ def result_era(result: dict[str, Any]) -> dict[str, Any] | None:
     """The dynasty and the years CBETA records for the work's creator."""
     dynasty = result.get("time_dynasty")
     start, end = result.get("time_from"), result.get("time_to")
-    start = start if isinstance(start, int) else None
-    end = end if isinstance(end, int) else None
+    start = start if isinstance(start, int) and not isinstance(start, bool) else None
+    end = end if isinstance(end, int) and not isinstance(end, bool) else None
     if not dynasty and start is None:
         return None
     return {
@@ -241,9 +263,20 @@ def fetch(
         raise CbetaError("invalid result counts")
     texts: list[LocalText] = []
     eras: dict[str, dict[str, Any]] = {}
+    seen_results: set[str] = set()
+    seen_ids: set[str] = set()
     for item in results:
         era = result_era(item)
-        for text in result_texts(item):
+        found = result_texts(item)
+        if not found:
+            continue
+        result_key = found[0].text_id.rsplit("#", 1)[0]
+        ids = {text.text_id for text in found}
+        if result_key in seen_results or ids & seen_ids:
+            raise CbetaError("duplicate result identity")
+        seen_results.add(result_key)
+        seen_ids.update(ids)
+        for text in found:
             texts.append(text)
             if era is not None:
                 eras[text.text_id] = era

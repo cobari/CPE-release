@@ -16,6 +16,7 @@ import threading
 import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 
@@ -77,6 +78,7 @@ class _Session:
     cursor_at: dict[int, str] = field(default_factory=dict)
 
 
+@lru_cache(maxsize=1)
 def _catalog() -> dict[str, str]:
     """The English source catalog values, without importing the GUI app."""
     path = Path(__file__).resolve().parents[1] / "gui" / "i18n" / "en.json"

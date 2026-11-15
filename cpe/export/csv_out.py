@@ -302,7 +302,7 @@ def mark_terms(
     start: int,
     end: int,
     strong: set[tuple[int, int]],
-    literals: list[str],
+    literals: Sequence[str],
     hidden: Spans = (),
 ) -> str:
     """`reference[start:end]` with search terms marked (spec 11).
@@ -318,7 +318,9 @@ def mark_terms(
     is any occurrence inside a hidden span.
     """
     strong_spans = _merge(span for span in strong if start <= span[0] < end)
-    overlaps = _merge([*strong_spans, *hidden])
+    first_hidden = bisect.bisect_right(hidden, start, key=lambda span: span[1])
+    last_hidden = bisect.bisect_left(hidden, end, key=lambda span: span[0])
+    overlaps = _merge([*strong_spans, *hidden[first_hidden:last_hidden]])
     weak: set[tuple[int, int]] = set()
     body = reference[start:end]
     for literal in literals:
@@ -357,6 +359,8 @@ def _merge(spans: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:
 
 def escape(text: str) -> str:
     """Source markup characters preceded by a backslash (spec 11)."""
+    if not any(c in text for c in MARKUP):
+        return text
     return "".join("\\" + c if c in MARKUP else c for c in text)
 
 
@@ -373,13 +377,14 @@ def first_internal_slot(pattern: str) -> str | None:
     )
 
 
-def pattern_literals(pattern: str) -> list[str]:
+@cache
+def pattern_literals(pattern: str) -> tuple[str, ...]:
     """Every option of every fixed element, from the parsed expression.
 
     Parsing (not splitting on spaces) keeps `not` literals and other slot
     syntax out of the search terms.
     """
-    return [option for fixed in parse(pattern).fixed for option in fixed.options]
+    return tuple(option for fixed in parse(pattern).fixed for option in fixed.options)
 
 
 def write(

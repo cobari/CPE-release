@@ -218,12 +218,14 @@ class NahfClient:
         with self._lock:
             if self.calls >= self.max_calls:
                 raise NahfCapReached
+            if checkpoint is not None:
+                checkpoint()
             if self._last is not None:
                 wait = self.min_interval - (self.clock() - self._last)
                 if wait > 0:
                     self.sleep(wait)
-            if checkpoint is not None:
-                checkpoint()
+                    if checkpoint is not None:
+                        checkpoint()
             self._last = self.clock()
             self.calls += 1
             request.add_header("User-Agent", AGENT)

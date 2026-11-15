@@ -16,6 +16,7 @@ from cpe.match.engine import (
     assign_ids,
     clause_delimiters,
     match_text,
+    prepare_pattern,
 )
 from cpe.match.pattern_file import PatternFileError, PatternSpec, from_mapping, loads
 from cpe.match.result import Result
@@ -85,12 +86,17 @@ def search(
     options = settings.normalization
 
     try:
+        prepared_specs = (
+            [prepare_pattern(spec, options) for spec in specs] if library.texts else []
+        )
         found: list[tuple[int, int, Result]] = []
         for text_index, text in enumerate(library.texts):
             if checkpoint:
                 checkpoint()
             matcher_input = text.matcher_input(settings)
-            for pattern_index, spec in enumerate(specs):
+            for pattern_index, (spec, prepared) in enumerate(
+                zip(specs, prepared_specs, strict=True)
+            ):
                 if checkpoint:
                     checkpoint()
                 for result in match_text(
@@ -98,8 +104,25 @@ def search(
                     matcher_input,
                     settings,
                     checkpoint=checkpoint,
+                    prepared=prepared,
                 ):
                     found.append((text_index, pattern_index, result))
+
+        # Cache second fixed literals for pair-like patterns to detect skips_nearer.
+        # Normalized inside this try block so invalid literals fail with "normalization"
+        # even when the library has no texts.
+        spec_seconds: dict[str, set[str]] = {}
+        for spec in specs:
+            if _is_pair_like(spec.pattern):
+                normalized_seconds: set[str] = set()
+                for opt in spec.pattern.fixed[1].options:
+                    lit = options.literal(opt)
+                    if not lit:
+                        raise NormalizationError(
+                            f"normalization removed fixed literal {opt!r}"
+                        )
+                    normalized_seconds.add(lit)
+                spec_seconds[spec.id] = normalized_seconds
     except NormalizationError:
         return {"error": "normalization"}
     except PatternFileError:
@@ -110,22 +133,19 @@ def search(
 
     results = assign_ids(found)
 
-    # Pre-collect fixed hit coordinates per (text_id, segment.start, segment.end)
-    # to render uniform 【】 highlight markers across all placements in a segment.
-    paired: dict[tuple[str, int, int], set[tuple[int, int]]] = {}
+    # Pre-collect fixed hits per (pattern_id, text_id, segment.start, segment.end)
+    # to keep 【】 highlight markers uniform across placements in the same segment.
+    paired: dict[tuple[str, str, int, int], set[tuple[int, int]]] = {}
     for result in results:
-        key = (result.text_id, result.segment.start, result.segment.end)
+        key = (
+            result.pattern_id,
+            result.text_id,
+            result.segment.start,
+            result.segment.end,
+        )
         paired.setdefault(key, set()).update(
             (hit.src.start, hit.src.end) for hit in result.fixed
         )
-
-    # Cache second fixed literals for pair-like patterns to detect skips_nearer
-    spec_seconds: dict[str, set[str]] = {}
-    for spec in specs:
-        if _is_pair_like(spec.pattern):
-            spec_seconds[spec.id] = {
-                options.literal(opt) for opt in spec.pattern.fixed[1].options
-            }
 
     by_id = {text.local.text_id: text for text in library.texts}
     likely: list[dict[str, Any]] = []
@@ -137,7 +157,12 @@ def search(
 
         text = by_id[result.text_id]
         view = text.view
-        key = (result.text_id, result.segment.start, result.segment.end)
+        key = (
+            result.pattern_id,
+            result.text_id,
+            result.segment.start,
+            result.segment.end,
+        )
 
         before, after = csv_out.context(
             view,

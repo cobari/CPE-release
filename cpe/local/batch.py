@@ -23,6 +23,7 @@ from cpe.local.txt import BUNDLE_SUFFIX, InputError, read_bundle
 
 _RELEASE_SUFFIXES = {".zip", ".xml"}
 _REPORT_NAME = "import-report.json"
+_FILE_COMPARE_CHUNK = 65536
 
 
 def _destination_lock(destination: Path) -> Path:
@@ -122,6 +123,22 @@ def _validate_bundles(target: Path) -> tuple[int, set[str], str | None]:
     return total_articles, seen_ids, None
 
 
+def _files_identical(
+    first: Path, second: Path, chunk_size: int = _FILE_COMPARE_CHUNK
+) -> bool:
+    """Compare regular files by size first, then in bounded binary chunks."""
+    if first.stat().st_size != second.stat().st_size:
+        return False
+    with first.open("rb") as left, second.open("rb") as right:
+        while True:
+            a = left.read(chunk_size)
+            b = right.read(chunk_size)
+            if a != b:
+                return False
+            if not a:
+                return True
+
+
 def _check_identical_release(staged: Path, dest: Path) -> bool:
     """Check if all entries in staged match all entries in dest exactly.
 
@@ -147,7 +164,7 @@ def _check_identical_release(staged: Path, dest: Path) -> bool:
             return False
         if staged_entry.is_file():
             try:
-                if staged_entry.read_bytes() != dest_entry.read_bytes():
+                if not _files_identical(staged_entry, dest_entry):
                     return False
             except OSError:
                 return False

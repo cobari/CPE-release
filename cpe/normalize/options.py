@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from cpe.normalize.text import NormalizedText
+from cpe.normalize.text import NormalizedText, identity
 
 KeepOrDelete = Literal["keep", "delete"]
 NoteMode = Literal["barrier", "join"]
@@ -240,6 +240,19 @@ def note_spans(reference: str, options: Options) -> list[tuple[int, int, str]]:
 
 def normalize(reference: str, options: Options) -> NormalizedText:
     notes = note_spans(reference, options)
+    if (
+        not notes
+        and options.variants is None
+        and options.variation_selectors == "keep"
+        and (
+            options.line_breaks == "keep"
+            or ("\n" not in reference and "\r" not in reference)
+        )
+        and (
+            options.whitespace == "keep" or not any(c in reference for c in WHITESPACE)
+        )
+    ):
+        return identity(reference)
     text: list[str] = []
     spans: list[tuple[int, int]] = []
     removed: list[tuple[int, int, int]] = []

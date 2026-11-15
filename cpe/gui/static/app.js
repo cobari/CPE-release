@@ -3548,7 +3548,10 @@ function fillSessionGroup(section, entry, group, labelKey, keepVisibleWhenEmpty 
       }
       list.replaceChildren();
       const apiObj = typeof api === "function" ? api() : null;
-      if (!apiObj || typeof apiObj.itkc_search_page !== "function") return;
+      if (!apiObj || typeof apiObj.itkc_search_page !== "function") {
+        page.dirty = true;
+        return;
+      }
       const res = await apiObj.itkc_search_page(session.id, displayedRev, group, start, currentSort);
 
       if (section._sessionLoadToken !== reqToken) return;
@@ -3561,6 +3564,7 @@ function fillSessionGroup(section, entry, group, labelKey, keepVisibleWhenEmpty 
       if ((typeof currentLanguage === "string" ? currentLanguage : "en") !== currentLang) return;
 
       if (res && res.error) {
+        page.dirty = true;
         if (pageErrorEl) {
           const msgEl = pageErrorEl.querySelector(".page-error-message");
           if (msgEl) msgEl.textContent = errorText(res.error, res) || t("itkc.page_error");
@@ -3582,6 +3586,7 @@ function fillSessionGroup(section, entry, group, labelKey, keepVisibleWhenEmpty 
     } catch {
       if (section._sessionLoadToken !== reqToken) return;
       if (section.isConnected === false || !lastAnswers.includes(entry)) return;
+      page.dirty = true;
       if (pageErrorEl) {
         const msgEl = pageErrorEl.querySelector(".page-error-message");
         if (msgEl) msgEl.textContent = t("itkc.page_error");

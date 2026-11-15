@@ -220,21 +220,24 @@ class CandClient:
         with self._lock:
             if self.calls >= self.max_calls:
                 raise CandCapReached
+            if checkpoint:
+                checkpoint()
             if self._last is not None:
                 wait = self.min_interval - (self.clock() - self._last)
                 if wait > 0:
                     self.sleep(wait)
-            if checkpoint:
-                checkpoint()
+                    if checkpoint:
+                        checkpoint()
             self._last = self.clock()
             self.calls += 1
+            total: int | None = None
             try:
                 if self.transport is not None:
                     raw = self.transport(request, self.timeout)
                 else:
                     assert self._opener is not None
                     with self._opener.open(request, timeout=self.timeout) as response:
-                        content_length(
+                        total = content_length(
                             response.headers.get("Content-Length"), MAX_BYTES
                         )
                         raw = response.read(MAX_BYTES + 1)
@@ -247,6 +250,8 @@ class CandClient:
                 raise CandError("search_failed") from error
             if len(raw) > MAX_BYTES:
                 raise CandError("search_large")
+            if total is not None and len(raw) != total:
+                raise CandError("search_failed")
             if checkpoint:
                 checkpoint()
             return parse(raw, term)

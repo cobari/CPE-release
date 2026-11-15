@@ -103,6 +103,7 @@ class ItkcSearchSession:
         self._revision = 0
         self._completed = 0
         self._snapshots: dict[int, Snapshot] = {0: Snapshot(0, 0, (), (), (), "paused")}
+        self._sorted_cache: dict[tuple[int, str, str], list[dict[str, Any]]] = {}
 
     def _checkpoint(self) -> None:
         if self._cancelled.is_set() or not self._current_generation(self._generation):
@@ -243,16 +244,30 @@ class ItkcSearchSession:
         if not self._lock.acquire(blocking=False):
             return {"error": "source_internal"}
         try:
-            if not self._current_generation(generation):
-                self._cancelled.set()
-                return self._metadata_for(self._current_snapshot(), current=True)
-            if self._cancelled.is_set():
-                return self._metadata_for(self._current_snapshot(), current=True)
-            if self._completed >= TOTAL_COLLECTIONS:
-                return self._metadata_for(self._current_snapshot(), current=True)
+            with self._snapshot_lock:
+                if not self._current_generation(generation):
+                    self._cancelled.set()
+                    return self._metadata_for(self._current_snapshot(), current=True)
+                if self._cancelled.is_set() or self._completed >= TOTAL_COLLECTIONS:
+                    return self._metadata_for(self._current_snapshot(), current=True)
             return self._step_locked()
         finally:
             self._lock.release()
+
+    def rollback_to(self, revision: int) -> None:
+        """Drop snapshots newer than `revision` when retaining them exceeds budget."""
+        with self._snapshot_lock:
+            previous = self._snapshots.get(revision)
+            if previous is None:
+                return
+            for rev in [key for key in self._snapshots if key > revision]:
+                del self._snapshots[rev]
+            for cache_key in [key for key in self._sorted_cache if key[0] > revision]:
+                del self._sorted_cache[cache_key]
+            self._revision = previous.revision
+            self._completed = previous.completed
+            self._state = previous.state
+            self._error = ""
 
     def page(
         self,
@@ -277,8 +292,12 @@ class ItkcSearchSession:
             if snapshot is None:
                 return {"error": "bad_request"}
             current = snapshot.revision == self._revision
-            source = snapshot.likely if group == "likely" else snapshot.less
-            ordered = sorted_rows(source, sort)
+            cache_key = (revision, group, sort)
+            ordered = self._sorted_cache.get(cache_key)
+            if ordered is None:
+                source = snapshot.likely if group == "likely" else snapshot.less
+                ordered = sorted_rows(source, sort)
+                self._sorted_cache[cache_key] = ordered
             answer = self._metadata_for(snapshot, current=current)
         rows = copy.deepcopy(ordered[start : start + PAGE_ROWS])
         answer.update({"group": group, "start": start, "rows": rows})

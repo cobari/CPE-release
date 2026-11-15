@@ -67,10 +67,11 @@ def page(payload: dict[str, Any], start: int, limit: int) -> dict[str, Any]:
     )
     index = start
     while index < len(items) and index - start < limit:
+        candidate_next = index + 1 if index + 1 < len(items) else None
         candidate = {
             **answer,
             key: [*answer[key], items[index]],
-            "next_start": index + 1,
+            "next_start": candidate_next,
         }
         if _size(candidate) > BUDGET:
             if answer[key] or answer["omitted"]:
@@ -490,11 +491,12 @@ def register(
         )
         if isinstance(answer.get("text"), str):
             text = answer["text"]
-            end = min(len(text), text_start + text_characters)
+            clamped_start = min(text_start, len(text))
+            end = min(len(text), clamped_start + text_characters)
             answer = {
                 **answer,
-                "text": text[text_start:end],
-                "chunk_start": text_start,
+                "text": text[clamped_start:end],
+                "chunk_start": clamped_start,
                 "next_text_start": end if end < len(text) else None,
                 "total_characters": len(text),
             }

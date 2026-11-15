@@ -94,11 +94,11 @@ def online_source(code: Any) -> bool:
 
 
 def _same_folder(first: Path, second: Path) -> bool:
-    if first.resolve() == second.resolve():
-        return True
     try:
+        if first.resolve() == second.resolve():
+            return True
         return first.samefile(second)
-    except OSError:
+    except (OSError, RuntimeError):
         return False
 
 
@@ -559,10 +559,26 @@ class Api:
             self._active_local = (
                 active if active in paths else next(iter(paths), "local")
             )
-        if folder and paths.get(active) == folder:
-            self._active_local = active
-            self._local_libraries = {active: library}
-            self._local_paths = {active: folder}
+        if folder:
+            target = Path(folder)
+            active_path = paths.get(active)
+            matched = (
+                active
+                if active_path
+                and (active_path == folder or _same_folder(Path(active_path), target))
+                else next(
+                    (
+                        code
+                        for code, path in paths.items()
+                        if path == folder or _same_folder(Path(path), target)
+                    ),
+                    None,
+                )
+            )
+            if matched is not None:
+                self._active_local = matched
+                self._local_libraries = {matched: library}
+                self._local_paths = {matched: folder}
         # Saved paths are checked for existence but not read: each slot loads when
         # it is searched, activated, or chosen for import. Only the active slot is
         # read before the window opens; the fallback path may read further slots
@@ -633,7 +649,12 @@ class Api:
             # like a bad manifest (cpe.match.engine check_variants); escaping as an
             # exception would leave the slot with no recorded error to retry from.
             with self._local_lock:
-                if self._local_paths.get(code) == path and not self._local_busy:
+                if (
+                    self._local_paths.get(code) == path
+                    and not self._local_busy
+                    and self._local_libraries.get(code) is failed
+                    and self._local_revisions.get(code, 0) == revision
+                ):
                     if code not in self._local_libraries:
                         self._local_libraries[code] = Library([], settings)
                         self._local_errors[code] = "load_failed"
@@ -1006,8 +1027,11 @@ class Api:
 
     def _reload_local_folder(self, folder: str) -> dict[str, Any]:
         """Refresh an import's destination slot without replacing another folder."""
-        with self._local_lock:
+        try:
             target = Path(folder).resolve()
+        except (OSError, RuntimeError):
+            return {"error": "load_failed", "path": folder}
+        with self._local_lock:
             source = next(
                 (
                     code

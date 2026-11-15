@@ -167,6 +167,11 @@ class ITKCClient:
         last_error: Exception | None = None
         for attempt in range(self.safeguards.retries + 1):
             if attempt:
+                with self._lock:
+                    if self.stopped or self.calls >= self.safeguards.max_calls:
+                        raise CallCapReached(
+                            f"call cap {self.safeguards.max_calls} reached"
+                        )
                 pause(2.0 * attempt, self.sleep, checkpoint)
             try:
                 content = self._call(params, checkpoint)

@@ -9,6 +9,7 @@ here decides a pass or fail from a point estimate alone (decision U2).
 
 from __future__ import annotations
 
+import bisect
 import io
 import json
 import math
@@ -359,14 +360,44 @@ def _overlaps(a: list[int], b: list[int]) -> bool:
 
 
 def _adjacent_layer(
-    text: str, fixed: list[list[int]], literals: list[set[str]]
+    text: str,
+    fixed: list[list[int]],
+    literals: list[set[str]],
+    ctx: baselines.Context | None = None,
 ) -> bool:
     """Whether a usage is the pattern's own fixed elements touching (以爲 layer).
 
     Touching spans of other words (such as 無不 for 非A不B) are ordinary usages.
     """
     ordered = sorted(fixed)
-    if len(ordered) != len(literals) or any(
+    if len(ordered) != len(literals):
+        return False
+    if ctx is not None:
+        sources = ctx.text.sources
+        norm_text = ctx.text.value
+        if sources is None:
+            norm_spans = [(start, end) for start, end in ordered]
+        else:
+            norm_spans = [
+                (bisect.bisect_left(sources, start), bisect.bisect_left(sources, end))
+                for start, end in ordered
+            ]
+        matched = True
+        for (n_start, n_end), options in zip(norm_spans, literals, strict=True):
+            allowed = set(options)
+            for opt in options:
+                try:
+                    allowed.add(ctx.cfg.literal(opt))
+                except ValueError:
+                    pass
+            if norm_text[n_start:n_end] not in allowed:
+                matched = False
+                break
+        if matched and any(
+            a[1] == b[0] for a, b in zip(norm_spans, norm_spans[1:], strict=False)
+        ):
+            return True
+    if any(
         text[start:end] not in options
         for (start, end), options in zip(ordered, literals, strict=True)
     ):
@@ -448,7 +479,9 @@ def evaluate(
                 )
         for usage in entry["usages"]:
             found = by_fixed.get(_key(usage["fixed_offsets"]), [])
-            if _adjacent_layer(entry["text"], usage["fixed_offsets"], literals(entry)):
+            if _adjacent_layer(
+                entry["text"], usage["fixed_offsets"], literals(entry), ctx
+            ):
                 report.adjacent_usages.n += 1
                 report.adjacent_usages.k += any(r["kind"] == "adjacent" for r in found)
                 continue
@@ -515,7 +548,7 @@ def _compare(
     usages = [
         u
         for u in entry["usages"]
-        if not _adjacent_layer(entry["text"], u["fixed_offsets"], literals)
+        if not _adjacent_layer(entry["text"], u["fixed_offsets"], literals, ctx)
     ]
     alternatives = [u["fixed_offsets"] for u in entry["usages"]]
     methods = {

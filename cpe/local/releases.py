@@ -39,18 +39,19 @@ MAX_STANDALONE_BYTES = 32 * 1024 * 1024
 MAX_TOTAL_BYTES = 1024 * 1024 * 1024
 
 
-def _release_member(name: str) -> bool:
+def is_release_member(name: str) -> bool:
     """A ZIP member that can hold a release XML document.
 
     macOS writes its resource forks under __MACOSX/ and as ._name companions. They
     are not release text, and __MACOSX sorts before ordinary folders, so keeping
     them would make the first XML look unreadable.
     """
-    if name.endswith("/") or not name.lower().endswith(".xml"):
+    normalized = name.replace("\\", "/")
+    if normalized.endswith("/") or not normalized.lower().endswith(".xml"):
         return False
-    if name.startswith("__MACOSX/"):
+    if normalized.startswith("__MACOSX/"):
         return False
-    return not name.rsplit("/", 1)[-1].startswith("._")
+    return not normalized.rsplit("/", 1)[-1].startswith("._")
 
 
 class ReleaseError(ValueError):
@@ -64,11 +65,28 @@ class ReleaseError(ValueError):
 def _check_duplicate_members(members: Iterable[zipfile.ZipInfo]) -> None:
     seen: set[str] = set()
     for info in members:
-        if not _release_member(info.filename):
+        if not is_release_member(info.filename):
             continue
         if info.filename in seen:
             raise ReleaseError("release_unreadable")
         seen.add(info.filename)
+
+
+def read_zip_member(
+    archive: zipfile.ZipFile,
+    info: zipfile.ZipInfo,
+    *,
+    max_bytes: int,
+    total_remaining: int,
+) -> bytes:
+    """Read one ZIP member bounded by member and remaining archive limits."""
+    limit = min(max_bytes, total_remaining)
+    if limit < 0 or info.file_size > limit:
+        raise ReleaseError("release_large")
+    data = archive.read(info)
+    if len(data) > limit:
+        raise ReleaseError("release_large")
+    return data
 
 
 def documents(path: Path) -> Generator[bytes, None, None]:
@@ -80,14 +98,20 @@ def documents(path: Path) -> Generator[bytes, None, None]:
                 members = [
                     info
                     for info in archive.infolist()
-                    if _release_member(info.filename)
+                    if is_release_member(info.filename)
                 ]
                 if sum(info.file_size for info in members) > MAX_TOTAL_BYTES:
                     raise ReleaseError("release_large")
+                remaining = MAX_TOTAL_BYTES
                 for info in sorted(members, key=lambda item: item.filename):
-                    if info.file_size > MAX_MEMBER_BYTES:
-                        raise ReleaseError("release_large")
-                    yield archive.read(info)
+                    data = read_zip_member(
+                        archive,
+                        info,
+                        max_bytes=MAX_MEMBER_BYTES,
+                        total_remaining=remaining,
+                    )
+                    remaining -= len(data)
+                    yield data
         else:
             if path.stat().st_size > MAX_STANDALONE_BYTES:
                 raise ReleaseError("release_large")

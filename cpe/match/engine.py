@@ -28,7 +28,7 @@ from cpe.match.result import (
     SlotHit,
 )
 from cpe.normalize.options import NormalizationError, Options
-from cpe.normalize.text import NormalizedText
+from cpe.normalize.text import NormalizedText, SourceSpan
 
 KIND_ORDER = {"matched": 0, "adjacent": 1, "indeterminate": 2}
 
@@ -128,8 +128,40 @@ class _Search:
 
     segment: seg.Segment
     branch: _Branch
+    segment_src: SourceSpan
     states: int = 0
     found: list[Result] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class PreparedPattern:
+    """Pre-normalized pattern, heuristics, and branches reused across texts."""
+
+    pattern: Pattern
+    heuristics: Heuristics
+    branches: tuple[_Branch, ...]
+    canonical: str
+
+
+def prepare_pattern(spec: PatternSpec, options: Options) -> PreparedPattern:
+    """Prepare pattern normalization and branch tables once per run."""
+    pattern = normalized_pattern(spec, options)
+    heuristics = normalized_heuristics(spec, options)
+    branches = [_Branch("matched", pattern.between)]
+    for diagnostic in spec.diagnostics:
+        between = tuple(
+            None if isinstance(s, Slot) and s.name == diagnostic.between_slot else s
+            for s in pattern.between
+        )
+        branches.append(
+            _Branch("adjacent", between, diagnostic, diagnostic.require_tail)
+        )
+    return PreparedPattern(
+        pattern=pattern,
+        heuristics=heuristics,
+        branches=tuple(branches),
+        canonical=spec.pattern.canonical(),
+    )
 
 
 def match_text(
@@ -138,9 +170,12 @@ def match_text(
     settings: Settings,
     *,
     checkpoint: Checkpoint = None,
+    prepared: PreparedPattern | None = None,
 ) -> list[Result]:
     """All results of one pattern in one text, unsorted and without ids."""
-    pattern = normalized_pattern(spec, settings.normalization)
+    if prepared is None:
+        prepared = prepare_pattern(spec, settings.normalization)
+    pattern = prepared.pattern
     norm = text.normalized
     long_warning = long_segment_warning(
         spec,
@@ -170,23 +205,13 @@ def match_text(
         )
         segments = text.segments(delimiters)
 
-    branches = [_Branch("matched", pattern.between)]
-    for diagnostic in spec.diagnostics:
-        between = tuple(
-            None if isinstance(s, Slot) and s.name == diagnostic.between_slot else s
-            for s in pattern.between
-        )
-        branches.append(
-            _Branch("adjacent", between, diagnostic, diagnostic.require_tail)
-        )
-
-    matcher = _Matcher(spec, pattern, text, settings, long_warning)
+    matcher = _Matcher(spec, prepared, text, settings, long_warning)
     matcher.checkpoint = checkpoint
     results: list[Result] = []
     for segment in segments:
         if checkpoint:
             checkpoint()
-        results.extend(matcher.search(segment, branches))
+        results.extend(matcher.search(segment, prepared.branches))
     _set_alt_counts(results)
     return results
 
@@ -365,12 +390,15 @@ def _occurrences(
     """Every `(position, literal)`, ascending, alt options in declared order (8.5)."""
     high = len(text) if high is None else high
     end = len(text) if end is None else end
+    if low > high or high < 0:
+        return
 
     def matches(order: int, literal: str) -> Iterator[tuple[int, int, str]]:
-        start = text.find(literal, low, end)
+        stop = min(end, high + len(literal))
+        start = text.find(literal, low, stop)
         while 0 <= start <= high:
             yield start, order, literal
-            start = text.find(literal, start + 1, end)
+            start = text.find(literal, start + 1, stop)
 
     streams = [matches(order, literal) for order, literal in enumerate(options)]
     for position, _, literal in heapq.merge(*streams):
@@ -391,23 +419,25 @@ class _Matcher:
     def __init__(
         self,
         spec: PatternSpec,
-        pattern: Pattern,
+        prepared: PreparedPattern,
         text: TextInput,
         settings: Settings,
         long_warning: bool,
     ) -> None:
         self.spec = spec
-        self.pattern = pattern
-        self.heuristics = normalized_heuristics(spec, settings.normalization)
+        self.pattern = prepared.pattern
+        self.heuristics = prepared.heuristics
         self.text = text
         self.norm = text.normalized
         self.settings = settings
-        self.barriers = sorted(self.norm.barriers)
+        self.barriers = self.norm.sorted_barriers
         self.long_warning = long_warning
-        self.canonical = spec.pattern.canonical()
+        self.canonical = prepared.canonical
 
-    def search(self, segment: seg.Segment, branches: list[_Branch]) -> list[Result]:
-        search = _Search(segment, branches[0])
+    def search(self, segment: seg.Segment, branches: Sequence[_Branch]) -> list[Result]:
+        search = _Search(
+            segment, branches[0], self.norm.src_span(segment.start, segment.end)
+        )
         if self.pattern.scope.mode == "window":
             firsts = self._in_range(0, segment.start, segment.start, segment)
         else:
@@ -424,7 +454,7 @@ class _Matcher:
             # Spec 8.1 and 8.3: the segment is atomic for the pattern. Rows already
             # found by any branch are dropped; committing them would present an
             # unfinished search as complete.
-            return [self._interruption(segment, stop.reason)]
+            return [self._interruption(search, stop.reason)]
         return search.found
 
     def _in_range(
@@ -505,7 +535,7 @@ class _Matcher:
         if len(search.found) >= self.settings.result_limit:
             raise _BudgetExceeded("result_budget")
         search.found.append(
-            self._result(kind, segment, placed, branch, open_slot, reason)
+            self._result(kind, search, placed, branch, open_slot, reason)
         )
 
     def _tail(self, b: int, segment: seg.Segment) -> tuple[range, int, bool]:
@@ -585,7 +615,7 @@ class _Matcher:
     def _result(
         self,
         kind: str,
-        segment: seg.Segment,
+        search: _Search,
         placed: list[tuple[int, str]],
         branch: _Branch,
         open_slot: OpenSlotHit | None,
@@ -637,7 +667,7 @@ class _Matcher:
         annotations = norm.removals_between("annotations", fixed[0].start, coverage_end)
         return self._base(
             kind,
-            segment,
+            search,
             fixed=fixed,
             slots=tuple(slots),
             open_slot=open_slot,
@@ -647,11 +677,12 @@ class _Matcher:
             joined_annotations=annotations,
         )
 
-    def _interruption(self, segment: seg.Segment, reason: str) -> Result:
+    def _interruption(self, search: _Search, reason: str) -> Result:
         """The single record of a stopped pattern search in a segment (spec 8.7)."""
-        return self._base("indeterminate", segment, indeterminate_reason=reason)
+        return self._base("indeterminate", search, indeterminate_reason=reason)
 
-    def _base(self, kind: str, segment: seg.Segment, **fields: object) -> Result:
+    def _base(self, kind: str, search: _Search, **fields: object) -> Result:
+        segment = search.segment
         # Recorded edges stay factual; grading uses the lowered edges (spec 3.5).
         graded = seg.effective(segment) if self.long_warning else segment
         context = seg.context_status(graded)
@@ -663,7 +694,7 @@ class _Matcher:
             text_id=self.text.text_id,
             mode=mode,
             segment=segment,
-            segment_src=self.norm.src_span(segment.start, segment.end),
+            segment_src=search.segment_src,
             evidence=seg.evidence(graded, self.text.range),
             context_status=context,
             grade=seg.grade(kind, context, mode),

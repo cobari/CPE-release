@@ -38,6 +38,7 @@ from cpe.match.engine import (
     check_variants,
     clause_delimiters,
     match_text,
+    prepare_pattern,
     sentence_delimiters,
 )
 from cpe.match.pair import pair_spec
@@ -294,6 +295,7 @@ def search_pair(
     options = library.settings.normalization
     seconds = {options.literal(option) for option in spec.pattern.fixed[1].options}
     try:
+        prepared = prepare_pattern(spec, options) if library.texts else None
         found = [
             (index, 0, result)
             for index, text in enumerate(library.texts)
@@ -302,6 +304,7 @@ def search_pair(
                 text.matcher_input(library.settings),
                 library.settings,
                 checkpoint=checkpoint,
+                prepared=prepared,
             )
         ]
     except PatternFileError:

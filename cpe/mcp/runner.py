@@ -233,6 +233,7 @@ def run(args: argparse.Namespace) -> int:
                     *((variants,) if variants else ()),
                 ),
                 write_roots=args.write_root,
+                protected_paths=(variants,) if variants else (),
                 enabled_imports=imports,
                 state_path=state,
                 ctp_key=os.environ.get(args.ctp_key_env, ""),

@@ -15,7 +15,7 @@ from cpe.local.file_lock import exclusive
 
 def check_prefix(prefix: Path) -> None:
     """--out is a file-name prefix; a folder or drive root has no name to extend."""
-    if not prefix.name:
+    if prefix.name in {"", ".", ".."}:
         raise IsADirectoryError(f"{prefix}: --out needs a file name prefix")
 
 

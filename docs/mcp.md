@@ -206,7 +206,7 @@ empty result.
 |---|---|---|
 | `get_import_catalog(provider, ...)` | Read | Lists available public datasets (e.g. `portal` releases, MPIWG RISE catalog and section trees). |
 | `import_local_release(path, batch)` | Import | Imports a local `.zip` release bundle or runs batch ZIP staging with cycle and collision protection. |
-| `import_remote_release(provider, id)`| Download | Downloads and imports pre-packaged corpus releases (`portal` dataset packages or CTP chapters/works). |
+| `import_remote_release(provider, identifier)` | Download | Downloads and imports pre-packaged corpus releases (`portal` dataset packages or CTP chapters/works). |
 | `preview_import(provider, address)` | Download | Starts background retrieval for Gutenberg, NDL, RISE, CBETA, or NIKH volume previews without committing a text bundle. CBETA/NIKH use previously downloaded host-readable XML rather than fetching a new remote file. |
 | `manage_import(action, ...)` | Mutate | Controls preview lifecycle: `progress`, `cancel`, inspect `unit`, `discard`, `history`, export verification `report`, or `commit` reviewed text to library folder (requires `researcher_confirmed=True`). `unit` returns raw text only with `import:PROVIDER`; previews, progress and history remain metadata without it. |
 

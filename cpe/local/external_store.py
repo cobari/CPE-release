@@ -12,6 +12,7 @@ from typing import Any
 
 from cpe.local.external import Download, ExternalError
 from cpe.local.file_lock import FileBusyError, exclusive
+from cpe.local.paths import is_directory_link, is_within
 from cpe.local.txt import InputError, parse_bundle
 
 BOOK_NAME = (
@@ -31,9 +32,19 @@ def _text_id(provider: str, book_id: str, unit_id: str) -> str:
     return namespace + unit_id
 
 
-def _read_part(part: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    if part.is_symlink():
+def _check_directory(root: Path, path: Path) -> None:
+    # Directory junctions are not symlinks on Windows; either form can redirect
+    # history reads or publication outside the selected import folder.
+    try:
+        resolved_root = root.resolve()
+    except (OSError, RuntimeError):
+        raise ExternalError("external_history_conflict") from None
+    if is_directory_link(path) or not is_within(resolved_root, path):
         raise ExternalError("external_history_conflict")
+
+
+def _read_part(part: Path, root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    _check_directory(root, part)
     try:
         bundle = part / "originals.texts.jsonl"
         if bundle.is_symlink() or (part / "import-receipt.json").is_symlink():
@@ -98,13 +109,12 @@ def _read_part(part: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
 
 def _book(target: Path) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
     paths = [target]
-    if target.is_symlink():
-        raise ExternalError("external_history_conflict")
+    _check_directory(target.parent, target)
     paths += sorted(target.glob("part-*"))
     records: dict[str, dict[str, Any]] = {}
     receipts: list[dict[str, Any]] = []
     for part in paths:
-        found, receipt = _read_part(part)
+        found, receipt = _read_part(part, target)
         if f"{receipt['provider']}-{receipt['id']}" != target.name:
             raise ExternalError("external_history_conflict")
         if receipts and any(
@@ -179,13 +189,15 @@ def save_report(download: Download, folder: Path) -> Path:
     }
     content = (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode()
     reports = folder / ".external-reports"
-    if reports.is_symlink() or (reports.exists() and not reports.is_dir()):
+    _check_directory(folder, reports)
+    if reports.exists() and not reports.is_dir():
         raise ExternalError("external_history_conflict")
     reports.mkdir(exist_ok=True)
     digest = hashlib.sha256(content).hexdigest()[:24]
     path = reports / f"{name}-{digest}.json"
     try:
         with exclusive(reports / ".report.lock"):
+            _check_directory(folder, reports)
             if path.exists() or path.is_symlink():
                 if path.is_symlink() or path.read_bytes() != content:
                     raise ExternalError("external_history_conflict")
@@ -195,6 +207,7 @@ def save_report(download: Download, folder: Path) -> Path:
                 ) as temporary:
                     stage = Path(temporary) / path.name
                     stage.write_bytes(content)
+                    _check_directory(folder, reports)
                     stage.rename(path)
     except FileBusyError:
         raise ExternalError("external_busy") from None
@@ -217,6 +230,7 @@ def save(
     if len({unit.id for unit in download.units}) != len(download.units):
         raise ExternalError("external_offline_format")
     target = folder / name
+    _check_directory(folder, target)
     lock = folder / f".external-{name}.lock"
     try:
         with exclusive(lock):
@@ -228,6 +242,7 @@ def save(
 def _save_locked(
     download: Download, chosen: set[str], target: Path, edition: str
 ) -> dict[str, Any]:
+    _check_directory(target.parent, target)
     previous: dict[str, dict[str, Any]] = {}
     if target.exists() or target.is_symlink():
         if not (target / "import-receipt.json").is_file():
@@ -326,6 +341,7 @@ def _save_locked(
     )
     digest = hashlib.sha256(content + receipt_bytes).hexdigest()[:24]
     destination = target / f"part-{digest}" if previous else target
+    _check_directory(target if previous else target.parent, destination)
     with tempfile.TemporaryDirectory(
         prefix=".external-", dir=target.parent
     ) as temporary:
@@ -346,6 +362,8 @@ def _save_locked(
             )
         for number, (_, raw) in enumerate(download.payloads, 1):
             (stage / f"download-{number}.source").write_bytes(raw)
+        _check_directory(target.parent, target)
+        _check_directory(target if previous else target.parent, destination)
         if destination.exists() or destination.is_symlink():
             raise ExternalError("external_exists")
         os.rename(stage, destination)

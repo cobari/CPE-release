@@ -22,13 +22,14 @@ from cpe.gui.app import LANGUAGES, LOCAL_SOURCES, Api
 from cpe.gui.preferences import Preferences
 from cpe.gui.search_session import ItkcSearchSession
 from cpe.gui.service import Library, text_from
+from cpe.local.paths import is_directory_link
 from cpe.local.search import SearchOutputs
 from cpe.local.txt import InputError
 from cpe.match.engine import Settings
 from cpe.match.run import Outputs
 from cpe.mcp.identity import staged_rows
-from cpe.mcp.policy import PathPolicy, PolicyError
-from cpe.mcp.response import wire_size
+from cpe.mcp.policy import PathPolicy, PolicyError, host_path
+from cpe.mcp.response import RESPONSE_LIMIT, wire_size
 from cpe.normalize.options import NormalizationError, options_from_mapping
 
 IMPORT_PROVIDERS = (
@@ -131,6 +132,7 @@ class Workspace:
         input_paths: Iterable[Path] = (),
         read_roots: Iterable[Path] = (),
         write_roots: Iterable[Path] = (),
+        protected_paths: Iterable[Path] = (),
         enabled_imports: Iterable[str] = (),
         state_path: Path | None = None,
         ctp_key: str = "",
@@ -141,6 +143,7 @@ class Workspace:
         paths = tuple(input_paths)
         self.disclosure = disclosure
         self.policy = PathPolicy((*paths, *read_roots), write_roots)
+        self._protected_paths = tuple(host_path(path) for path in protected_paths)
         for path in paths:
             self.policy.check_library(path)
         self.preferences = WorkspacePreferences(state_path)
@@ -457,11 +460,16 @@ class Workspace:
                 self._changed()
             return self.describe()
 
-    def _destination(self) -> Path:
+    def _destination(self, *, write: bool = True) -> Path:
         folder = self.api._folder
         if not folder:
             raise PolicyError("release_no_folder")
-        return self.policy.check(folder, write=True)
+        path = Path(folder).expanduser()
+        # Check the lexical folder before policy resolution hides a junction.
+        # The resolved path must also remain within the host's current roots.
+        if is_directory_link(path):
+            raise PolicyError("external_history_conflict")
+        return self.policy.check(path, write=write)
 
     def _protected_inputs(self) -> list[Path]:
         with self.api._local_lock:
@@ -470,6 +478,7 @@ class Workspace:
                 for library in self.api._local_libraries.values()
                 for text in library.texts
             ]
+        paths.extend(self._protected_paths)
         if self.preferences._state_path is not None:
             paths.append(self.preferences._state_path)
         registry = getattr(self, "registry", None)
@@ -636,7 +645,7 @@ class Workspace:
                 if action in {"commit", "report"}:
                     self._destination()
                 elif action == "history" and self.api._folder:
-                    self.policy.check(self.api._folder)
+                    self._destination(write=False)
             except PolicyError as error:
                 return {"error": error.code}
             if action == "history":
@@ -1017,7 +1026,12 @@ class Workspace:
                     if start + len(rows) < answer["counts"][group]
                     else None
                 )
-                if wire_size(answer) > 256 * 1024:
+                limit = (
+                    min(service._response_budget, RESPONSE_LIMIT)
+                    if service is not None
+                    else RESPONSE_LIMIT
+                )
+                if wire_size(answer) > limit:
                     return {
                         "error": "response_limit",
                         "id": job_id,
@@ -1080,6 +1094,7 @@ class Workspace:
                         collections=collections,
                     )
 
+                prior_revision: int | None = None
                 outer_checkpoint = checkpoint
                 self._itkc = ItkcSearchSession(
                     "itkc_" + secrets.token_urlsafe(18),
@@ -1099,6 +1114,8 @@ class Workspace:
                 # The analyzer uses this action's cancellation checkpoint,
                 # rather than the completed start request's event.
                 session = self._itkc
+                with session._snapshot_lock:
+                    prior_revision = session.revision
 
                 def analyze_next(
                     request: dict[str, Any],
@@ -1156,9 +1173,12 @@ class Workspace:
                 )
             limit = service._max_retained if service is not None else 64 * 1024 * 1024
             if retained > limit:
-                self._itkc.cancel()
-                self._itkc = None
-                self._itkc_bytes = 0
+                if prior_revision is not None:
+                    self._itkc.rollback_to(prior_revision)
+                else:
+                    self._itkc.cancel()
+                    self._itkc = None
+                    self._itkc_bytes = 0
                 return {"error": "storage_limit"}
             self._itkc_bytes = retained
             if service is not None:

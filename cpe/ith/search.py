@@ -96,13 +96,32 @@ def _clean(value: str) -> str:
     return " ".join(html.unescape(_TAG.sub("", value)).split())
 
 
-class _Node:
-    __slots__ = ("tag", "attrs", "parts")
+_BIBLIOGRAPHIC_LABELS = frozenset({"書刊名／作者", "章節名稱"})
 
-    def __init__(self, tag: str, attrs: dict[str, str]) -> None:
+
+def _label_name(value: str) -> str:
+    return value.rstrip("：: \t")
+
+
+def _has_fulltext(node: _Node) -> bool:
+    current: _Node | None = node
+    while current is not None:
+        if "fulltext" in current.classes():
+            return True
+        current = current.parent
+    return any("fulltext" in part.classes() for part in node.walk())
+
+
+class _Node:
+    __slots__ = ("tag", "attrs", "parts", "parent")
+
+    def __init__(
+        self, tag: str, attrs: dict[str, str], parent: _Node | None = None
+    ) -> None:
         self.tag = tag
         self.attrs = attrs
         self.parts: list[str | _Node] = []
+        self.parent = parent
 
     def classes(self) -> set[str]:
         return set(self.attrs.get("class", "").split())
@@ -117,6 +136,19 @@ class _Node:
         for part in self.parts:
             if isinstance(part, _Node):
                 yield from part.walk()
+
+
+def _next_content_sibling(parts: list[str | _Node], index: int) -> _Node | None:
+    """The immediately following content span, ignoring whitespace text only."""
+    for part in parts[index + 1 :]:
+        if isinstance(part, str):
+            if part.strip():
+                return None
+            continue
+        if part.tag == "span" and "content" in part.classes():
+            return part
+        return None
+    return None
 
 
 MAX_DEPTH = 256
@@ -134,14 +166,15 @@ class _Builder(HTMLParser):
         # than a RecursionError reported as an internal error.
         if len(self.stack) > MAX_DEPTH:
             raise IthError("search_layout")
-        node = _Node(tag, {key: value or "" for key, value in attrs})
+        node = _Node(tag, {key: value or "" for key, value in attrs}, self.stack[-1])
         self.stack[-1].parts.append(node)
         if tag not in _VOID:
             self.stack.append(node)
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.handle_starttag(tag, attrs)
-        self.handle_endtag(tag)
+        if tag not in _VOID:
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
         # Match the closing tag instead of popping the current top blindly. A
@@ -168,12 +201,40 @@ def parse(raw: bytes | str) -> Fetched:
         link = ""
         snippets: list[str] = []
         fulltext_snippets: list[str] = []
-        for child in node.walk():
-            if child.tag == "span" and "title" in child.classes():
-                value = _clean(child.text())
+
+        # Only the observed bibliographic field labels are used. Pair each one
+        # with the immediately following content sibling in the same bounded
+        # container; an unknown label is left empty rather than promoted.
+        for container in node.walk():
+            parts = container.parts
+            for index, title_node in enumerate(parts):
+                if not (
+                    isinstance(title_node, _Node)
+                    and title_node.tag == "span"
+                    and "title" in title_node.classes()
+                ):
+                    continue
+                if _has_fulltext(title_node):
+                    continue
+                label = _clean(title_node.text())
+                if not label:
+                    continue
+                label_name = _label_name(label)
+                if label_name not in _BIBLIOGRAPHIC_LABELS:
+                    if label.endswith(("：", ":")):
+                        continue
+                    if label not in titles:
+                        titles.append(label)
+                    continue
+                content_node = _next_content_sibling(parts, index)
+                if content_node is None or _has_fulltext(content_node):
+                    continue
+                value = _clean(content_node.text())
                 if value and value not in titles:
                     titles.append(value)
-            elif child.tag == "a":
+
+        for child in node.walk():
+            if child.tag == "a":
                 href = child.attrs.get("href", "")
                 if not link:
                     link = _article_url(href)
@@ -183,11 +244,9 @@ def parse(raw: bytes | str) -> Fetched:
                     snippets.append(value)
                     if "fulltext" in child.classes():
                         fulltext_snippets.append(value)
-        if not link or not titles:
+        if not link:
             continue
         snippet = max(fulltext_snippets or snippets, key=len, default="")
-        if not snippet:
-            continue
         if len(snippet) > MAX_SNIPPET:
             snippet = snippet[: MAX_SNIPPET - 1] + "…"
         items.append(Item(" · ".join(titles[:3]), snippet, link))
@@ -238,7 +297,7 @@ class IthClient:
         self.sleep = sleep
         self.calls = 0
         self._last: float | None = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._opener = _opener() if transport is None else None
 
     def _send(
@@ -247,12 +306,14 @@ class IthClient:
         with self._lock:
             if self.calls >= self.max_calls:
                 raise IthCapReached
+            if checkpoint is not None:
+                checkpoint()
             if self._last is not None:
                 wait = self.min_interval - (self.clock() - self._last)
                 if wait > 0:
                     self.sleep(wait)
-            if checkpoint is not None:
-                checkpoint()
+                    if checkpoint is not None:
+                        checkpoint()
             self._last = self.clock()
             self.calls += 1
             request.add_header("User-Agent", AGENT)
@@ -275,60 +336,69 @@ class IthClient:
         """One user query; only the first result page is read."""
         if not term or len(term) > 100 or any(char in term for char in "\r\n"):
             raise IthError("search_query")
-        query = self._send(
-            urllib.request.Request(QUERY_URL, headers={"Accept": "text/html"}),
-            checkpoint,
-        )
-        hidden = {
-            html.unescape(name): html.unescape(value)
-            for name, value in _HIDDEN.findall(query.decode("utf-8", errors="replace"))
-        }
-        fields = {
-            "IsQuery": "1",
-            "HIDMode": "adv",
-            "HIDKey": term,
-            "HIDField": "CFullContent",
-            "HIDLogic": "",
-            "HIDSearchType": "",
-            "HIDSearchRange": "",
-            "HIDPSDate": "",
-            "HIDPEDate": "",
-            "TXTKeyword1": term,
-            "DDLField1": "CFullContent",
-            "TXTKeyword2": "",
-            "DDLField2": "All",
-            "DDLLogic2": "AND",
-        }
-        for key in ("__VIEWSTATE", "__VIEWSTATEGENERATOR", "__EVENTVALIDATION"):
-            if key in hidden:
-                fields[key] = hidden[key]
-        answer = self._send(
-            urllib.request.Request(
-                RESULT_POST_URL,
-                data=urllib.parse.urlencode(fields).encode("utf-8"),
-                headers={
-                    "Referer": QUERY_URL,
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Accept": "text/html",
-                },
-                method="POST",
-            ),
-            checkpoint,
-        )
-        page = answer.decode("utf-8", errors="replace")
-        redirect = _REDIRECT.search(page)
-        if redirect:
-            target = urllib.parse.urljoin(BASE, redirect.group(1))
-            if urllib.parse.urlsplit(target).netloc != urllib.parse.urlsplit(
-                BASE
-            ).netloc or not urllib.parse.urlsplit(target).path.startswith(
-                "/search-result-"
-            ):
-                raise IthError("search_layout")
-            page = self._send(
-                urllib.request.Request(target, headers={"Accept": "text/html"}),
+        with self._lock:
+            if checkpoint is not None:
+                checkpoint()
+            # One query always sends the form GET and result POST; refuse early
+            # when fewer than two calls remain rather than spending one call alone.
+            if self.max_calls - self.calls < 2:
+                raise IthCapReached
+            query = self._send(
+                urllib.request.Request(QUERY_URL, headers={"Accept": "text/html"}),
                 checkpoint,
-            ).decode("utf-8", errors="replace")
-        if "resultcontent" not in page:
-            raise IthError("search_layout")
-        return parse(page)
+            )
+            hidden = {
+                html.unescape(name): html.unescape(value)
+                for name, value in _HIDDEN.findall(
+                    query.decode("utf-8", errors="replace")
+                )
+            }
+            fields = {
+                "IsQuery": "1",
+                "HIDMode": "adv",
+                "HIDKey": term,
+                "HIDField": "CFullContent",
+                "HIDLogic": "",
+                "HIDSearchType": "",
+                "HIDSearchRange": "",
+                "HIDPSDate": "",
+                "HIDPEDate": "",
+                "TXTKeyword1": term,
+                "DDLField1": "CFullContent",
+                "TXTKeyword2": "",
+                "DDLField2": "All",
+                "DDLLogic2": "AND",
+            }
+            for key in ("__VIEWSTATE", "__VIEWSTATEGENERATOR", "__EVENTVALIDATION"):
+                if key in hidden:
+                    fields[key] = hidden[key]
+            answer = self._send(
+                urllib.request.Request(
+                    RESULT_POST_URL,
+                    data=urllib.parse.urlencode(fields).encode("utf-8"),
+                    headers={
+                        "Referer": QUERY_URL,
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "Accept": "text/html",
+                    },
+                    method="POST",
+                ),
+                checkpoint,
+            )
+            page = answer.decode("utf-8", errors="replace")
+            redirect = _REDIRECT.search(page)
+            if redirect:
+                target = urllib.parse.urljoin(BASE, redirect.group(1))
+                if urllib.parse.urlsplit(target).netloc != urllib.parse.urlsplit(
+                    BASE
+                ).netloc or not urllib.parse.urlsplit(target).path.startswith(
+                    "/search-result-"
+                ):
+                    raise IthError("search_layout")
+                page = self._send(
+                    urllib.request.Request(target, headers={"Accept": "text/html"}),
+                    checkpoint,
+                ).decode("utf-8", errors="replace")
+            if "resultcontent" not in page:
+                raise IthError("search_layout")
+            return parse(page)

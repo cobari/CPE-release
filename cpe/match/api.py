@@ -11,6 +11,7 @@ from cpe.match.engine import (
     assign_ids,
     check_variants,
     match_text,
+    prepare_pattern,
 )
 from cpe.match.pattern_file import from_mapping
 from cpe.match.result import Result
@@ -40,11 +41,18 @@ def run_results(wire: dict[str, Any]) -> list[Result]:
     specs = [from_mapping(entry) for entry in _entries(wire, "patterns")]
     _unique("text_id", [text.text_id for text in texts])
     _unique("pattern id", [spec.id for spec in specs])
+    prepared = (
+        [prepare_pattern(spec, settings.normalization) for spec in specs]
+        if texts
+        else []
+    )
     found = [
         (text_index, pattern_index, result)
         for text_index, text in enumerate(texts)
-        for pattern_index, spec in enumerate(specs)
-        for result in match_text(spec, text, settings)
+        for pattern_index, (spec, prepared_spec) in enumerate(
+            zip(specs, prepared, strict=True)
+        )
+        for result in match_text(spec, text, settings, prepared=prepared_spec)
     ]
     return assign_ids(found)
 

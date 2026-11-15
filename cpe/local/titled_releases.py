@@ -24,7 +24,9 @@ from cpe.local.releases import (
     MAX_MEMBER_BYTES,
     MAX_TOTAL_BYTES,
     ReleaseError,
+    is_release_member,
     parse,
+    read_zip_member,
     save_bundles,
 )
 
@@ -682,7 +684,13 @@ def import_nahf_zip(path: Path, folder: Path) -> dict[str, object]:
     try:
         with zipfile.ZipFile(path) as archive:
             groups: dict[str, list[zipfile.ZipInfo]] = {}
+            seen: set[str] = set()
             for info in archive.infolist():
+                if not is_release_member(info.filename):
+                    continue
+                if info.filename in seen:
+                    raise ReleaseError("release_unreadable")
+                seen.add(info.filename)
                 base = info.filename.replace("\\", "/").rsplit("/", 1)[-1]
                 match = re.fullmatch(r"([a-z]+)\.d_\d{4}\.xml", base)
                 if match and match.group(1) in profiles:
@@ -696,10 +704,22 @@ def import_nahf_zip(path: Path, folder: Path) -> dict[str, object]:
                 raise ReleaseError("release_large")
             if any(info.file_size > MAX_MEMBER_BYTES for info in members):
                 raise ReleaseError("release_large")
+            remaining = [MAX_TOTAL_BYTES]
+
+            def read_member(info: zipfile.ZipInfo) -> bytes:
+                data = read_zip_member(
+                    archive,
+                    info,
+                    max_bytes=MAX_MEMBER_BYTES,
+                    total_remaining=remaining[0],
+                )
+                remaining[0] -= len(data)
+                return data
+
             results = [
                 import_documents(
                     (
-                        archive.read(info)
+                        read_member(info)
                         for info in sorted(groups[code], key=lambda item: item.filename)
                     ),
                     folder,

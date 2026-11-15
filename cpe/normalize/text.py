@@ -45,6 +45,11 @@ class NormalizedText:
             for name in ("notes", "annotations")
         }
 
+    @cached_property
+    def sorted_barriers(self) -> tuple[int, ...]:
+        """Sorted barrier positions reused across patterns matching this text."""
+        return tuple(sorted(self.barriers))
+
     def removals_between(
         self, name: str, start: int, end: int
     ) -> tuple[tuple[int, int, int], ...]:

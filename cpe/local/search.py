@@ -159,7 +159,7 @@ def search_text(
     if segments is None:
         segments = _segments(text, normalized, settings, mode)
     warned = long_warning(segments, settings)
-    barriers = sorted(normalized.barriers)
+    barriers = normalized.sorted_barriers
     leaves = positive_leaves(tree)
     records = []
     for segment in segments:
@@ -274,16 +274,24 @@ def search_files(
     records: list[dict[str, Any]] = []
     warnings: list[str] = []
     views: dict[str, TextView] = {}
+    normalizations: dict[str, str] = {}
     for text in texts:
-        normalized = normalize(text.reference, text_options(text, options))
-        views[text.text_id] = text_view(
+        opts = text_options(text, options)
+        normalizations[text.text_id] = opts.name
+        normalized = normalize(text.reference, opts)
+        view = text_view(
             text.reference,
             normalized,
             sentence_delimiters(settings, text.full_stop, text.halfwidth_punctuation),
             text.boundary_start,
             text.boundary_end,
         )
-        segments = _segments(text, normalized, settings, mode)
+        views[text.text_id] = view
+        segments = (
+            list(view.sentences)
+            if mode == "sentence"
+            else _segments(text, normalized, settings, mode)
+        )
         if long_warning(segments, settings):
             warnings.append(text.text_id)
         records.extend(
@@ -298,7 +306,6 @@ def search_files(
         json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
         for record in records
     )
-    normalizations = {text.text_id: text_options(text, options).name for text in texts}
     rows = [
         csv_row(
             record,

@@ -140,6 +140,17 @@ def book_link(book: dict[str, Any]) -> str:
     return f"https://dl.ndl.go.jp/pid/{book_id}" if book_id.isdigit() else ""
 
 
+def _book_id(book: dict[str, Any]) -> str:
+    raw = book.get("id")
+    if isinstance(raw, bool):
+        raise NdlError("book id is required")
+    if isinstance(raw, int):
+        return str(raw)
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    raise NdlError("book id is required")
+
+
 def book_texts(book: dict[str, Any]) -> list[LocalText]:
     title = " ".join(
         str(part) for part in (book.get("title"), book.get("volume")) if part
@@ -147,7 +158,6 @@ def book_texts(book: dict[str, Any]) -> list[LocalText]:
     edition = " ".join(
         str(part) for part in (book.get("publisher"), book.get("published")) if part
     )
-    texts = []
     highlights = book.get("highlights")
     if highlights is None:
         return []
@@ -155,29 +165,34 @@ def book_texts(book: dict[str, Any]) -> list[LocalText]:
         not isinstance(item, str) for item in highlights
     ):
         raise NdlError("highlights must be a list of source strings")
-    for index, highlight in enumerate(highlights, start=1):
-        text = excerpt_text(highlight)
-        if not text:
-            continue
-        texts.append(
-            LocalText(
-                path=Path(),
-                text_id=f"ndl:{book.get('id', '')}#{index}",
-                reference=text,
-                range="excerpt",
-                boundary_start="truncated",
-                boundary_end="truncated",
-                punctuation="modern",
-                full_stop="sentence",
-                text_type="original",
-                title=title or str(book.get("id", "")),
-                source=book_link(book),
-                edition=edition,
-                sha256="",
-                bom=False,
-            )
+    excerpts = [
+        (index, text)
+        for index, highlight in enumerate(highlights, start=1)
+        if (text := excerpt_text(highlight))
+    ]
+    if not excerpts:
+        return []
+    book_id = _book_id(book)
+    link = book_link(book)
+    return [
+        LocalText(
+            path=Path(),
+            text_id=f"ndl:{book_id}#{index}",
+            reference=text,
+            range="excerpt",
+            boundary_start="truncated",
+            boundary_end="truncated",
+            punctuation="modern",
+            full_stop="sentence",
+            text_type="original",
+            title=title or book_id,
+            source=link,
+            edition=edition,
+            sha256="",
+            bom=False,
         )
-    return texts
+        for index, text in excerpts
+    ]
 
 
 @dataclass(frozen=True)
@@ -194,7 +209,7 @@ class Fetched:
 def book_era(book: dict[str, Any]) -> dict[str, Any] | None:
     """The edition's publication year and its own wording (such as 道光16)."""
     year = book.get("publishyear")
-    if not isinstance(year, int) or year <= 0:
+    if isinstance(year, bool) or not isinstance(year, int) or year <= 0:
         return None
     published = book.get("published")
     return {
@@ -227,9 +242,20 @@ def fetch(
         raise NdlError("invalid result counts")
     texts: list[LocalText] = []
     eras: dict[str, dict[str, Any]] = {}
+    seen_books: set[str] = set()
+    seen_ids: set[str] = set()
     for book in books:
         era = book_era(book)
-        for text in book_texts(book):
+        found = book_texts(book)
+        if not found:
+            continue
+        book_key = found[0].text_id.rsplit("#", 1)[0]
+        ids = {text.text_id for text in found}
+        if book_key in seen_books or ids & seen_ids:
+            raise NdlError("duplicate book identity")
+        seen_books.add(book_key)
+        seen_ids.update(ids)
+        for text in found:
             texts.append(text)
             if era is not None:
                 eras[text.text_id] = era

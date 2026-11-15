@@ -80,7 +80,17 @@ class PathPolicy:
         read_roots: Iterable[Path] = (),
         write_roots: Iterable[Path] = (),
     ) -> None:
-        self.write_roots = tuple(host_path(path) for path in write_roots)
+        validated_writes: list[Path] = []
+        for path in write_roots:
+            resolved = host_path(path)
+            try:
+                is_dir = resolved.is_dir()
+            except OSError:
+                is_dir = False
+            if not is_dir:
+                raise PolicyError("write_not_allowed")
+            validated_writes.append(resolved)
+        self.write_roots = tuple(validated_writes)
         roots = [*(host_path(path) for path in read_roots), *self.write_roots]
         # An explicit text file includes its exact, conventionally named sidecar,
         # never its whole parent. Keep the sidecar's lexical path: resolving an
@@ -135,7 +145,8 @@ class PathPolicy:
                 directories[:] = [
                     name
                     for name in directories
-                    if not is_directory_link(parent / name)
+                    if not name.startswith(".")
+                    and not is_directory_link(parent / name)
                     and is_within(root, parent / name)
                 ]
                 for name in files:

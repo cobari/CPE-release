@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.http import content_length
 from cpe.local.releases import ReleaseError
 
 PORTAL = "https://www.data.go.kr"
@@ -147,7 +148,23 @@ class PortalClient:
                     urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
                 )
             with self._opener.open(request, timeout=self.timeout) as response:
-                expected = response.length
+                limit = (
+                    MAX_DOWNLOAD_BYTES
+                    if destination is not None
+                    else MAX_RESPONSE_BYTES
+                )
+                headers = getattr(response, "headers", None)
+                if headers is not None:
+                    try:
+                        expected = content_length(headers.get("Content-Length"), limit)
+                    except OverflowError:
+                        raise ReleaseError("release_large") from None
+                    except ValueError:
+                        raise ReleaseError("portal_failed") from None
+                else:
+                    expected = getattr(response, "length", None)
+                    if expected is not None and expected > limit:
+                        raise ReleaseError("release_large")
                 if destination is not None:
                     written = 0
                     try:
