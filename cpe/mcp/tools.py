@@ -1,4 +1,4 @@
-"""Structured MCP equivalents of the 3.1 workspace, import and export actions."""
+"""Structured MCP equivalents of the 3.2 workspace, import and export actions."""
 
 from __future__ import annotations
 
@@ -355,7 +355,7 @@ def register(
         sort: Sort = "source",
         page_size: PageSize = 20,
     ) -> CallToolResult:
-        """Use 3.1's staged ITKC search: one collection batch per explicit advance.
+        """Use 3.2's staged ITKC search: one collection batch per explicit advance.
 
         start reads the first collection. advance reads exactly the next of the
         three bounded first-page collections; it never claims an exhaustive

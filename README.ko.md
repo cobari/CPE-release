@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.1
+# Classic Pattern Explorer 3.2
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 以…
 
 ## 무엇을 검색하나요
 
-3.1에서는 로컬 텍스트 폴더와 함께 5개 지역으로 나뉜 온라인 자료원 18개를 제공합니다. 온라인 자료원은 제공처의 건수 상한에 따라 제한된 발췌문이나 서지 정보를 반환합니다.
+3.2에서는 로컬 텍스트 폴더와 함께 5개 지역으로 나뉜 온라인 자료원 18개를 제공합니다. 온라인 자료원은 제공처의 건수 상한에 따라 제한된 발췌문이나 서지 정보를 반환합니다.
 
 | | 텍스트가 있는 곳 | 결과 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 以…
 
 ### Windows (실행 파일)
 
-1. [v3.1 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.1)에서 Windows x64용 실행 파일인 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe)를 내려받습니다.
+1. [v3.2 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.2)에서 Windows x64용 실행 파일인 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.2/cpe-gui.exe)를 내려받습니다.
 2. 다운로드한 `cpe-gui.exe`를 두 번 클릭하면 검색 창이 열립니다. Python이나 uv를 설치할 필요가 없습니다.
 3. Windows 실행 파일은 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)을 사용합니다. 실행되지 않는 경우 링크에서 WebView2 런타임을 설치하세요.
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer는 한문(漢文, Literary Sinitic) 원문에서 以…
 
 Windows 실행 파일은 macOS나 Linux에서 실행되지 않습니다. 전체 배포 패키지를 사용하세요:
 
-1. [v3.1 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.1)에서 소스 코드(Source code .zip 또는 .tar.gz)를 내려받아 압축을 풉니다.
+1. [v3.2 릴리스 페이지](https://github.com/cobari/CPE-release/releases/tag/v3.2)에서 소스 코드(Source code .zip 또는 .tar.gz)를 내려받아 압축을 풉니다.
 2. 압축을 푼 폴더 전체를 유지한 상태에서 다음 파일을 실행합니다:
    - **macOS**: `cpe-gui.command`를 두 번 클릭합니다. (터미널 창이 열리며 실행됩니다. 최초 실행 시 보안 확인 대화상자가 뜨면 마우스 오른쪽 버튼 클릭 후 '열기'를 선택하세요.)
    - **Linux**: `cpe-gui.sh`를 실행합니다. (파일 관리자에서 '실행' 또는 터미널에서 실행.)
@@ -151,14 +151,14 @@ uv run --locked python itkc_search.py --help
 
 ### 로컬 MCP 서버 (AI 연동)
 
-3.1 릴리스에는 공식 Python SDK v2 기반의 로컬 stdio MCP(Model Context Protocol) 서버가 포함되어 있습니다. 4개 로컬 라이브러리 슬롯, 18개 온라인 소스 어댑터, 제공처 카탈로그, 단계별 ITKC 컬렉션 세션, 한문 문형 DSL 검색, 안전한 코퍼스 가져오기 파이프라인 및 CSV/JSONL 직접 내보내기를 다루는 20개 전용 도구를 제공합니다.
+3.2 릴리스에는 공식 Python SDK v2 기반의 로컬 stdio MCP(Model Context Protocol) 서버가 포함되어 있습니다. 4개 로컬 라이브러리 슬롯, 18개 온라인 소스 어댑터, 제공처 카탈로그, 단계별 ITKC 컬렉션 세션, 한문 문형 DSL 검색, 안전한 코퍼스 가져오기 파이프라인 및 CSV/JSONL 직접 내보내기를 다루는 20개 전용 도구를 제공합니다.
 
 ```sh
 # stdio 기반 MCP 서버 실행 및 로컬 원문 전달 허용
 uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
-기본값은 참조와 메타데이터만 반환합니다. 로컬 원문을 반환하려면 호스트가 자체 권리 검토 후 `--allow-source-text local`을 지정해야 합니다. 온라인 접근과 가져오기는 별개입니다. `--enable-online`은 제공처 접근을, `--enable-import`는 가져오기 접근을 추가하지만, 해당 `--allow-source-text SOURCE` 권한이 함께 없으면 원문은 반환하지 않습니다. `all` 권한은 없습니다. 이 권한은 제공처 라이선스가 아니며 클라우드 처리, 모델 답변 또는 보존의 적법성을 보장하지 않습니다. 자세한 내용은 [MCP 설치·옵션·20개 도구 안내](docs/mcp.md)와 [3.1 기능 대응표](docs/mcp-parity.md)를 참고하세요.
+기본값은 참조와 메타데이터만 반환합니다. 로컬 원문을 반환하려면 호스트가 자체 권리 검토 후 `--allow-source-text local`을 지정해야 합니다. 온라인 접근과 가져오기는 별개입니다. `--enable-online`은 제공처 접근을, `--enable-import`는 가져오기 접근을 추가하지만, 해당 `--allow-source-text SOURCE` 권한이 함께 없으면 원문은 반환하지 않습니다. `all` 권한은 없습니다. 이 권한은 제공처 라이선스가 아니며 클라우드 처리, 모델 답변 또는 보존의 적법성을 보장하지 않습니다. 자세한 내용은 [MCP 설치·옵션·20개 도구 안내](docs/mcp.md)와 [3.2 기능 대응표](docs/mcp-parity.md)를 참고하세요.
 
 독립 실행형 윈도우 패키지에는 동일한 인수를 받는 cpe-mcp.exe가 함께 포함되어 있습니다. 서버는 표준 입출력(stdin/stdout)을 통해 통신하며 GUI 창이나 HTTP 서버는 열리지 않습니다. 본 구현은 특정 상용 AI 클라이언트(Claude Desktop, Claude Code 등)나 외부 라이브 서비스에 대한 공식 인증을 주장하지 않습니다.
 
@@ -188,7 +188,7 @@ A. 배포된 `cpe-gui.exe`는 64비트 Windows(x64)용입니다. 실행 시 반�
 
 - 이 배포 저장소에는 런타임 패키지, 번역 카탈로그, 페이지 리소스, 실행 스크립트(런처), 의존성 잠금 파일, 라이선스 파일이 포함되어 있습니다.
 - `docs/` 폴더에는 화면 언어마다 한 쪽씩 프로젝트 웹 페이지가 있고, `discoverability.md`에는 저장소와 페이지를 어떻게 소개하는지가 기록되어 있습니다.
-- 패키지 버전은 `3.1`이며, Git 태그는 `v3.1`입니다. `release.json`에 원본 소스 스냅샷 정보가 기록되어 있습니다.
+- 패키지 버전은 `3.2`이며, Git 태그는 `v3.2`입니다. `release.json`에 원본 소스 스냅샷 정보가 기록되어 있습니다.
 - MIT 라이선스(`LICENSE`)로 배포됩니다.
 - 본 도구는 한국고전번역원(ITKC)과 무관한 개인 프로젝트입니다. 저작권 및 이용조건 준수를 위해 원문 코퍼스, 현대어 번역문, 데이터베이스 원시 응답 데이터는 저장소에 동봉되어 있지 않습니다.
 

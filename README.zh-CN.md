@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.1
+# Classic Pattern Explorer 3.2
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer 是一款桌面程序兼命令行工具，用于在文�
 
 ## 可以检索什么
 
-3.1版本支持本地文本文件夹，并按5个国家与地区提供18个在线资料源。在线数据源依据提供方的数量上限返回有限的摘录或书目记录。
+3.2版本支持本地文本文件夹，并按5个国家与地区提供18个在线资料源。在线数据源依据提供方的数量上限返回有限的摘录或书目记录。
 
 | | 文本所在 | 结果 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer 是一款桌面程序兼命令行工具，用于在文�
 
 ### Windows（可执行文件）
 
-1. 访问 [v3.1 发布页面](https://github.com/cobari/CPE-release/releases/tag/v3.1) 并下载 Windows x64 专用可执行文件 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe)。
+1. 访问 [v3.2 发布页面](https://github.com/cobari/CPE-release/releases/tag/v3.2) 并下载 Windows x64 专用可执行文件 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.2/cpe-gui.exe)。
 2. 双击 `cpe-gui.exe` 即可打开检索窗口，无需安装 Python 或 uv。
 3. Windows 可执行文件依赖 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。若无法启动，请通过链接安装 WebView2 运行时。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer 是一款桌面程序兼命令行工具，用于在文�
 
 Windows 可执行文件无法在 macOS 或 Linux 上直接运行。请使用完整发行包：
 
-1. 从 [v3.1 发布页面](https://github.com/cobari/CPE-release/releases/tag/v3.1) 下载源码压缩包（`Source code .zip` 或 `.tar.gz`）并解压。
+1. 从 [v3.2 发布页面](https://github.com/cobari/CPE-release/releases/tag/v3.2) 下载源码压缩包（`Source code .zip` 或 `.tar.gz`）并解压。
 2. 保持解压后的完整文件夹结构，运行对应的启动脚本：
    - **macOS**：双击 `cpe-gui.command`。（将在终端窗口中启动。首次运行若弹出安全提示，请右键点击并选择“打开”。）
    - **Linux**：运行 `cpe-gui.sh`。（在文件管理器中选择“运行”或在终端中执行。）
@@ -151,14 +151,14 @@ uv run --locked python itkc_search.py --help
 
 ### 本地 MCP 服务器（AI 联动）
 
-3.1 版本包含基于官方 Python SDK v2 的本地 stdio MCP (Model Context Protocol) 服务器。提供 20 个结构化工具，涵盖 4 个本地文献库槽位、全部 18 个在线数据源适配器、提供方目录、分步 ITKC 典籍集会话、文言文句型 DSL 检索、安全的语料导入管线以及 CSV/JSONL 直接导出。
+3.2 版本包含基于官方 Python SDK v2 的本地 stdio MCP (Model Context Protocol) 服务器。提供 20 个结构化工具，涵盖 4 个本地文献库槽位、全部 18 个在线数据源适配器、提供方目录、分步 ITKC 典籍集会话、文言文句型 DSL 检索、安全的语料导入管线以及 CSV/JSONL 直接导出。
 
 ```sh
 # 通过 stdio 启动 MCP 服务器，并允许提供本地原文
 uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
-默认仅返回引用与元数据。若需返回本地原文，主机须在完成自身权利审查后指定 `--allow-source-text local`。在线访问与导入是分开的：`--enable-online` 添加提供方访问，`--enable-import` 添加导入访问，但若没有相应的 `--allow-source-text SOURCE` 授权，仍不会返回原文。不存在 `all` 授权。该授权不是提供方许可证，也不保证云端处理、模型回答或保留行为合法。详情请参阅 [MCP 安装、选项与工具指南](docs/mcp.md) 以及 [3.1 功能对应表](docs/mcp-parity.md)。
+默认仅返回引用与元数据。若需返回本地原文，主机须在完成自身权利审查后指定 `--allow-source-text local`。在线访问与导入是分开的：`--enable-online` 添加提供方访问，`--enable-import` 添加导入访问，但若没有相应的 `--allow-source-text SOURCE` 授权，仍不会返回原文。不存在 `all` 授权。该授权不是提供方许可证，也不保证云端处理、模型回答或保留行为合法。详情请参阅 [MCP 安装、选项与工具指南](docs/mcp.md) 以及 [3.2 功能对应表](docs/mcp-parity.md)。
 
 独立 Windows 发行包中亦附带接受相同启动参数的 cpe-mcp.exe。服务器通过标准输入/输出（stdin/stdout）进行通信，不会启动 GUI 窗口或 HTTP 服务。本实现不声称已通过特定商业 AI 客户端（如 Claude Desktop、Claude Code 等）或外部在线服务的认证。
 
@@ -188,7 +188,7 @@ A. 发布的 `cpe-gui.exe` 适用于 64 位 Windows (x64)。若双击无反应�
 
 - 本仓库包含运行时程序包、翻译目录、网页静态资源、启动脚本、依赖锁定文件及许可证。
 - `docs/` 文件夹存放项目网页，每种界面语言一页；`discoverability.md` 记录本仓库及网页的介绍方式。
-- 程序包版本为 `3.1`，对应 Git 标签为 `v3.1`。精确的源码快照记录于 `release.json`。
+- 程序包版本为 `3.2`，对应 Git 标签为 `v3.2`。精确的源码快照记录于 `release.json`。
 - 基于 MIT 许可证（`LICENSE`）发布。
 - 本项目为独立个人研究工具，与韩国古典翻译院（ITKC）无隶属关系。为恪守版权与使用条款，本仓库未捆绑任何专有数据库语料、现代译文或原始 API 响应数据。
 

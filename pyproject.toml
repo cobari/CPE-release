@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "classic-pattern-explorer"
-version = "3.1"
+version = "3.2"
 description = "Pattern search and verification for Literary Sinitic source text."
 readme = "README.md"
 license = "MIT"

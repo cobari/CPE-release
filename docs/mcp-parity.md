@@ -1,10 +1,10 @@
-# CPE 3.1 & MCP Feature Equivalence Matrix
+# CPE 3.2 & MCP Feature Equivalence Matrix
 
-This document defines the functional equivalence between **Classic Pattern Explorer (CPE) 3.1**
+This document defines the functional equivalence between **Classic Pattern Explorer (CPE) 3.2**
 (desktop GUI webview and CLI engine) and the **expanded local MCP server** (`cpe.mcp`).
 
-The CPE 3.1 MCP server exposes 20 dedicated tools with tool-level parity for
-CPE 3.1's core analytical, retrieval, ingestion, and export workflows while maintaining
+The CPE 3.2 MCP server exposes 20 dedicated tools with tool-level parity for
+CPE 3.2's core analytical, retrieval, ingestion, and export workflows while maintaining
 host-selected path capabilities, existing provider safeguards, and philological invariants.
 Tool-level parity means the operations remain available through structured tools. It is
 not payload parity: by default the tools return references and metadata only, and source
@@ -18,7 +18,7 @@ rights. See [MCP data policy and source-text delivery](mcp-data-policy.md).
 
 The numbering below preserves the exact baseline established in the independent parity inventory (`A.01`–`A.20`):
 
-| ID | Research Function | CPE 3.1 GUI / CLI Origin | MCP 3.1 Tool Implementation | Parity Status | Evidence & Functional Invariants |
+| ID | Research Function | CPE 3.2 GUI / CLI Origin | MCP 3.2 Tool Implementation | Parity Status | Evidence & Functional Invariants |
 |---|---|---|---|---|---|
 | **A.01** | **Two-Box Compound Search** | `cpe/gui/service.py:search_pair`<br>`cpe/cli.py:314` (`pair_spec`) | `search_pattern(mode="pair", ...)`<br>`search_sources(mode="pair", ...)` | **Tool parity** | The same GUI pair defaults; CLI range constraints and sentence/clause scope are available through run_cli_export(mode=pair). `likely` and `less` are legacy display groups, not probabilities or grades. Source text and records follow the host's source-text grant. |
 | **A.02** | **Single-Box Word Search** | `cpe/gui/service.py:search_words`<br>`cpe/cli.py:328` (`_search`) | `search_pattern(mode="words", ...)`<br>`search_sources(mode="words", ...)` | **Tool parity** | Single-box boolean queries (`AND`, `OR`, `NOT`/`-`, exact `"phrase"`, proximity `NEAR/n`, and `/regex/`). Validates against provider query grammar limits. |
@@ -94,8 +94,8 @@ The MCP server adheres strictly to the project's core research invariants:
 
 ## 5. Limitations & Current Verification Boundary
 
-1. **Version Literal**: Version `3.1` sharing the same committed search core as the desktop GUI and CLI.
-2. **Distribution Scope**: The server is distributed through the v3.1 GitHub Release as a local stdio binary and Python package; it is not published on PyPI, packaged as an MCPB archive, or registered in the official Model Context Protocol Registry.
+1. **Version Literal**: Version `3.2` sharing the same committed search core as the desktop GUI and CLI.
+2. **Distribution Scope**: The server is distributed through the v3.2 GitHub Release as a local stdio binary and Python package; it is not published on PyPI, packaged as an MCPB archive, or registered in the official Model Context Protocol Registry.
 3. **Test Boundary**: Verified through automated protocol, unit, and regression test suites. Not certified on live proprietary AI clients (Claude Desktop, Claude Code) or non-Windows hosts.
 4. **Third-Party Providers**: Online searches and remote imports require Internet access and agreement with third-party institutional terms. Tests never call live provider endpoints.
 5. **Source-text Grant**: `--allow-source-text` is a host decision after rights review, not a provider licence, legal clearance, zero-retention guarantee or proof of a local model. The all-18 review is a route map, not 18 cloud approvals. Viet Dien records an explicit AI/MCP workflow plus data attribution; NDL Next Digital Library records Public Domain Mark data with separate API conditions; other routes retain per-work and unknown restrictions. See the [data policy](mcp-data-policy.md).

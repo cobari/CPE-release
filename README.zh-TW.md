@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.1
+# Classic Pattern Explorer 3.2
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 ## 可以檢索什麼
 
-3.1版本支援本機文字資料夾，並依5個國家與地區提供18個線上資料來源。線上資料來源依提供者的數量上限傳回有限的摘錄或書目紀錄。
+3.2版本支援本機文字資料夾，並依5個國家與地區提供18個線上資料來源。線上資料來源依提供者的數量上限傳回有限的摘錄或書目紀錄。
 
 | | 文本所在 | 結果 |
 |---|---|---|
@@ -21,7 +21,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 ### Windows（執行檔）
 
-1. 造訪 [v3.1 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.1) 並下載 Windows x64 專用執行檔 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe)。
+1. 造訪 [v3.2 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.2) 並下載 Windows x64 專用執行檔 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.2/cpe-gui.exe)。
 2. 按兩下 `cpe-gui.exe` 即可開啟檢索視窗，不需安裝 Python 或 uv。
 3. Windows 執行檔依賴 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。若無法啟動，請透過連結安裝 WebView2 執行階段。
 
@@ -31,7 +31,7 @@ Classic Pattern Explorer 是一款桌面程式兼命令列工具，用於在文�
 
 Windows 執行檔無法在 macOS 或 Linux 上直接執行。請使用完整發行套件：
 
-1. 從 [v3.1 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.1) 下載原始碼壓縮檔（`Source code .zip` 或 `.tar.gz`）並解壓縮。
+1. 從 [v3.2 發布頁面](https://github.com/cobari/CPE-release/releases/tag/v3.2) 下載原始碼壓縮檔（`Source code .zip` 或 `.tar.gz`）並解壓縮。
 2. 保持解壓縮後的完整資料夾結構，執行對應的啟動腳本：
    - **macOS**：按兩下 `cpe-gui.command`。（將在終端機視窗中啟動。首次執行若彈出安全提示，請按一下滑鼠右鍵並選擇「開啟」。）
    - **Linux**：執行 `cpe-gui.sh`。（在檔案管理器中選擇「執行」或在終端機中執行。）
@@ -151,14 +151,14 @@ uv run --locked python itkc_search.py --help
 
 ### 本機 MCP 伺服器（AI 整合）
 
-3.1 版本包含基於官方 Python SDK v2 的本機 stdio MCP (Model Context Protocol) 伺服器。提供 20 個結構化工具，涵蓋 4 個本機文獻庫插槽、全部 18 個線上資料來源轉接器、典藏目錄、分步 ITKC 典籍集工作階段、漢文句型 DSL 檢索、安全的語料匯入流程以及 CSV/JSONL 直接匯出。
+3.2 版本包含基於官方 Python SDK v2 的本機 stdio MCP (Model Context Protocol) 伺服器。提供 20 個結構化工具，涵蓋 4 個本機文獻庫插槽、全部 18 個線上資料來源轉接器、典藏目錄、分步 ITKC 典籍集工作階段、漢文句型 DSL 檢索、安全的語料匯入流程以及 CSV/JSONL 直接匯出。
 
 ```sh
 # 透過 stdio 啟動 MCP 伺服器，並允許傳送本機原文
 uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
-預設僅傳回參照與中繼資料。若要傳回本機原文，主機須在完成自身權利審查後指定 `--allow-source-text local`。線上存取與匯入是分開的：`--enable-online` 新增提供者存取，`--enable-import` 新增匯入存取，但若沒有對應的 `--allow-source-text SOURCE` 授權，仍不會傳回原文。沒有 `all` 授權。此授權不是提供者授權，也不保證雲端處理、模型回答或保留行為合法。詳情請參閱 [MCP 安裝、選項與工具指南](docs/mcp.md) 及 [3.1 功能對應表](docs/mcp-parity.md)。
+預設僅傳回參照與中繼資料。若要傳回本機原文，主機須在完成自身權利審查後指定 `--allow-source-text local`。線上存取與匯入是分開的：`--enable-online` 新增提供者存取，`--enable-import` 新增匯入存取，但若沒有對應的 `--allow-source-text SOURCE` 授權，仍不會傳回原文。沒有 `all` 授權。此授權不是提供者授權，也不保證雲端處理、模型回答或保留行為合法。詳情請參閱 [MCP 安裝、選項與工具指南](docs/mcp.md) 及 [3.2 功能對應表](docs/mcp-parity.md)。
 
 獨立 Windows 發行套件中亦隨附接受相同啟動引數的 cpe-mcp.exe。伺服器透過標準輸入/輸出（stdin/stdout）進行通訊，不會開啟 GUI 視窗或 HTTP 伺服器。本實作不聲稱已獲得特定商用 AI 用戶端（如 Claude Desktop、Claude Code 等）或外部線上服務的認證。
 
@@ -188,7 +188,7 @@ A. 發布的 `cpe-gui.exe` 適用於 64 位元 Windows (x64)。若按兩下無�
 
 - 本儲存庫包含執行階段套件、翻譯目錄、網頁靜態資源、啟動腳本、相依性鎖定檔及授權條款。
 - `docs/` 資料夾存放專案網頁，每種介面語言一頁；`discoverability.md` 記錄本儲存庫及網頁的介紹方式。
-- 套件版本為 `3.1`，對應 Git 標籤為 `v3.1`。精確的原始碼快照記錄於 `release.json`。
+- 套件版本為 `3.2`，對應 Git 標籤為 `v3.2`。精確的原始碼快照記錄於 `release.json`。
 - 依 MIT 授權條款（`LICENSE`）釋出。
 - 本專案為獨立個人研究工具，與韓國古典翻譯院（ITKC）無隸屬關係。為恪守著作權與使用條款，本儲存庫未隨附任何專有資料庫語料、現代譯文或原始 API 回應資料。
 

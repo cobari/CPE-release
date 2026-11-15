@@ -3,7 +3,7 @@
 Classic Pattern Explorer exposes its research corpus search, library management,
 import pipelines and export engines to AI clients through a local stdio MCP
 (Model Context Protocol) server. The GUI, CLI and MCP server share the same CPE
-core version (`3.1`). MCP is an
+core version (`3.2`). MCP is an
 additional headless interface, not a second matcher or a public web service.
 This implementation uses the official
 [Python SDK v2](https://py.sdk.modelcontextprotocol.io/).
@@ -166,7 +166,7 @@ capability is not a source-text disclosure grant; the two controls are separate.
 
 ## 3. Tool Registry (20 Tools)
 
-The MCP server registers 20 structured tools mapped to CPE 3.1 research workflows.
+The MCP server registers 20 structured tools mapped to CPE 3.2 research workflows.
 Registration is not payload parity: unless the host grants source text, searches
 return reference rows, imports return metadata, and canonical records are
 withheld. Missing grants do not remove a tool or turn a provider failure into an

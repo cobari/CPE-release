@@ -1,4 +1,4 @@
-"""Headless access to the existing 3.1 library and import application services."""
+"""Headless access to the existing 3.2 library and import application services."""
 
 from __future__ import annotations
 

@@ -22,7 +22,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         "--enable-online",
         action="append",
         default=[],
-        help="allow a 3.1 online source, docusky:PROFILE, or all; repeat as needed",
+        help="allow a 3.2 online source, docusky:PROFILE, or all; repeat as needed",
     )
     parser.add_argument(
         "--itkc-log", type=Path, help="required request log path when ITKC is enabled"

@@ -1,4 +1,4 @@
-# Classic Pattern Explorer 3.1
+# Classic Pattern Explorer 3.2
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Tiếng Việt](README.vi.md)
 
@@ -8,7 +8,7 @@ Classic Pattern Explorer là một ứng dụng máy tính và công cụ dòng 
 
 ## Phạm vi tìm kiếm
 
-Phiên bản 3.1 tổ chức các kết nối trực tuyến theo 5 khu vực với 18 nguồn trực tuyến, bên cạnh các thư mục văn bản cục bộ trên máy tính. Các nguồn trực tuyến trả về đoạn trích hoặc bản ghi thư mục giới hạn theo hạn mức của từng nguồn.
+Phiên bản 3.2 tổ chức các kết nối trực tuyến theo 5 khu vực với 18 nguồn trực tuyến, bên cạnh các thư mục văn bản cục bộ trên máy tính. Các nguồn trực tuyến trả về đoạn trích hoặc bản ghi thư mục giới hạn theo hạn mức của từng nguồn.
 
 | | Vị trí văn bản | Kết quả nhận được |
 |---|---|---|
@@ -21,7 +21,7 @@ Kết quả trực tuyến là các đoạn văn hoặc bản ghi thư mục do 
 
 ### Windows (Tệp thực thi)
 
-1. Truy cập [Trang phát hành v3.1](https://github.com/cobari/CPE-release/releases/tag/v3.1) và tải xuống tệp thực thi Windows x64 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.1/cpe-gui.exe).
+1. Truy cập [Trang phát hành v3.2](https://github.com/cobari/CPE-release/releases/tag/v3.2) và tải xuống tệp thực thi Windows x64 [cpe-gui.exe](https://github.com/cobari/CPE-release/releases/download/v3.2/cpe-gui.exe).
 2. Nhấp đúp vào `cpe-gui.exe` để mở cửa sổ tìm kiếm. Không cần cài đặt Python hay uv.
 3. Tệp thực thi sử dụng [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Nếu ứng dụng không khởi động, hãy cài đặt WebView2 Runtime từ liên kết trên.
 
@@ -31,7 +31,7 @@ Kết quả trực tuyến là các đoạn văn hoặc bản ghi thư mục do 
 
 Tệp thực thi Windows không chạy được trên macOS hoặc Linux. Vui lòng sử dụng gói phân phối đầy đủ:
 
-1. Tải gói mã nguồn (`Source code .zip` hoặc `.tar.gz`) từ [Trang phát hành v3.1](https://github.com/cobari/CPE-release/releases/tag/v3.1) và giải nén.
+1. Tải gói mã nguồn (`Source code .zip` hoặc `.tar.gz`) từ [Trang phát hành v3.2](https://github.com/cobari/CPE-release/releases/tag/v3.2) và giải nén.
 2. Giữ nguyên toàn bộ cấu trúc thư mục đã giải nén và chạy tệp khởi chạy phù hợp:
    - **macOS**: Nhấp đúp vào `cpe-gui.command`. (Finder sẽ mở trong cửa sổ Terminal. Ở lần chạy đầu tiên, nếu xuất hiện cảnh báo bảo mật, hãy nhấp chuột phải vào tệp và chọn "Open".)
    - **Linux**: Chạy `cpe-gui.sh`. (Chọn "Run in terminal" trong trình quản lý tệp hoặc chạy từ shell.)
@@ -151,14 +151,14 @@ uv run --locked python itkc_search.py --help
 
 ### Máy chủ MCP cục bộ (Tích hợp AI)
 
-Phiên bản 3.1 bao gồm máy chủ stdio MCP (Model Context Protocol) cục bộ tùy chọn dựa trên Python SDK v2 chính thức. Máy chủ cung cấp 20 công cụ có cấu trúc bao quát 4 ngăn thư viện cục bộ, toàn bộ 18 bộ điều hợp nguồn trực tuyến, danh mục nhà cung cấp, phiên làm việc theo giai đoạn cho các bộ sưu tập ITKC, tìm kiếm DSL mẫu câu Hán văn, quy trình nhập ngữ liệu an toàn và xuất trực tiếp tệp CSV/JSONL.
+Phiên bản 3.2 bao gồm máy chủ stdio MCP (Model Context Protocol) cục bộ tùy chọn dựa trên Python SDK v2 chính thức. Máy chủ cung cấp 20 công cụ có cấu trúc bao quát 4 ngăn thư viện cục bộ, toàn bộ 18 bộ điều hợp nguồn trực tuyến, danh mục nhà cung cấp, phiên làm việc theo giai đoạn cho các bộ sưu tập ITKC, tìm kiếm DSL mẫu câu Hán văn, quy trình nhập ngữ liệu an toàn và xuất trực tiếp tệp CSV/JSONL.
 
 ```sh
 # Khởi động máy chủ MCP qua stdio và cho phép cung cấp văn bản gốc cục bộ
 uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
-Theo mặc định, máy chủ chỉ trả về tham chiếu và siêu dữ liệu. Để trả về văn bản gốc cục bộ, máy chủ phải được khởi động với `--allow-source-text local` sau khi tự xem xét quyền. Truy cập trực tuyến và nhập dữ liệu là riêng biệt: `--enable-online` thêm quyền truy cập nhà cung cấp, `--enable-import` thêm quyền nhập, nhưng không trả về văn bản gốc nếu thiếu quyền `--allow-source-text SOURCE` tương ứng. Không có quyền `all`. Quyền này không phải giấy phép của nhà cung cấp và không bảo đảm tính hợp pháp của xử lý đám mây, câu trả lời của mô hình hoặc việc lưu giữ. Xem [Hướng dẫn cài đặt, tùy chọn và công cụ MCP](docs/mcp.md) cùng [Bảng đối chiếu tính năng 3.1](docs/mcp-parity.md).
+Theo mặc định, máy chủ chỉ trả về tham chiếu và siêu dữ liệu. Để trả về văn bản gốc cục bộ, máy chủ phải được khởi động với `--allow-source-text local` sau khi tự xem xét quyền. Truy cập trực tuyến và nhập dữ liệu là riêng biệt: `--enable-online` thêm quyền truy cập nhà cung cấp, `--enable-import` thêm quyền nhập, nhưng không trả về văn bản gốc nếu thiếu quyền `--allow-source-text SOURCE` tương ứng. Không có quyền `all`. Quyền này không phải giấy phép của nhà cung cấp và không bảo đảm tính hợp pháp của xử lý đám mây, câu trả lời của mô hình hoặc việc lưu giữ. Xem [Hướng dẫn cài đặt, tùy chọn và công cụ MCP](docs/mcp.md) cùng [Bảng đối chiếu tính năng 3.2](docs/mcp-parity.md).
 
 Các gói phân phối Windows độc lập cũng kèm theo tệp cpe-mcp.exe chấp nhận các tham số khởi động tương tự. Máy chủ giao tiếp qua luồng nhập/xuất chuẩn (stdin/stdout), không mở cửa sổ đồ họa hay máy chủ HTTP. Bản triển khai này không tuyên bố đã được chứng nhận tương thích trên các ứng dụng AI thương mại cụ thể (như Claude Desktop, Claude Code) hoặc các dịch vụ trực tuyến bên thứ ba.
 
@@ -188,7 +188,7 @@ A. Tệp `cpe-gui.exe` được biên dịch cho Windows 64-bit (x64). Nếu nh�
 
 - Kho lưu trữ này bao gồm gói phần mềm thời gian chạy, danh mục dịch thuật, tài nguyên trang web, các trình khởi chạy, khóa phụ thuộc thời gian chạy và giấy phép.
 - Thư mục `docs/` chứa các trang web của dự án cho từng ngôn ngữ giao diện, và `discoverability.md` ghi lại cách thức giới thiệu kho lưu trữ và các trang web.
-- Phiên bản gói: `3.1`; thẻ Git: `v3.1`. Ảnh chụp nhanh mã nguồn chính xác được ghi lại trong `release.json`.
+- Phiên bản gói: `3.2`; thẻ Git: `v3.2`. Ảnh chụp nhanh mã nguồn chính xác được ghi lại trong `release.json`.
 - Được phát hành theo Giấy phép MIT (`LICENSE`).
 - Dự án nghiên cứu cá nhân độc lập, không liên kết với ITKC hay các cơ quan khác. Để tôn trọng bản quyền và điều khoản sử dụng, không có kho ngữ liệu độc quyền, bản dịch hiện đại hay phản hồi API thô nào được đóng gói kèm theo.
 
