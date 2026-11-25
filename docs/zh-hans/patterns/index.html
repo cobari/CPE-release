@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>汉文句式检索流程与常见问题（以…爲·雖…而·模式 DSL）｜Classic Pattern Explorer</title>
+  <meta name="description" content="介绍单项检索、组合检索（以…爲、雖…而、非…不）、模式 DSL 语法、结构线索分组、原文不转换原则与常见问题解答。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/patterns/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/patterns/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/patterns/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/patterns/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/patterns/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/patterns/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="汉文句式检索流程与常见问题（以…爲·雖…而·模式 DSL）｜Classic Pattern Explorer">
+  <meta property="og:description" content="介绍单项检索、组合检索（以…爲、雖…而、非…不）、模式 DSL 语法、结构线索分组、原文不转换原则与常见问题解答。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hans.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer 检索界面（简体中文）。">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="汉文句式检索流程与常见问题（以…爲·雖…而·模式 DSL）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="介绍单项检索、组合检索（以…爲、雖…而、非…不）、模式 DSL 语法、结构线索分组、原文不转换原则与常见问题解答。">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hans.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer 检索界面（简体中文）。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"汉文（文言文）句式检索流程与常见问题","description":"介绍单项检索、组合检索（以…爲、雖…而、非…不）、模式 DSL 语法、结构线索分组、原文不转换原则与常见问题解答。","url":"https://cobari.github.io/CPE-release/zh-hans/patterns/","inLanguage":"zh-Hans","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"概览","item":"https://cobari.github.io/CPE-release/zh-hans/"},{"@type":"ListItem","position":2,"name":"句式检索与FAQ","item":"https://cobari.github.io/CPE-release/zh-hans/patterns/"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"为什么部分在线数据库返回 0 条结果或拒绝包含空格的检索词？","acceptedAnswer":{"@type":"Answer","text":"实录、韩国史数据库、NAHF、NRICH、ITH、SAT、AKS、THDL、CSID、CanD、奎章阁、SHIPS、数字延喜式等公开检索入口仅接受不含空格、引号或运算符的连续词语；NDL 则要求至少 2 个字符。无结果仅表示当前返回切片未命中，不能证明全库无此用例。"}},{"@type":"Question","name":"“可能性较高/较低”分组是否代表程序给出了语法判断？","acceptedAnswer":{"@type":"Answer","text":"不是。组合检索的分组（以及模式 DSL 中的“已匹配”/“需核查”）仅依据是否跳过更近的第二要素或是否跨越分句标点等结构线索排序，不能替代研究者的原文研读与语法判断。"}},{"@type":"Question","name":"切换界面语言会改变原文的繁简字体或异体字吗？","acceptedAnswer":{"@type":"Answer","text":"不会。在简体中文、繁体中文、韩语、日语、越南语和英语之间切换仅改变软件界面文字，绝不改写或转换原文用字与标点。"}},{"@type":"Question","name":"本地文件夹中的 .docx 或 .pdf 文件为什么无法读取？","acceptedAnswer":{"@type":"Answer","text":"本地资料库仅扫描 UTF-8 纯文本（.txt、.md）以及程序导入生成的 .texts.jsonl 文件。请先将 Word 或 PDF 文档另存为 UTF-8 纯文本（.txt）。"}},{"@type":"Question","name":"能否导出检索结果和研读记录用于论文引用或统计？","acceptedAnswer":{"@type":"Answer","text":"可以。桌面端导出功能（CSV/JSONL 及 .meta.json 来源元数据）、命令行（cpe match）及研读笔记均支持导出当前结果与笔记。"}}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳转到主要内容</a>
+  <header class="site-head">
+    <a class="brand" href="../../zh-hans/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="语言">
+      <ul>
+        <li><a href="../../patterns/" hreflang="en" lang="en">English</a></li>
+        <li><a href="../../ko/patterns/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../../ja/patterns/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="./" hreflang="zh-Hans" lang="zh-Hans" aria-current="page">简体中文</a></li>
+        <li><a href="../../zh-hant/patterns/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../../vi/patterns/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="专题指南">
+    <ul>
+      <li><a href="../../zh-hans/">概览</a></li>
+      <li><a href="../../zh-hans/databases/">在线库指南</a></li>
+      <li><a href="./" aria-current="page">句式检索与FAQ</a></li>
+      <li><a href="../../zh-hans/mcp/">本地 MCP 服务器</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="当前位置">
+      <ol>
+        <li><a href="../../zh-hans/">概览</a></li>
+        <li aria-current="page">句式检索与FAQ</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>汉文句式检索流程（<span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span>）与 FAQ</h1>
+      <p class="lead">结合本地全文检索与在线数据库摘录定位句式候选用例，查看 A/B 栏位与结构线索，在不改动原文用字的前提下保存个人研读笔记。</p>
+      <p class="meta-note">模式 DSL 可视化构建器、研读笔记与候选对比与单项检索、组合检索一同包含在 v3.3 中。</p>
+    </section>
+    <section>
+      <h2>三种检索模式</h2>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>1. 单项检索</h3>
+          <p>查找词语或短语。本地文件夹支持布尔运算符 <code>AND</code>、<code>OR</code>、<code>NOT</code>、精确短语 <code>"phrase"</code> 与字距 <code>NEAR/n</code>；在线数据源遵循各自接口规则。</p>
+        </article>
+        <article class="step-item">
+          <h3>2. 组合检索</h3>
+          <p>输入第一与第二要素（如 <span class="pattern" lang="lzh">以</span> 与 <span class="pattern" lang="lzh">爲</span>、<span class="pattern" lang="lzh">雖</span> 与 <span class="pattern" lang="lzh">而</span>）查找顺序共现句段，可用 ⇄ 互换顺序，并考察间隔栏 <strong>A</strong> 与后文栏 <strong>B</strong>。</p>
+        </article>
+        <article class="step-item">
+          <h3>3. 模式 DSL（本地）</h3>
+          <p>v3.3 可在界面中直接拼接词框（支持 <code>|</code> 备选字）、字距上下限、排除字与句/分句/字窗边界，或加载 UTF-8 <code>.toml</code> 模式文件。</p>
+        </article>
+      </div>
+    </section>
+    <section>
+      <h2>模式 DSL 写法示例（.toml 与可视化构建器）</h2>
+      <div class="prose-card">
+        <p>可在模式文件中为 <span class="pattern" lang="lzh">以…爲</span>、<span class="pattern" lang="lzh">雖…而</span>、<span class="pattern" lang="lzh">非…不</span> 等构式设定槽位长度与边界条件：</p>
+        <pre class="code-block"><code>schema = 1
+
+[[pattern]]
+id = &quot;yi-wei&quot;
+expr = &quot;以 {A:1..20} 爲 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;sui-er&quot;
+expr = &quot;雖 {A:1..20} 而 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;fei-bu&quot;
+expr = &quot;非 {A:1..20} 不 {B:1..20} @sentence&quot;
+</code></pre>
+        <ul>
+          <li><code>{A:1..20}</code> 捕获 1 至 20 个字符存入命名槽位 <code>A</code>；需要时可用 <code>{A:1..20 not 是}</code> 排除特定字符。</li>
+          <li><code>{..3}</code> 表示最多 3 字的非捕获间隔（在可视化构建器中留空或填 <code>0</code> 表示紧邻匹配）。</li>
+          <li><code>@sentence</code>、<code>@clause</code>、<code>@window:N</code> 指定匹配边界；非简单二元对结构会归入 <strong>需核查</strong>（<code>classification_unreviewed</code>）。</li>
+        </ul>
+      </div>
+    </section>
+    <section>
+      <h2>证据核验与原文保护原则</h2>
+      <div class="method-grid">
+        <article class="method-item">
+          <h3>原文用字保持不变</h3>
+          <p>无论选择何种界面语言，汉文、汉喃与吏读原文始终原样呈现；仅在规范化选项中显式配置时才启用异体字映射。</p>
+        </article>
+        <article class="method-item">
+          <h3>研读笔记与候选对比</h3>
+          <p>可将本地或在线卡片中的用例存入研读笔记，记录审核状态、批注与来源字段并对照查看。</p>
+        </article>
+        <article class="method-item">
+          <h3>截断边界省略号（…）</h3>
+          <p>当在线摘录在提供方字数边界处被截断时，即使位于句号之后也会附带 <code>…</code>，避免误以为完整句段。</p>
+        </article>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>常见问题解答（FAQ）</h2>
+      <div class="faq-list">
+        <article class="faq-item">
+          <h3>为什么部分在线数据库返回 0 条结果或拒绝包含空格的检索词？</h3>
+          <p>实录、韩国史数据库、NAHF、NRICH、ITH、SAT、AKS、THDL、CSID、CanD、奎章阁、SHIPS、数字延喜式等公开检索入口仅接受不含空格、引号或运算符的连续词语；NDL 则要求至少 2 个字符。无结果仅表示当前返回切片未命中，不能证明全库无此用例。</p>
+        </article>
+        <article class="faq-item">
+          <h3>“可能性较高/较低”分组是否代表程序给出了语法判断？</h3>
+          <p>不是。组合检索的分组（以及模式 DSL 中的“已匹配”/“需核查”）仅依据是否跳过更近的第二要素或是否跨越分句标点等结构线索排序，不能替代研究者的原文研读与语法判断。</p>
+        </article>
+        <article class="faq-item">
+          <h3>切换界面语言会改变原文的繁简字体或异体字吗？</h3>
+          <p>不会。在简体中文、繁体中文、韩语、日语、越南语和英语之间切换仅改变软件界面文字，绝不改写或转换原文用字与标点。</p>
+        </article>
+        <article class="faq-item">
+          <h3>本地文件夹中的 .docx 或 .pdf 文件为什么无法读取？</h3>
+          <p>本地资料库仅扫描 UTF-8 纯文本（.txt、.md）以及程序导入生成的 .texts.jsonl 文件。请先将 Word 或 PDF 文档另存为 UTF-8 纯文本（.txt）。</p>
+        </article>
+        <article class="faq-item">
+          <h3>能否导出检索结果和研读记录用于论文引用或统计？</h3>
+          <p>可以。桌面端导出功能（CSV/JSONL 及 .meta.json 来源元数据）、命令行（cpe match）及研读笔记均支持导出当前结果与笔记。</p>
+        </article>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>结合在线数据源与自动化工具使用</h2>
+        <p>查阅 19 个在线来源的请求边界，或通过本地 MCP 服务器接入 AI 研究环境。</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../zh-hans/">下载与概览</a>
+        <a href="../../zh-hans/databases/">在线库指南</a>
+        <a href="../../zh-hans/mcp/">本地 MCP 服务器</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>版本 3.3（标签 v3.3）。MIT 许可证。本项目为独立个人项目，与所连接的各学术机构或数据库均无隶属关系。各数据库原文语料、现代译文及 API 原始响应均不随软件分发。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub 上的源码与发布</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">提交意见与建议（Google 表单）</a></p>
+  </footer>
+</body>
+</html>

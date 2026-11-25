@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="index, follow">
   <meta name="googlebot" content="index, follow">
-  <title>Classic Pattern Explorer：漢文原文の文型候補検索</title>
-  <meta name="description" content="漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストや連携するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。">
+  <title>漢文原文・文型検索ツール（NDL OCR・SAT・CBETA・ITKC対応）｜Classic Pattern Explorer</title>
+  <meta name="description" content="漢文原文から以…爲・雖…而などの文型候補と用例を探す無料の研究支援ツール。NDL OCR・SAT大蔵経・CBETA・ITKC・朝鮮王朝実録の抜粋や手元テキストを検索でき、ローカルMCPにも対応。">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/ja/">
   <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
@@ -18,8 +18,8 @@
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
-  <meta property="og:title" content="Classic Pattern Explorer：漢文原文の文型候補検索">
-  <meta property="og:description" content="漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストや連携するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。">
+  <meta property="og:title" content="漢文原文・文型検索ツール（NDL OCR・SAT・CBETA・ITKC対応）｜Classic Pattern Explorer">
+  <meta property="og:description" content="漢文原文から以…爲・雖…而などの文型候補と用例を探す無料の研究支援ツール。NDL OCR・SAT大蔵経・CBETA・ITKC・朝鮮王朝実録の抜粋や手元テキストを検索でき、ローカルMCPにも対応。">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/ja/">
   <meta property="og:locale" content="ja_JP">
   <meta property="og:locale:alternate" content="en_US">
@@ -32,11 +32,11 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Classic Pattern Explorerの検索画面（日本語インターフェース）。">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Classic Pattern Explorer：漢文原文の文型候補検索">
-  <meta name="twitter:description" content="漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストや連携するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。">
+  <meta name="twitter:title" content="漢文原文・文型検索ツール（NDL OCR・SAT・CBETA・ITKC対応）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="漢文原文から以…爲・雖…而などの文型候補と用例を探す無料の研究支援ツール。NDL OCR・SAT大蔵経・CBETA・ITKC・朝鮮王朝実録の抜粋や手元テキストを検索でき、ローカルMCPにも対応。">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-ja.png">
   <meta name="twitter:image:alt" content="Classic Pattern Explorerの検索画面（日本語インターフェース）。">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"漢文原文の文型候補を探し、文脈と出典を確認する無料の研究支援ツール。手元のテキストや連携するオンライン資料を検索でき、Windows・macOS・Linuxで使えます。","url":"https://cobari.github.io/CPE-release/ja/","softwareVersion":"3.2","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"ja","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"漢文原文から以…爲・雖…而などの文型候補と用例を探す無料の研究支援ツール。NDL OCR・SAT大蔵経・CBETA・ITKC・朝鮮王朝実録の抜粋や手元テキストを検索でき、ローカルMCPにも対応。","url":"https://cobari.github.io/CPE-release/ja/","softwareVersion":"3.3","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"ja","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
@@ -57,6 +57,14 @@
       </ul>
     </nav>
   </header>
+  <nav class="guide-nav" aria-label="ガイド">
+    <ul>
+      <li><a href="./" aria-current="page">概要</a></li>
+      <li><a href="../ja/databases/">連携DBガイド</a></li>
+      <li><a href="../ja/patterns/">文型検索・FAQ</a></li>
+      <li><a href="../ja/mcp/">ローカルMCP</a></li>
+    </ul>
+  </nav>
   <main id="main">
     <section class="hero">
       <div class="hero-copy">
@@ -65,17 +73,17 @@
       </div>
       <div class="actions">
         <div class="action-primary">
-          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.2/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.3/cpe-gui.exe">Windows 版をダウンロード<small>cpe-gui.exe、64 ビット</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.2">v3.2 のダウンロード一覧<small>macOS・Linux 用ソースパッケージ</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.3">v3.3 のダウンロード一覧<small>macOS・Linux 用ソースパッケージ</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.ja.md">利用案内を読む<small>詳細ドキュメント (README)</small></a>
         </div>
-        <p class="action-note">Windows では cpe-gui.exe をダウンロードして、そのまま起動できます。Edge WebView2 ランタイムが必要です。macOS と Linux ではソースパッケージから起動します。初回起動時に実行環境を自動でダウンロードするため、インターネット接続が必要です。v3.2 では、5つの地域別に分類された18のオンライン資料源と、ローカルのテキストフォルダーを検索できます。</p>
+        <p class="action-note">Windows では cpe-gui.exe をダウンロードして、そのまま起動できます。Edge WebView2 ランタイムが必要です。macOS と Linux ではソースパッケージから起動します。初回起動時に実行環境を自動でダウンロードするため、インターネット接続が必要です。v3.3 配布版は5地域・19のオンライン資料源（デジタル延喜式を含む）とローカルフォルダーに対応し、SHIPS 7種選択、パターンDSL視覚ビルダー、検討ノートを備えています。</p>
       </div>
       <figure class="hero-preview">
         <img src="../assets/interface-preview-ja.png" srcset="../assets/interface-preview-ja.png 1180w, ../assets/interface-preview-ja-2x.png 2360w, ../assets/interface-preview-ja-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="Classic Pattern Explorerの検索画面（日本語インターフェース）。" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Classic Pattern Explorer 3.2 — 日本語インターフェース。</figcaption>
+        <figcaption>Classic Pattern Explorer 3.3 — 日本語インターフェース。</figcaption>
       </figure>
     </section>
 
@@ -84,11 +92,11 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>v3.2 リリースから <code>cpe-gui.exe</code> をダウンロードしてダブルクリックします。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
+          <p>v3.3 リリースから <code>cpe-gui.exe</code> をダウンロードしてダブルクリックします。Python は不要です。<a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 ランタイム</a>で動作するため、ウィンドウが開かない場合はランタイムをインストールしてください。</p>
         </div>
         <div class="platform-item">
           <h3>macOS および Linux</h3>
-          <p>v3.2 リリースからソースパッケージをダウンロード・解凍し、<code>cpe-gui.command</code>（macOS）または <code>cpe-gui.sh</code>（Linux）を実行します。初回実行時に uv の導入確認を行い、Python 環境と依存関係を自動取得するためインターネット接続が必要です。</p>
+          <p>v3.3 リリースからソースパッケージをダウンロード・解凍し、<code>cpe-gui.command</code>（macOS）または <code>cpe-gui.sh</code>（Linux）を実行します。初回実行時に uv の導入確認を行い、Python 環境と依存関係を自動取得するためインターネット接続が必要です。</p>
         </div>
         <div class="platform-item">
           <h3>コマンドライン</h3>
@@ -96,7 +104,7 @@
         </div>
         <div class="platform-item">
           <h3>ローカル MCP サーバー</h3>
-          <p>3.2 には、ローカル資料・18 のオンライン資料源・取り込みとエクスポートに対応する 20 の研究ツールを備えたローカル stdio MCP サーバー（任意利用）も含まれています。詳細は <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP ガイド</a> をご覧ください。</p>
+          <p>3.3 には、ローカル資料・19 のオンライン資料源・取り込みとエクスポートに対応する 20 の研究ツールを備えたローカル stdio MCP サーバー（任意利用）も含まれています。詳細は <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP ガイド</a> をご覧ください。</p>
         </div>
       </div>
 
@@ -152,15 +160,36 @@
 
         <article class="scope-col">
           <h3>オンライン資料検索</h3>
-          <div class="scope-sub">18の資料源からの抜粋・書誌情報、インターネット接続が必要</div>
+          <div class="scope-sub">19の資料源からの抜粋・書誌情報、インターネット接続が必要</div>
           <p>資料源にキーワードを送り、提供されたテキストや書誌情報を確認します。接続先によっては公式検索画面を開きます。提供元の件数制限に従います。5つの地域別に整理されています。</p>
           <ul>
             <li><strong>韓国（8）：</strong> 韓国古典総合DB (ITKC)、東洋古典総合DB (サイバー書堂)、韓国史データベース（国史編纂委員会）、朝鮮王朝実録・国史編纂委員会検索、東北アジア歴史財団 東北アジア歴史ネット検索、NRICH 木簡（韓国）、韓国学中央研究院 古文書資料館、奎章閣古文書 · 原文検索。</li>
-            <li><strong>日本（4）：</strong> 国立国会図書館 (NDL)、SAT大正新脩大藏經テキストデータベース、東京大学古記録全文DB · 公式検索画面、CanD 中国・日本漢詩 · 書誌参照。</li>
+            <li><strong>日本（5）：</strong> 国立国会図書館 (NDL)、SAT大正新脩大藏經テキストデータベース、東京大学史料編纂所 SHIPS（7データベース選択）· 公式検索、デジタル延喜式（国立歴史民俗博物館）· 公式検索（CC BY 4.0）、CanD 中国・日本漢詩 · 書誌参照。</li>
             <li><strong>中国（1）：</strong> 浙江大学中国歴代墓誌DB · 録文検索。</li>
             <li><strong>台湾（4）：</strong> CBETA 漢文大蔵経、DocuSky · 佛寺志靈應故事、中央研究院台湾史研究所 台湾文献全文データベース、台湾歴史デジタル図書館 · 古契書。</li>
             <li><strong>ベトナム（1）：</strong> Việt Điện 漢喃OCRコーパス。</li>
           </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="guides">
+      <h2>テーマ別ガイド</h2>
+      <div class="guide-grid">
+        <article class="guide-card">
+          <h3>連携データベース・ローカル取込ガイド</h3>
+          <p>日本（NDL OCR・SAT・SHIPS・デジタル延喜式・CanD）や韓国・台湾・中国・ベトナムの19資料源の検索範囲と制限を解説します。</p>
+          <a class="card-link" href="databases/">連携DBガイドを見る</a>
+        </article>
+        <article class="guide-card">
+          <h3>漢文の文型検索手順・FAQ</h3>
+          <p>単一検索、複合検索（以…爲・雖…而・非…不）、パターンDSL、構造的な手がかり分類、よくある質問をまとめました。</p>
+          <a class="card-link" href="patterns/">文型検索・FAQを見る</a>
+        </article>
+        <article class="guide-card">
+          <h3>ローカル MCP サーバーガイド（20ツール）</h3>
+          <p>参照・メタデータのみを既定とし、資料源ごとの --allow-source-text 指定で扱うローカル stdio MCP サーバーの設定手順を紹介します。</p>
+          <a class="card-link" href="mcp/">MCP ガイドを見る</a>
         </article>
       </div>
     </section>
@@ -184,7 +213,7 @@
     </section>
   </main>
   <footer class="site-foot">
-    <p>バージョン 3.2（タグ v3.2）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API の生の応答は含まれていません。</p>
+    <p>バージョン 3.3（タグ v3.3）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API の生の応答は含まれていません。</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub のソースとリリース</a></p>
     <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">ご意見・ご要望を送る（Google フォーム）</a></p>
   </footer>

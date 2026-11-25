@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="index, follow">
   <meta name="googlebot" content="index, follow">
-  <title>Classic Pattern Explorer：文言文（漢文）原文句式候選檢索</title>
-  <meta name="description" content="免費漢文（文言文）研究輔助工具：查找原文中的句式候選用例，查看前後文與出處。支援本機文字檔及指定線上資料庫，適用於 Windows、macOS 與 Linux。">
+  <title>漢文（文言文）原文句式檢索工具（CBETA・DocuSky・NDL OCR・ITKC）｜Classic Pattern Explorer</title>
+  <meta name="description" content="免費漢文（文言文）句式與用例候選檢索工具，支援本機文本及 CBETA、DocuSky、中研院臺史所、NDL OCR、ITKC 等線上資料庫的摘錄與出處對照，並附本機 MCP 伺服器。">
   <meta name="google-site-verification" content="BgN8NfQkCioM_tv_2YdF2npBOmiVOxTmaVLso8kbejQ">
   <link rel="canonical" href="https://cobari.github.io/CPE-release/zh-hant/">
   <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/">
@@ -18,8 +18,8 @@
   <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Classic Pattern Explorer">
-  <meta property="og:title" content="Classic Pattern Explorer：文言文（漢文）原文句式候選檢索">
-  <meta property="og:description" content="免費漢文（文言文）研究輔助工具：查找原文中的句式候選用例，查看前後文與出處。支援本機文字檔及指定線上資料庫，適用於 Windows、macOS 與 Linux。">
+  <meta property="og:title" content="漢文（文言文）原文句式檢索工具（CBETA・DocuSky・NDL OCR・ITKC）｜Classic Pattern Explorer">
+  <meta property="og:description" content="免費漢文（文言文）句式與用例候選檢索工具，支援本機文本及 CBETA、DocuSky、中研院臺史所、NDL OCR、ITKC 等線上資料庫的摘錄與出處對照，並附本機 MCP 伺服器。">
   <meta property="og:url" content="https://cobari.github.io/CPE-release/zh-hant/">
   <meta property="og:locale" content="zh_TW">
   <meta property="og:locale:alternate" content="en_US">
@@ -32,11 +32,11 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Classic Pattern Explorer 檢索介面（繁體中文）。">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Classic Pattern Explorer：文言文（漢文）原文句式候選檢索">
-  <meta name="twitter:description" content="免費漢文（文言文）研究輔助工具：查找原文中的句式候選用例，查看前後文與出處。支援本機文字檔及指定線上資料庫，適用於 Windows、macOS 與 Linux。">
+  <meta name="twitter:title" content="漢文（文言文）原文句式檢索工具（CBETA・DocuSky・NDL OCR・ITKC）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="免費漢文（文言文）句式與用例候選檢索工具，支援本機文本及 CBETA、DocuSky、中研院臺史所、NDL OCR、ITKC 等線上資料庫的摘錄與出處對照，並附本機 MCP 伺服器。">
   <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hant.png">
   <meta name="twitter:image:alt" content="Classic Pattern Explorer 檢索介面（繁體中文）。">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"免費漢文（文言文）研究輔助工具：查找原文中的句式候選用例，查看前後文與出處。支援本機文字檔及指定線上資料庫，適用於 Windows、macOS 與 Linux。","url":"https://cobari.github.io/CPE-release/zh-hant/","softwareVersion":"3.2","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Classic Pattern Explorer","description":"免費漢文（文言文）句式與用例候選檢索工具，支援本機文本及 CBETA、DocuSky、中研院臺史所、NDL OCR、ITKC 等線上資料庫的摘錄與出處對照，並附本機 MCP 伺服器。","url":"https://cobari.github.io/CPE-release/zh-hant/","softwareVersion":"3.3","applicationCategory":"EducationalApplication","operatingSystem":"Windows, macOS, Linux","isAccessibleForFree":true,"license":"https://github.com/cobari/CPE-release/blob/main/LICENSE","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
@@ -57,6 +57,14 @@
       </ul>
     </nav>
   </header>
+  <nav class="guide-nav" aria-label="專題指南">
+    <ul>
+      <li><a href="./" aria-current="page">概覽</a></li>
+      <li><a href="../zh-hant/databases/">線上資料庫指南</a></li>
+      <li><a href="../zh-hant/patterns/">句式檢索與FAQ</a></li>
+      <li><a href="../zh-hant/mcp/">本機 MCP 伺服器</a></li>
+    </ul>
+  </nav>
   <main id="main">
     <section class="hero">
       <div class="hero-copy">
@@ -65,17 +73,17 @@
       </div>
       <div class="actions">
         <div class="action-primary">
-          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.2/cpe-gui.exe">下載 Windows 版<small>cpe-gui.exe，64 位元</small></a>
+          <a class="button primary" href="https://github.com/cobari/CPE-release/releases/download/v3.3/cpe-gui.exe">下載 Windows 版<small>cpe-gui.exe，64 位元</small></a>
         </div>
         <div class="action-secondary">
-          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.2">v3.2 下載清單<small>macOS 與 Linux 原始碼套件</small></a>
+          <a class="button" href="https://github.com/cobari/CPE-release/releases/tag/v3.3">v3.3 下載清單<small>macOS 與 Linux 原始碼套件</small></a>
           <a class="button" href="https://github.com/cobari/CPE-release/blob/main/README.zh-TW.md">閱讀使用說明<small>詳細說明書 (README)</small></a>
         </div>
-        <p class="action-note">Windows 使用者下載 cpe-gui.exe 後即可直接執行，但系統須具備 Edge WebView2 執行階段。macOS 與 Linux 使用者請使用原始碼套件執行；首次啟動時會自動下載執行環境，因此需要連上網路。v3.2 可檢索依 5 個國家或地區分類的 18 個線上資料來源，以及本機純文字資料夾。</p>
+        <p class="action-note">Windows 使用者下載 cpe-gui.exe 後即可直接執行，但系統須具備 Edge WebView2 執行階段。macOS 與 Linux 使用者請使用原始碼套件執行；首次啟動時會自動下載執行環境，因此需要連上網路。v3.3 發布版支援依 5 個國家或地區分類的 19 個線上資料來源（含數位延喜式）與本機純文字資料夾，並提供 SHIPS 七庫選單、模式 DSL 視覺建構器與檢討筆記。</p>
       </div>
       <figure class="hero-preview">
         <img src="../assets/interface-preview-zh-hant.png" srcset="../assets/interface-preview-zh-hant.png 1180w, ../assets/interface-preview-zh-hant-2x.png 2360w, ../assets/interface-preview-zh-hant-4x.png 4720w" sizes="(max-width: 640px) calc(100vw - 32px), 95vw" alt="Classic Pattern Explorer 檢索介面（繁體中文）。" width="1180" height="560" loading="eager" decoding="async">
-        <figcaption>Classic Pattern Explorer 3.2 — 繁體中文介面。</figcaption>
+        <figcaption>Classic Pattern Explorer 3.3 — 繁體中文介面。</figcaption>
       </figure>
     </section>
 
@@ -84,11 +92,11 @@
       <div class="platforms-grid">
         <div class="platform-item">
           <h3>Windows</h3>
-          <p>從 v3.2 發布頁面下載 <code>cpe-gui.exe</code> 後按兩下即可執行，無需預裝 Python。本軟體依賴 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 執行階段</a>；若視窗未能開啟，請安裝該執行階段。</p>
+          <p>從 v3.3 發布頁面下載 <code>cpe-gui.exe</code> 後按兩下即可執行，無需預裝 Python。本軟體依賴 <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft Edge WebView2 執行階段</a>；若視窗未能開啟，請安裝該執行階段。</p>
         </div>
         <div class="platform-item">
           <h3>macOS 與 Linux</h3>
-          <p>從 v3.2 發布頁面下載原始碼套件並解壓縮，執行 <code>cpe-gui.command</code>（macOS）或 <code>cpe-gui.sh</code>（Linux）。首次執行時啟動指令碼會提示安裝 uv 並自動下載 Python 環境與相依套件，因此需要連線網際網路。</p>
+          <p>從 v3.3 發布頁面下載原始碼套件並解壓縮，執行 <code>cpe-gui.command</code>（macOS）或 <code>cpe-gui.sh</code>（Linux）。首次執行時啟動指令碼會提示安裝 uv 並自動下載 Python 環境與相依套件，因此需要連線網際網路。</p>
         </div>
         <div class="platform-item">
           <h3>命令列</h3>
@@ -96,7 +104,7 @@
         </div>
         <div class="platform-item">
           <h3>本機 MCP 伺服器</h3>
-          <p>3.2 版另附可選的本機 stdio MCP 伺服器，提供涵蓋本機資料夾、18 個線上資料來源以及資料匯入與匯出的 20 個研究工具。詳情請參閱 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 指南</a>。</p>
+          <p>3.3 版另附可選的本機 stdio MCP 伺服器，提供涵蓋本機資料夾、19 個線上資料來源以及資料匯入與匯出的 20 項研究工具。詳情請參閱 <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">MCP 指南</a>。</p>
         </div>
       </div>
 
@@ -152,15 +160,36 @@
 
         <article class="scope-col">
           <h3>線上資料來源檢索</h3>
-          <div class="scope-sub">來自 18 個資料來源的摘錄與書目記錄（需要網路連線）</div>
+          <div class="scope-sub">來自 19 個資料來源的摘錄與書目記錄（需要網路連線）</div>
           <p>向支援的線上來源發送檢索詞，查閱回傳的文句或書目資訊；部分來源則改為開啟其官方檢索頁面。遵守提供方的結果筆數限制。依 5 個國家與地區分類：</p>
           <ul>
             <li><strong>韓國（8）：</strong> 韓國古典綜合資料庫 (ITKC)、東洋古典綜合資料庫 (Cyber Seodang)、韓國史資料庫綜合檢索、朝鮮王朝實錄 · 國史編纂委員會檢索、東北亞歷史財團 東北亞歷史網檢索、NRICH 木簡釋文（韓國）、韓國學中央研究院 古文書資料館、奎章閣古文書 · 原文檢索。</li>
-            <li><strong>日本（4）：</strong> 日本國立國會圖書館 (NDL)、SAT 大正新脩大藏經文本資料庫、東京大學古記錄全文DB · 官方檢索、CanD 中國與日本漢詩 · 書目參考。</li>
+            <li><strong>日本（5）：</strong> 日本國立國會圖書館 (NDL)、SAT 大正新脩大藏經文本資料庫、東京大學史料編纂所 SHIPS（7 個資料庫選擇）· 官方檢索、數位延喜式（日本國立歷史民俗博物館，官方瀏覽器檢索，CC BY 4.0）、CanD 中國與日本漢詩 · 書目參考。</li>
             <li><strong>中國（1）：</strong> 浙江大學 CSID · 錄文檢索。</li>
             <li><strong>臺灣（4）：</strong> CBETA 漢文佛典、DocuSky · 佛寺志靈應故事、中央研究院臺灣史研究所 臺灣文獻全文資料庫、臺灣歷史數位圖書館 · 古契書。</li>
             <li><strong>越南（1）：</strong> Việt Điện 漢喃OCR語料庫。</li>
           </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="guides">
+      <h2>專題指南</h2>
+      <div class="guide-grid">
+        <article class="guide-card">
+          <h3>線上資料庫與本機匯入指南</h3>
+          <p>依地區詳述 19 個線上檢索來源的回傳範圍、單次筆數上限，以及本機純文字、XML、CTP 與地方志的匯入方式。</p>
+          <a class="card-link" href="databases/">查看資料庫指南</a>
+        </article>
+        <article class="guide-card">
+          <h3>漢文句式檢索流程與常見問題</h3>
+          <p>了解單項檢索、組合檢索（以…爲、雖…而、非…不）、模式 DSL 運算式、結構分組與常見問題解答。</p>
+          <a class="card-link" href="patterns/">查看句式檢索指南</a>
+        </article>
+        <article class="guide-card">
+          <h3>本機 MCP 伺服器指南（20 項工具）</h3>
+          <p>了解預設僅傳回參照與中繼資料的本機 stdio MCP 伺服器設定、逐來源明確授權與安全邊界。</p>
+          <a class="card-link" href="mcp/">查看 MCP 指南</a>
         </article>
       </div>
     </section>
@@ -184,7 +213,7 @@
     </section>
   </main>
   <footer class="site-foot">
-    <p>版本 3.2（標籤 v3.2）。MIT 授權條款。本專案為獨立個人專案，與所連線的各學術機構或資料庫均無隸屬關係。各資料庫原文語料、現代譯文及 API 原始回應均不隨軟體套件散布。</p>
+    <p>版本 3.3（標籤 v3.3）。MIT 授權條款。本專案為獨立個人專案，與所連線的各學術機構或資料庫均無隸屬關係。各資料庫原文語料、現代譯文及 API 原始回應均不隨軟體套件散布。</p>
     <p><a href="https://github.com/cobari/CPE-release">GitHub 上的原始碼與發布</a></p>
     <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">提供意見與建議（Google 表單）</a></p>
   </footer>

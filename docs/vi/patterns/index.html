@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>Hướng dẫn tìm mẫu câu Hán văn &amp; FAQ (以…爲, 雖…而, Mẫu DSL) | Classic Pattern Explorer</title>
+  <meta name="description" content="Cách dùng Tìm kiếm đơn, Tìm kiếm cặp (以…爲, 雖…而, 非…不), cú pháp Mẫu DSL, phân nhóm theo dấu hiệu cấu trúc và giải đáp các câu hỏi thường gặp.">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/vi/patterns/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/patterns/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/patterns/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/patterns/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/patterns/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/patterns/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/patterns/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="Hướng dẫn tìm mẫu câu Hán văn &amp; FAQ (以…爲, 雖…而, Mẫu DSL) | Classic Pattern Explorer">
+  <meta property="og:description" content="Cách dùng Tìm kiếm đơn, Tìm kiếm cặp (以…爲, 雖…而, 非…不), cú pháp Mẫu DSL, phân nhóm theo dấu hiệu cấu trúc và giải đáp các câu hỏi thường gặp.">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/vi/patterns/">
+  <meta property="og:locale" content="vi_VN">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-vi.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Màn hình tìm kiếm Classic Pattern Explorer bằng tiếng Việt.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hướng dẫn tìm mẫu câu Hán văn &amp; FAQ (以…爲, 雖…而, Mẫu DSL) | Classic Pattern Explorer">
+  <meta name="twitter:description" content="Cách dùng Tìm kiếm đơn, Tìm kiếm cặp (以…爲, 雖…而, 非…不), cú pháp Mẫu DSL, phân nhóm theo dấu hiệu cấu trúc và giải đáp các câu hỏi thường gặp.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-vi.png">
+  <meta name="twitter:image:alt" content="Màn hình tìm kiếm Classic Pattern Explorer bằng tiếng Việt.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Quy trình tìm mẫu câu Hán văn và câu hỏi thường gặp","description":"Cách dùng Tìm kiếm đơn, Tìm kiếm cặp (以…爲, 雖…而, 非…不), cú pháp Mẫu DSL, phân nhóm theo dấu hiệu cấu trúc và giải đáp các câu hỏi thường gặp.","url":"https://cobari.github.io/CPE-release/vi/patterns/","inLanguage":"vi","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Tổng quan","item":"https://cobari.github.io/CPE-release/vi/"},{"@type":"ListItem","position":2,"name":"Tìm mẫu câu & FAQ","item":"https://cobari.github.io/CPE-release/vi/patterns/"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Vì sao một số nguồn trực tuyến trả về 0 kết quả hoặc từ chối khoảng trắng?","acceptedAnswer":{"@type":"Answer","text":"Nhiều trang tìm kiếm công khai (như Sillok, HistoryDB, NAHF, NRICH, ITH, SAT, AKS, THDL, CSID, CanD, Kyujanggak, SHIPS, Engishiki) chỉ nhận một từ hoặc cụm chữ liên tục không có khoảng trắng, dấu ngoặc kép hay toán tử; NDL yêu cầu tối thiểu 2 ký tự. Không có kết quả chỉ phản ánh lát cắt trang hiện tại."}},{"@type":"Question","name":"Nhóm 'khả năng phù hợp cao/thấp' có phải là phán đoán ngữ pháp không?","acceptedAnswer":{"@type":"Answer","text":"Không. Trong Tìm kiếm cặp, cách phân nhóm (cũng như 'Khớp' / 'Cần rà soát' ở Mẫu DSL) chỉ dựa trên dấu hiệu cấu trúc như bỏ qua yếu tố thứ hai gần hơn hay vượt qua dấu ngắt câu. Bạn vẫn cần mở liên kết nguồn để tự đọc và xác nhận."}},{"@type":"Question","name":"Đổi ngôn ngữ giao diện có làm biến đổi chữ Hán gốc không?","acceptedAnswer":{"@type":"Answer","text":"Không bao giờ. Chuyển đổi giữa tiếng Việt, tiếng Anh, tiếng Hàn, tiếng Nhật, tiếng Trung giản thể và phồn thể chỉ thay đổi nhãn giao diện, tuyệt đối không chuyển đổi chữ gốc hoặc dấu câu."}},{"@type":"Question","name":"Vì sao tệp .docx hoặc .pdf trong thư mục cục bộ không mở được?","acceptedAnswer":{"@type":"Answer","text":"Các khe thư mục cục bộ chỉ đọc văn bản thuần UTF-8 (.txt, .md) và gói .texts.jsonl do trình nhập của CPE tạo. Hãy xuất tài liệu Word hoặc PDF sang tệp .txt mã hóa UTF-8 trước."}},{"@type":"Question","name":"Tôi có thể xuất kết quả tìm kiếm và ghi chú để trích dẫn không?","acceptedAnswer":{"@type":"Answer","text":"Có. Bạn có thể xuất snapshot CSV/JSONL kèm tệp .meta.json từ giao diện đồ họa, chạy lệnh cpe match trên CLI hoặc xuất JSONL từ Sổ tay rà soát."}}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Chuyển đến nội dung chính</a>
+  <header class="site-head">
+    <a class="brand" href="../../vi/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="Ngôn ngữ">
+      <ul>
+        <li><a href="../../patterns/" hreflang="en" lang="en">English</a></li>
+        <li><a href="../../ko/patterns/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../../ja/patterns/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="../../zh-hans/patterns/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-hant/patterns/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="./" hreflang="vi" lang="vi" aria-current="page">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="Hướng dẫn chuyên đề">
+    <ul>
+      <li><a href="../../vi/">Tổng quan</a></li>
+      <li><a href="../../vi/databases/">Cơ sở dữ liệu</a></li>
+      <li><a href="./" aria-current="page">Tìm mẫu câu &amp; FAQ</a></li>
+      <li><a href="../../vi/mcp/">Máy chủ MCP</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="Đường dẫn">
+      <ol>
+        <li><a href="../../vi/">Tổng quan</a></li>
+        <li aria-current="page">Tìm mẫu câu &amp; FAQ</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>Quy trình tìm mẫu câu Hán văn (<span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span>) &amp; FAQ</h1>
+      <p class="lead">Kết hợp tìm kiếm toàn văn trên máy và đoạn trích trực tuyến để rà soát ứng viên mẫu câu, kiểm tra ô A/B và dấu hiệu cấu trúc mà không làm biến đổi chữ gốc Hán văn.</p>
+      <p class="meta-note">Trình tạo Mẫu DSL trực quan, Sổ tay rà soát và So sánh ứng viên được tích hợp trong bản v3.3 cùng với Tìm kiếm đơn và Tìm kiếm cặp.</p>
+    </section>
+    <section>
+      <h2>Ba chế độ tìm kiếm</h2>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>1. Tìm kiếm đơn</h3>
+          <p>Tìm từ hoặc cụm từ. Thư mục cục bộ hỗ trợ toán tử <code>AND</code>, <code>OR</code>, <code>NOT</code>, cụm từ chính xác <code>"phrase"</code> và khoảng cách <code>NEAR/n</code>; các nguồn trực tuyến tuân theo cú pháp riêng của từng trang.</p>
+        </article>
+        <article class="step-item">
+          <h3>2. Tìm kiếm cặp</h3>
+          <p>Nhập yếu tố thứ nhất và thứ hai (ví dụ <span class="pattern" lang="lzh">以</span> và <span class="pattern" lang="lzh">爲</span>, hoặc <span class="pattern" lang="lzh">雖</span> và <span class="pattern" lang="lzh">而</span>) để tìm câu xuất hiện theo thứ tự. Dùng ⇄ để hoán đổi và kiểm tra ô <strong>A</strong> (ở giữa) cùng ô <strong>B</strong> (theo sau).</p>
+        </article>
+        <article class="step-item">
+          <h3>3. Mẫu DSL (cục bộ)</h3>
+          <p>Bản v3.3 cho phép ghép nhiều bước trực quan trên giao diện (nhiều phương án <code>|</code>, khoảng cách min/max, ký tự loại trừ và ranh giới câu/mệnh đề/cửa sổ) hoặc nạp tệp <code>.toml</code> UTF-8.</p>
+        </article>
+      </div>
+    </section>
+    <section>
+      <h2>Ví dụ cú pháp Mẫu DSL (.toml &amp; trình tạo trực quan)</h2>
+      <div class="prose-card">
+        <p>Có thể mô tả các cấu trúc như <span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span> và <span class="pattern" lang="lzh">非…不</span> kèm độ dài khe và ranh giới dấu câu:</p>
+        <pre class="code-block"><code>schema = 1
+
+[[pattern]]
+id = &quot;yi-wei&quot;
+expr = &quot;以 {A:1..20} 爲 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;sui-er&quot;
+expr = &quot;雖 {A:1..20} 而 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;fei-bu&quot;
+expr = &quot;非 {A:1..20} 不 {B:1..20} @sentence&quot;
+</code></pre>
+        <ul>
+          <li><code>{A:1..20}</code> lấy từ 1 đến 20 ký tự vào ô đặt tên <code>A</code>; có thể thêm loại trừ như <code>{A:1..20 not 是}</code>.</li>
+          <li><code>{..3}</code> chỉ định khoảng cách không lưu tối đa 3 ký tự (để trống hoặc <code>0</code> trong trình tạo trực quan để khớp liền kề).</li>
+          <li><code>@sentence</code>, <code>@clause</code>, <code>@window:N</code> quy định phạm vi khớp; các mẫu ngoài cặp 2 yếu tố đơn giản được xếp vào mục <strong>Cần rà soát</strong> (<code>classification_unreviewed</code>).</li>
+        </ul>
+      </div>
+    </section>
+    <section>
+      <h2>Đối chiếu bằng chứng và bảo toàn nguyên văn</h2>
+      <div class="method-grid">
+        <article class="method-item">
+          <h3>Giữ nguyên chữ gốc</h3>
+          <p>Chữ Hán, chữ Nôm và chữ Lại đọc không bị thay đổi theo ngôn ngữ giao diện; bảng quy đổi dị thể chỉ chạy khi bạn tự bật trong phần chuẩn hóa.</p>
+        </article>
+        <article class="method-item">
+          <h3>Sổ tay rà soát &amp; so sánh</h3>
+          <p>Lưu các thẻ kết quả cục bộ hoặc trực tuyến vào Sổ tay rà soát để gắn trạng thái, ghi chú nghiên cứu và đối chiếu song song.</p>
+        </article>
+        <article class="method-item">
+          <h3>Dấu lược trích (…) ở ranh giới</h3>
+          <p>Khi đoạn trích trực tuyến chạm giới hạn cắt của nguồn cung cấp, CPE luôn thêm dấu <code>…</code> kể cả sau dấu chấm câu để tránh nhầm thành câu hoàn chỉnh.</p>
+        </article>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>Câu hỏi thường gặp (FAQ)</h2>
+      <div class="faq-list">
+        <article class="faq-item">
+          <h3>Vì sao một số nguồn trực tuyến trả về 0 kết quả hoặc từ chối khoảng trắng?</h3>
+          <p>Nhiều trang tìm kiếm công khai (như Sillok, HistoryDB, NAHF, NRICH, ITH, SAT, AKS, THDL, CSID, CanD, Kyujanggak, SHIPS, Engishiki) chỉ nhận một từ hoặc cụm chữ liên tục không có khoảng trắng, dấu ngoặc kép hay toán tử; NDL yêu cầu tối thiểu 2 ký tự. Không có kết quả chỉ phản ánh lát cắt trang hiện tại.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Nhóm &#x27;khả năng phù hợp cao/thấp&#x27; có phải là phán đoán ngữ pháp không?</h3>
+          <p>Không. Trong Tìm kiếm cặp, cách phân nhóm (cũng như &#x27;Khớp&#x27; / &#x27;Cần rà soát&#x27; ở Mẫu DSL) chỉ dựa trên dấu hiệu cấu trúc như bỏ qua yếu tố thứ hai gần hơn hay vượt qua dấu ngắt câu. Bạn vẫn cần mở liên kết nguồn để tự đọc và xác nhận.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Đổi ngôn ngữ giao diện có làm biến đổi chữ Hán gốc không?</h3>
+          <p>Không bao giờ. Chuyển đổi giữa tiếng Việt, tiếng Anh, tiếng Hàn, tiếng Nhật, tiếng Trung giản thể và phồn thể chỉ thay đổi nhãn giao diện, tuyệt đối không chuyển đổi chữ gốc hoặc dấu câu.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Vì sao tệp .docx hoặc .pdf trong thư mục cục bộ không mở được?</h3>
+          <p>Các khe thư mục cục bộ chỉ đọc văn bản thuần UTF-8 (.txt, .md) và gói .texts.jsonl do trình nhập của CPE tạo. Hãy xuất tài liệu Word hoặc PDF sang tệp .txt mã hóa UTF-8 trước.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Tôi có thể xuất kết quả tìm kiếm và ghi chú để trích dẫn không?</h3>
+          <p>Có. Bạn có thể xuất snapshot CSV/JSONL kèm tệp .meta.json từ giao diện đồ họa, chạy lệnh cpe match trên CLI hoặc xuất JSONL từ Sổ tay rà soát.</p>
+        </article>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>Áp dụng vào tìm kiếm thực tế</h2>
+        <p>Kiểm tra giới hạn của 19 nguồn trực tuyến hoặc kết nối máy chủ MCP cục bộ với quy trình nghiên cứu của bạn.</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../vi/">Tải xuống &amp; tổng quan</a>
+        <a href="../../vi/databases/">Cơ sở dữ liệu</a>
+        <a href="../../vi/mcp/">Máy chủ MCP</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>Phiên bản 3.3 (tag v3.3). Giấy phép MIT. Dự án cá nhân độc lập, không liên kết với các cơ quan hoặc cơ sở dữ liệu được kết nối. Không đính kèm kho ngữ liệu, bản dịch hiện đại hoặc phản hồi API gốc.</p>
+    <p><a href="https://github.com/cobari/CPE-release">Mã nguồn và các bản phát hành trên GitHub</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">Gửi góp ý và đề xuất (Google Biểu mẫu)</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>漢文の文型検索手順・FAQ（以…爲・雖…而・パターンDSL）｜Classic Pattern Explorer</title>
+  <meta name="description" content="単一検索、複合検索（以…爲・雖…而・非…不）、パターンDSLの記述法、構造的な手がかり分類、原文非変換ポリシーとよくある質問をまとめました。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/ja/patterns/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/patterns/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/patterns/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/patterns/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/patterns/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/patterns/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/patterns/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="漢文の文型検索手順・FAQ（以…爲・雖…而・パターンDSL）｜Classic Pattern Explorer">
+  <meta property="og:description" content="単一検索、複合検索（以…爲・雖…而・非…不）、パターンDSLの記述法、構造的な手がかり分類、原文非変換ポリシーとよくある質問をまとめました。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/ja/patterns/">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-ja.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorerの検索画面（日本語インターフェース）。">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="漢文の文型検索手順・FAQ（以…爲・雖…而・パターンDSL）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="単一検索、複合検索（以…爲・雖…而・非…不）、パターンDSLの記述法、構造的な手がかり分類、原文非変換ポリシーとよくある質問をまとめました。">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-ja.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorerの検索画面（日本語インターフェース）。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"漢文の文型検索手順とよくある質問","description":"単一検索、複合検索（以…爲・雖…而・非…不）、パターンDSLの記述法、構造的な手がかり分類、原文非変換ポリシーとよくある質問をまとめました。","url":"https://cobari.github.io/CPE-release/ja/patterns/","inLanguage":"ja","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"概要","item":"https://cobari.github.io/CPE-release/ja/"},{"@type":"ListItem","position":2,"name":"文型検索・FAQ","item":"https://cobari.github.io/CPE-release/ja/patterns/"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"オンライン資料源で結果が0件になる、または空白を入力できないのはなぜですか？","acceptedAnswer":{"@type":"Answer","text":"実録・韓国史DB・NAHF・NRICH・ITH・SAT・AKS・THDL・CSID・CanD・奎章閣・SHIPS・デジタル延喜式など多くの公開検索画面は、空白・引用符・演算子を含まない連続した1語句のみを受け付けます。また NDL は2文字以上が必要です。0件であってもコーパス全体に存在しないことを意味しません。"}},{"@type":"Question","name":"「可能性が高い／低い」という分類は文法的な正解を意味しますか？","acceptedAnswer":{"@type":"Answer","text":"いいえ。複合検索の分類（パターンDSLの「一致」／「要確認」）は、より近い第2要素を飛び越えているか、句読点をまたいでいるかなどの構造的な手がかりを示すだけで、文法判断を確定しません。必ず出典リンクから原文全体を確認してください。"}},{"@type":"Question","name":"表示言語を切り替えると漢文原文の文字（旧字体・簡体字など）は変換されますか？","acceptedAnswer":{"@type":"Answer","text":"変換されません。日本語・韓国語・簡体字中国語・繁体字中国語・ベトナム語・英語の切り替えはUI表示のみを対象とし、原文の文字や句読点を変更しません。"}},{"@type":"Question","name":"フォルダーに入れた .docx や .pdf ファイルが読み込まれません。","acceptedAnswer":{"@type":"Answer","text":"ローカル検索が対象とするのは UTF-8 プレーンテキスト（.txt, .md）と変換済み .texts.jsonl のみです。Word や PDF は UTF-8 の .txt 形式で保存してから追加してください。"}},{"@type":"Question","name":"検索結果やメモを引用・分析用に書き出せますか？","acceptedAnswer":{"@type":"Answer","text":"はい。GUI のエクスポート（CSV/JSONL と .meta.json 来歴ファイル）、CLI（cpe match）、検討ノートの JSONL エクスポートが利用できます。"}}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">本文へスキップ</a>
+  <header class="site-head">
+    <a class="brand" href="../../ja/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="言語">
+      <ul>
+        <li><a href="../../patterns/" hreflang="en" lang="en">English</a></li>
+        <li><a href="../../ko/patterns/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="./" hreflang="ja" lang="ja" aria-current="page">日本語</a></li>
+        <li><a href="../../zh-hans/patterns/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-hant/patterns/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../../vi/patterns/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="ガイド">
+    <ul>
+      <li><a href="../../ja/">概要</a></li>
+      <li><a href="../../ja/databases/">連携DBガイド</a></li>
+      <li><a href="./" aria-current="page">文型検索・FAQ</a></li>
+      <li><a href="../../ja/mcp/">ローカルMCP</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="パンくずリスト">
+      <ol>
+        <li><a href="../../ja/">概要</a></li>
+        <li aria-current="page">文型検索・FAQ</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>漢文の文型検索手順（<span class="pattern" lang="lzh">以…爲</span>・<span class="pattern" lang="lzh">雖…而</span>）と FAQ</h1>
+      <p class="lead">ローカル全文検索とオンライン抜粋検索を組み合わせて文型の候補を収集し、A・B の文脈と構造的な手がかりを確認しながら原文の字体を変えずに検討できます。</p>
+      <p class="meta-note">パターンDSLの視覚ビルダー、検討ノート、候補比較機能は、単一検索・複合検索とともに v3.3 に含まれています。</p>
+    </section>
+    <section>
+      <h2>3つの検索モード</h2>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>1. 単一検索</h3>
+          <p>単語や語句を検索します。ローカルフォルダーでは <code>AND</code>、<code>OR</code>、<code>NOT</code>、完全一致 <code>"語句"</code>、近接距離 <code>NEAR/n</code> が使えます。オンライン検索は各資料源の構文に従います。</p>
+        </article>
+        <article class="step-item">
+          <h3>2. 複合検索</h3>
+          <p>第1要素と第2要素（例：<span class="pattern" lang="lzh">以</span> と <span class="pattern" lang="lzh">爲</span>、<span class="pattern" lang="lzh">雖</span> と <span class="pattern" lang="lzh">而</span>）が順に出現する箇所を探します。⇄ で入れ替えができ、間の文字列 <strong>A</strong> と後続の文字列 <strong>B</strong> を確認できます。</p>
+        </article>
+        <article class="step-item">
+          <h3>3. パターンDSL（ローカル専用）</h3>
+          <p>v3.3 では選択語（<code>|</code>）、文字間隔の上下限、除外文字、文／節／文字窓の境界を画面上で組み立てるほか、UTF-8 の <code>.toml</code> パターン定義を読み込めます。</p>
+        </article>
+      </div>
+    </section>
+    <section>
+      <h2>パターンDSL の記述例（.toml・ビルダー）</h2>
+      <div class="prose-card">
+        <p><span class="pattern" lang="lzh">以…爲</span>・<span class="pattern" lang="lzh">雖…而</span>・<span class="pattern" lang="lzh">非…不</span> のような文型を、文字数範囲と境界指定付きで定義できます。</p>
+        <pre class="code-block"><code>schema = 1
+
+[[pattern]]
+id = &quot;yi-wei&quot;
+expr = &quot;以 {A:1..20} 爲 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;sui-er&quot;
+expr = &quot;雖 {A:1..20} 而 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;fei-bu&quot;
+expr = &quot;非 {A:1..20} 不 {B:1..20} @sentence&quot;
+</code></pre>
+        <ul>
+          <li><code>{A:1..20}</code> は1〜20文字を名前付きスロット <code>A</code> として取得します。必要に応じて <code>{A:1..20 not 是}</code> のように除外文字を指定します。</li>
+          <li><code>{..3}</code> は取得なしの最大3文字間隔を表します（ビルダーで空欄または <code>0</code> にすると隣接一致）。</li>
+          <li><code>@sentence</code>・<code>@clause</code>・<code>@window:N</code> で境界を指定します。単純2要素以外のパターンは <strong>要確認</strong>（<code>classification_unreviewed</code>）に表示されます。</li>
+        </ul>
+      </div>
+    </section>
+    <section>
+      <h2>証拠の検討と原文保持の原則</h2>
+      <div class="method-grid">
+        <article class="method-item">
+          <h3>原文文字の非変換</h3>
+          <p>どの表示言語を選んでも漢文・漢喃・吏読の原文文字は一切変換されません。異体字展開は正規化設定で明示的に有効にした場合のみ動作します。</p>
+        </article>
+        <article class="method-item">
+          <h3>検討ノートと候補比較</h3>
+          <p>ローカル・オンラインの結果カードを「検討ノート」へ保存し、検討状態やメモを付けて横並びで比較できます。</p>
+        </article>
+        <article class="method-item">
+          <h3>切り詰め境界の省略記号（…）</h3>
+          <p>オンライン抜粋が提供元の文字数上限で切れている場合は、句読点の後ろであっても <code>…</code> を付記し、完結文との誤認を防ぎます。</p>
+        </article>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>よくある質問（FAQ）</h2>
+      <div class="faq-list">
+        <article class="faq-item">
+          <h3>オンライン資料源で結果が0件になる、または空白を入力できないのはなぜですか？</h3>
+          <p>実録・韓国史DB・NAHF・NRICH・ITH・SAT・AKS・THDL・CSID・CanD・奎章閣・SHIPS・デジタル延喜式など多くの公開検索画面は、空白・引用符・演算子を含まない連続した1語句のみを受け付けます。また NDL は2文字以上が必要です。0件であってもコーパス全体に存在しないことを意味しません。</p>
+        </article>
+        <article class="faq-item">
+          <h3>「可能性が高い／低い」という分類は文法的な正解を意味しますか？</h3>
+          <p>いいえ。複合検索の分類（パターンDSLの「一致」／「要確認」）は、より近い第2要素を飛び越えているか、句読点をまたいでいるかなどの構造的な手がかりを示すだけで、文法判断を確定しません。必ず出典リンクから原文全体を確認してください。</p>
+        </article>
+        <article class="faq-item">
+          <h3>表示言語を切り替えると漢文原文の文字（旧字体・簡体字など）は変換されますか？</h3>
+          <p>変換されません。日本語・韓国語・簡体字中国語・繁体字中国語・ベトナム語・英語の切り替えはUI表示のみを対象とし、原文の文字や句読点を変更しません。</p>
+        </article>
+        <article class="faq-item">
+          <h3>フォルダーに入れた .docx や .pdf ファイルが読み込まれません。</h3>
+          <p>ローカル検索が対象とするのは UTF-8 プレーンテキスト（.txt, .md）と変換済み .texts.jsonl のみです。Word や PDF は UTF-8 の .txt 形式で保存してから追加してください。</p>
+        </article>
+        <article class="faq-item">
+          <h3>検索結果やメモを引用・分析用に書き出せますか？</h3>
+          <p>はい。GUI のエクスポート（CSV/JSONL と .meta.json 来歴ファイル）、CLI（cpe match）、検討ノートの JSONL エクスポートが利用できます。</p>
+        </article>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>実際の資料源で試す</h2>
+        <p>19の連携データベースの制約一覧や、ローカル MCP サーバーの設定手順もあわせてご確認ください。</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../ja/">ダウンロード・概要</a>
+        <a href="../../ja/databases/">連携DBガイド</a>
+        <a href="../../ja/mcp/">ローカルMCP</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>バージョン 3.3（タグ v3.3）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API の生の応答は含まれていません。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub のソースとリリース</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">ご意見・ご要望を送る（Google フォーム）</a></p>
+  </footer>
+</body>
+</html>

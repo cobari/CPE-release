@@ -8,11 +8,11 @@ The publication target is the `main` branch's `/docs` folder at
 `https://cobari.github.io/CPE-release/`. Check the Pages build and the published URLs
 to confirm deployment. Search Console ownership verification is a separate step.
 
-## GitHub About box (applied)
+## GitHub About box (pending v3.3 publication)
 
-As shown by `gh repo view cobari/CPE-release`:
+Target settings for `gh repo view cobari/CPE-release` (GitHub About update awaits explicit user publication instruction):
 
-- **Description**: `Classic Pattern Explorer (CPE): Desktop, CLI, and MCP pattern search for Literary Sinitic (Classical Chinese), with 18 online source connections and local text imports.`
+- **Description**: `Classic Pattern Explorer (CPE): Desktop, CLI, and MCP pattern search for Literary Sinitic (Classical Chinese), with 19 online source connections and local text imports.`
 - **Topics** (10): `literary-sinitic`, `classical-chinese`, `digital-humanities`,
   `itkc`, `cbeta`, `korean-studies`, `sinology`, `corpus-linguistics`, `hanja`,
   `python`.
@@ -24,29 +24,42 @@ As shown by `gh repo view cobari/CPE-release`:
 - **Publishing**: Settings → Pages → Build and deployment → Deploy from a branch →
   `main`, folder `/docs`. `docs/.nojekyll` makes Pages serve the files as written,
   with no Jekyll build.
-- **Files**: `docs/index.html` (English, also the `x-default` page), `docs/ko/`,
-  `docs/ja/`, `docs/zh-hans/`, `docs/zh-hant/`, `docs/vi/` (one `index.html` each),
-  `docs/assets/style.css`, `docs/assets/icon-192.png` (a 192-pixel copy of
-  `cpe/gui/assets/icon.png`, same license), `docs/sitemap.xml`.
+- **Files**: 24 indexable HTML pages across six languages (`en` at `/`, `ko/`, `ja/`, `zh-hans/`, `zh-hant/`, `vi/`) and four routes per language:
+  - Landing page: `docs/index.html` (`x-default` for landing), `docs/{ko,ja,zh-hans,zh-hant,vi}/index.html` (`SoftwareApplication` JSON-LD)
+  - Connected databases guide: `docs/databases/index.html`, `docs/{ko,ja,zh-hans,zh-hant,vi}/databases/index.html` (`TechArticle` + `BreadcrumbList` JSON-LD)
+  - Pattern search & FAQ guide: `docs/patterns/index.html`, `docs/{ko,ja,zh-hans,zh-hant,vi}/patterns/index.html` (`TechArticle` + `BreadcrumbList` + `FAQPage` JSON-LD)
+  - Local MCP server guide: `docs/mcp/index.html`, `docs/{ko,ja,zh-hans,zh-hant,vi}/mcp/index.html` (`TechArticle` + `BreadcrumbList` JSON-LD)
+  - Shared assets: `docs/assets/style.css`, localized GUI previews and Open Graph images, local UI font and license, `docs/404.html` (`noindex, follow`), `docs/robots.txt`, and `docs/sitemap.xml` (24 URLs with per-section reciprocal `xhtml:link` alternates).
 - **Base URL**: `https://cobari.github.io/CPE-release/`. The canonical links, the
-  `hreflang` links (each page lists all six and `x-default`) and the sitemap use it.
+  `hreflang` links (each page lists all six languages in its section plus
+  `x-default` pointing to the English route of that section) and the sitemap use it.
   If the repository is renamed or a custom domain is added, every page and the
   sitemap must be changed together, or search engines are pointed at missing pages.
-- **What the v3.2 release pages say**: v3.2 supports six interface languages and 18 online
-  sources. Local full texts, provider-returned excerpts and source-linked
-  references remain distinct; a source connection is not complete corpus coverage.
-  Downloads, README guides and screenshots describe the v3.2 release
-  (following earlier published v3.0.0 and v3.1 releases).
-  Indexing of a page is requested only after that page answers 200.
+- **What the pages say**:
+  - The 24 static pages, `SoftwareApplication` JSON-LD, and `CITATION.cff` describe `v3.3` (six interface languages, 19 online sources including Digital Engishiki, SHIPS 7-database selector, Pattern DSL visual builder, and Review Notebook). Package metadata (`pyproject.toml`, `release.json` with `v3.3` binary SHA-256 hashes), GitHub About update, Pages push, GitHub Release creation, and Zenodo DOI minting await user publication instruction.
+  - The landing-page titles, meta descriptions, and topic guides highlight flagship database coverage (ITKC, Sillok, Kyujanggak, NDL OCR, SAT, CBETA, DocuSky, Việt Điện) and `v3.3` capabilities (Digital Engishiki as the 19th online source, SHIPS 7-database selector, Pattern DSL builder, and Review Notebook) while preserving provider limits and non-affiliation notices.
+  - Local full texts, provider-returned excerpts and source-linked references remain distinct; a source connection is not complete corpus coverage. Indexing of a page is requested only after that page answers 200.
 - **No external requests**: no analytics, tracker, remote font or remote script.
   The UI font and its license are served locally. Links go to the repository,
-  the v3.2 release and Microsoft's WebView2 page.
-- **robots.txt**: the project-path file is a reference containing the sitemap
-  location, not a host-root robots policy. Crawlers use the host-root file;
-  the project sitemap can be submitted directly in Search Console. No account
-  indexing submission is implied by publication.
-- **Check after publishing**: each of the six URLs answers 200; the language
-  switch reaches every page; `sitemap.xml` answers 200 with six URLs.
+  the release, documentation pages, and Microsoft's WebView2 page.
+- **robots.txt & host-root `cobari/cobari.github.io`**: crawlers read
+  `https://cobari.github.io/robots.txt` at the domain root and ignore subdirectory
+  `robots.txt` files such as `/CPE-release/robots.txt`. Keep `docs/robots.txt` as
+  a local bundle reference, and configure `cobari/cobari.github.io` at its root
+  with:
+  ```txt
+  User-agent: *
+  Allow: /
+
+  Sitemap: https://cobari.github.io/CPE-release/sitemap.xml
+  ```
+  If `cobari/cobari.github.io` already has a `robots.txt`, verify it does not
+  `Disallow: /CPE-release/` and append the `Sitemap:` line. Linking to
+  `https://cobari.github.io/CPE-release/` from `https://cobari.github.io/` also
+  helps crawlers discover the project path.
+- **Check after publishing**: all 24 URLs and `sitemap.xml` answer 200; the
+  language and guide switchers reach every page; `sitemap.xml` lists 24 URLs
+  with matching `xhtml:link` alternates.
 
 ## Google Search Console
 
@@ -69,9 +82,18 @@ As shown by `gh repo view cobari/CPE-release`:
 
 - **Property**: URL prefix `https://cobari.github.io/CPE-release/`. Keep using this
   property; a Domain property is not possible on `github.io`.
-- **After each publication**: resubmit the sitemap only if it changed, run URL
-  Inspection on each changed page, and confirm the sitemap status shows all six
-  URLs discovered. The `vi/` page is inspected only after it answers 200.
+- **After each publication**: resubmit `https://cobari.github.io/CPE-release/sitemap.xml`,
+  confirm Search Console discovers all **24 URLs**, and run URL Inspection on `/vi/`
+  and each newly added or updated guide page after confirming HTTP 200.
+
+## v3.3 release-bump & Zenodo DOI checklist
+
+Static site copy (24 pages), `SoftwareApplication` JSON-LD, `CITATION.cff`, and this file are updated for `v3.3` (19 online sources). Remaining publication steps await explicit user publication instruction:
+1. Update `pyproject.toml` and `release.json` in `CPE-release` from `3.2` / `v3.2` to `3.3` / `v3.3` with the actual `v3.3` binary SHA-256 hashes and source snapshot.
+2. Confirm the six landing pages (`docs/index.html` and `docs/{ko,ja,zh-hans,zh-hant,vi}/index.html`) and 18 topic guide pages (`databases/`, `patterns/`, `mcp/`) match `v3.3`; update the 24 PNG preview/OG captures if the GUI screenshots change.
+3. Update GitHub About box description to `19 online source connections` (and add `mcp` / `model-context-protocol` topics if desired).
+4. Run `python scripts/check_site_bundle.py local-space/site-refresh/cpe-release/docs` after `pyproject.toml` and `release.json` are bumped to `3.3`, and confirm 24 URLs pass before pushing to GitHub Pages (`main` `/docs`).
+5. **Zenodo DOI**: Enable `cobari/CPE-release` in Zenodo before creating the `v3.3` GitHub Release so Zenodo mints a DOI on release publication; then record the minted `doi:` field in `CITATION.cff`. All live actions (Pages push, GitHub About update, GitHub Release creation, and Zenodo DOI minting) await user publication instruction.
 - **Performance review**: read the Performance report by query, country and page to
   see which real queries surface which language page. Treat the numbers as
   observation only; they do not promise traffic or ranking, and passing local

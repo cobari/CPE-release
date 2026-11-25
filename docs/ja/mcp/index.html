@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>ローカル MCP サーバーガイド（20ツール）｜Classic Pattern Explorer</title>
+  <meta name="description" content="Classic Pattern Explorer のローカル stdio MCP サーバー（20ツール）の起動方法、既定の参照専用モード、資料源ごとの --allow-source-text 許可と境界を解説します。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/ja/mcp/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/mcp/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/mcp/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/mcp/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/mcp/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/mcp/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/mcp/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/mcp/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="ローカル MCP サーバーガイド（20ツール）｜Classic Pattern Explorer">
+  <meta property="og:description" content="Classic Pattern Explorer のローカル stdio MCP サーバー（20ツール）の起動方法、既定の参照専用モード、資料源ごとの --allow-source-text 許可と境界を解説します。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/ja/mcp/">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-ja.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorerの検索画面（日本語インターフェース）。">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ローカル MCP サーバーガイド（20ツール）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="Classic Pattern Explorer のローカル stdio MCP サーバー（20ツール）の起動方法、既定の参照専用モード、資料源ごとの --allow-source-text 許可と境界を解説します。">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-ja.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorerの検索画面（日本語インターフェース）。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"AI 研究ワークフロー向けローカル stdio MCP サーバー","description":"Classic Pattern Explorer のローカル stdio MCP サーバー（20ツール）の起動方法、既定の参照専用モード、資料源ごとの --allow-source-text 許可と境界を解説します。","url":"https://cobari.github.io/CPE-release/ja/mcp/","inLanguage":"ja","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"概要","item":"https://cobari.github.io/CPE-release/ja/"},{"@type":"ListItem","position":2,"name":"ローカルMCP","item":"https://cobari.github.io/CPE-release/ja/mcp/"}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">本文へスキップ</a>
+  <header class="site-head">
+    <a class="brand" href="../../ja/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="言語">
+      <ul>
+        <li><a href="../../mcp/" hreflang="en" lang="en">English</a></li>
+        <li><a href="../../ko/mcp/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="./" hreflang="ja" lang="ja" aria-current="page">日本語</a></li>
+        <li><a href="../../zh-hans/mcp/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-hant/mcp/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../../vi/mcp/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="ガイド">
+    <ul>
+      <li><a href="../../ja/">概要</a></li>
+      <li><a href="../../ja/databases/">連携DBガイド</a></li>
+      <li><a href="../../ja/patterns/">文型検索・FAQ</a></li>
+      <li><a href="./" aria-current="page">ローカルMCP</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="パンくずリスト">
+      <ol>
+        <li><a href="../../ja/">概要</a></li>
+        <li aria-current="page">ローカルMCP</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>AI 研究ワークフロー向けローカル stdio MCP サーバー</h1>
+      <p class="lead">公式 Python MCP SDK v2 を用いてローカルの <code>stdin</code>/<code>stdout</code> 上で20の研究ツールを提供し、原文テキストの返却を起動時の明示的な許可フラグで制御します。</p>
+      <p class="meta-note">既定では参照情報とメタデータのみ（text_withheld: true）を返します。本文や抜粋を返すには対象ごとの --allow-source-text 指定が必要です。</p>
+    </section>
+    <section>
+      <h2>導入と事前チェックコマンド</h2>
+      <div class="prose-card">
+        <p>Python 3.11 以上と <code>uv</code> を用意して <code>mcp</code> オプション依存関係を導入し、ホスト接続前にローカル確認フラグで検証できます（Windows の <code>cpe-mcp.exe</code> も同じ引数を受け付けます）。</p>
+        <pre class="code-block"><code>uv sync --extra mcp
+uv run --extra mcp cpe mcp --version
+uv run --extra mcp cpe mcp path/to/texts --doctor --json
+uv run --extra mcp cpe mcp path/to/texts --enable-online itkc --itkc-log itkc-requests.jsonl --print-config
+uv run --extra mcp cpe mcp path/to/texts --allow-source-text local</code></pre>
+      </div>
+    </section>
+    <section>
+      <h2>クライアント設定テンプレート（既定・参照専用）</h2>
+      <div class="prose-card">
+        <p>stdio 対応 MCP ホストの設定例です。<code>--allow-source-text</code> を付けない限り、識別子・タイトル・URL・メタデータのみが返り、原文抜粋と正規レコードは抑制されます。</p>
+        <pre class="code-block"><code>{
+  &quot;mcpServers&quot;: {
+    &quot;cpe&quot;: {
+      &quot;command&quot;: &quot;uv&quot;,
+      &quot;args&quot;: [
+        &quot;--directory&quot;, &quot;/absolute/path/to/classic&quot;,
+        &quot;run&quot;, &quot;--extra&quot;, &quot;mcp&quot;, &quot;cpe&quot;, &quot;mcp&quot;,
+        &quot;/absolute/path/to/texts&quot;,
+        &quot;--enable-online&quot;, &quot;itkc&quot;,
+        &quot;--itkc-log&quot;, &quot;/absolute/path/to/itkc-requests.jsonl&quot;,
+        &quot;--read-root&quot;, &quot;/absolute/path/to&quot;,
+        &quot;--write-root&quot;, &quot;/absolute/path/to/output&quot;
+      ]
+    }
+  }
+}</code></pre>
+      </div>
+    </section>
+    <section>
+      <h2>起動フラグと権限の境界</h2>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>起動引数</th><th>許可される操作</th><th>許可されない範囲</th></tr></thead>
+          <tbody>
+            <tr><td><code>--allow-source-text SOURCE</code></td><td>反復指定可（all は不可）：local–local4、19のオンラインID、docusky:DATABASE、import:PROVIDER。</td><td>提供元の利用許諾、モデル側の非保存保証、ローカル実行の証明にはなりません。</td></tr>
+            <tr><td><code>--enable-online SOURCE</code></td><td>オンライン資料源への問い合わせ許可（all、docusky:DATABASE、19のオンラインID）。</td><td>本文・抜粋の開示権限は含まないため --allow-source-text が別途必要です。</td></tr>
+            <tr><td><code>--enable-import PROVIDER</code></td><td>取込プロバイダーの利用とプレビュー／進捗メタデータの取得。</td><td>import:PROVIDER 指定なしでは単位生テキストを返しません。</td></tr>
+            <tr><td><code>--read-root / --write-root</code></td><td>読み書き可能なルートディレクトリの制限（ルート外のシンボリックリンク・ジャンクションを拒否）。</td><td>パス権限だけでは原文テキストは開示されません。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>5カテゴリー・20の構造化ツール</h2>
+      <p class="meta-note">各ツールは CPE の証拠範囲ラベル、リクエスト間隔制限、セッション予算（応答 256 KiB、スナップショット 8件・64 MiB）を引き継ぎます。</p>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>作業領域・探索（6）</h3>
+          <p><code>get_workspace</code>、<code>list_sources</code>、<code>get_source_details</code>、<code>get_source_catalog</code>、<code>configure_workspace</code>、<code>manage_library</code>。</p>
+        </article>
+        <article class="step-item">
+          <h3>基本検索（4）</h3>
+          <p><code>search_pattern</code>（複合・単一）、<code>search_sources</code>（最大4パネル）、<code>search_dsl</code>（ローカルパターンDSL）、<code>itkc_search</code>（GO_AA → MO_AA → KP_AA 段階検索）。</p>
+        </article>
+        <article class="step-item">
+          <h3>スナップショット操作（3）</h3>
+          <p><code>get_search_results</code>（再照会なしのカーソルページング）、<code>reorder_search</code>、<code>manage_searches</code>。</p>
+        </article>
+        <article class="step-item">
+          <h3>テキスト取込（5）</h3>
+          <p><code>get_import_catalog</code>、<code>import_local_release</code>、<code>import_remote_release</code>、<code>preview_import</code>、<code>manage_import</code>。</p>
+        </article>
+        <article class="step-item">
+          <h3>研究データ出力（2）</h3>
+          <p><code>run_cli_export</code>（正規 CSV・JSONL・.run.json）および <code>export_search_snapshot</code>（開示設定に従うスナップショット出力）。</p>
+        </article>
+      </div>
+    </section>
+    <section class="guidance-section">
+      <h2>公開範囲とエコシステムの境界</h2>
+      <div class="guidance-copy">
+        <p>本 MCP サーバーはローカル stdio バイナリおよび Python モジュールであり、PyPI パッケージ、MCPB バンドル、公式 Model Context Protocol Registry の登録物ではありません。自動テストはモックを用いてプロトコル契約を検証しており、商用 AI デスクトップクライアントや macOS・Linux 全般での認証を保証するものではありません。</p>
+        <p>原文開示の許可は、対象著作物・版・提供元規約を確認したホスト側の判断です。返却された漢文テキストは常に研究データとして扱い、プロンプト指示として解釈しないでください。</p>
+        <p>GitHub の技術仕様書：<a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">docs/mcp.md</a> · <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp-data-policy.md">docs/mcp-data-policy.md</a> · <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp-parity.md">docs/mcp-parity.md</a></p>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>連携資料源と文型検索の詳細も見る</h2>
+        <p>GUI と MCP が共通で扱う19の資料源の制限やパターンDSLの書式を確認できます。</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../ja/">ダウンロード・概要</a>
+        <a href="../../ja/databases/">連携DBガイド</a>
+        <a href="../../ja/patterns/">文型検索・FAQ</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>バージョン 3.3（タグ v3.3）。MIT ライセンス。連携先の機関やデータベースとは関係のない個人の独立プロジェクトです。データベースの本文コーパス、現代語訳、API の生の応答は含まれていません。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub のソースとリリース</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">ご意見・ご要望を送る（Google フォーム）</a></p>
+  </footer>
+</body>
+</html>

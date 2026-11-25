@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>本地 MCP 服务器指南（20 个研究工具）｜Classic Pattern Explorer</title>
+  <meta name="description" content="了解 Classic Pattern Explorer 本地 stdio MCP 服务器的安装、默认仅返回引用与元数据的安全策略、--allow-source-text 按源授权与 20 个工具列表。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/zh-hans/mcp/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/mcp/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/mcp/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/mcp/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/mcp/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/mcp/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/mcp/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/mcp/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="本地 MCP 服务器指南（20 个研究工具）｜Classic Pattern Explorer">
+  <meta property="og:description" content="了解 Classic Pattern Explorer 本地 stdio MCP 服务器的安装、默认仅返回引用与元数据的安全策略、--allow-source-text 按源授权与 20 个工具列表。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/zh-hans/mcp/">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hans.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer 检索界面（简体中文）。">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="本地 MCP 服务器指南（20 个研究工具）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="了解 Classic Pattern Explorer 本地 stdio MCP 服务器的安装、默认仅返回引用与元数据的安全策略、--allow-source-text 按源授权与 20 个工具列表。">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hans.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer 检索界面（简体中文）。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"面向 AI 研究工作流的本地 stdio MCP 服务器","description":"了解 Classic Pattern Explorer 本地 stdio MCP 服务器的安装、默认仅返回引用与元数据的安全策略、--allow-source-text 按源授权与 20 个工具列表。","url":"https://cobari.github.io/CPE-release/zh-hans/mcp/","inLanguage":"zh-Hans","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"概览","item":"https://cobari.github.io/CPE-release/zh-hans/"},{"@type":"ListItem","position":2,"name":"本地 MCP 服务器","item":"https://cobari.github.io/CPE-release/zh-hans/mcp/"}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳转到主要内容</a>
+  <header class="site-head">
+    <a class="brand" href="../../zh-hans/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="语言">
+      <ul>
+        <li><a href="../../mcp/" hreflang="en" lang="en">English</a></li>
+        <li><a href="../../ko/mcp/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../../ja/mcp/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="./" hreflang="zh-Hans" lang="zh-Hans" aria-current="page">简体中文</a></li>
+        <li><a href="../../zh-hant/mcp/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../../vi/mcp/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="专题指南">
+    <ul>
+      <li><a href="../../zh-hans/">概览</a></li>
+      <li><a href="../../zh-hans/databases/">在线库指南</a></li>
+      <li><a href="../../zh-hans/patterns/">句式检索与FAQ</a></li>
+      <li><a href="./" aria-current="page">本地 MCP 服务器</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="当前位置">
+      <ol>
+        <li><a href="../../zh-hans/">概览</a></li>
+        <li aria-current="page">本地 MCP 服务器</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>面向 AI 研究工作流的本地 stdio MCP 服务器</h1>
+      <p class="lead">基于官方 Python MCP SDK v2，通过本地 <code>stdin</code>/<code>stdout</code> 暴露 20 个研究工具，并将原文文本返回严格限定在宿主显式启动授权之内。</p>
+      <p class="meta-note">默认模式仅返回引用与元数据（text_withheld: true）。如需返回本地文本或在线摘录，必须在启动参数中为对应来源显式添加 --allow-source-text。</p>
+    </section>
+    <section>
+      <h2>安装与启动前自检</h2>
+      <div class="prose-card">
+        <p>安装 Python 3.11+ 与 <code>uv</code> 并同步 <code>mcp</code> 可选依赖后，可在连接客户端前先用自检参数验证本地配置（Windows 独立程序 <code>cpe-mcp.exe</code> 支持相同参数）：</p>
+        <pre class="code-block"><code>uv sync --extra mcp
+uv run --extra mcp cpe mcp --version
+uv run --extra mcp cpe mcp path/to/texts --doctor --json
+uv run --extra mcp cpe mcp path/to/texts --enable-online itkc --itkc-log itkc-requests.jsonl --print-config
+uv run --extra mcp cpe mcp path/to/texts --allow-source-text local</code></pre>
+      </div>
+    </section>
+    <section>
+      <h2>客户端配置模板（默认仅返回引用）</h2>
+      <div class="prose-card">
+        <p>将以下 JSON 填入支持 stdio 的 MCP 宿主配置。未配置 <code>--allow-source-text</code> 时，工具仅返回标识符、题名、链接与元数据，不返回正文与规范记录：</p>
+        <pre class="code-block"><code>{
+  &quot;mcpServers&quot;: {
+    &quot;cpe&quot;: {
+      &quot;command&quot;: &quot;uv&quot;,
+      &quot;args&quot;: [
+        &quot;--directory&quot;, &quot;/absolute/path/to/classic&quot;,
+        &quot;run&quot;, &quot;--extra&quot;, &quot;mcp&quot;, &quot;cpe&quot;, &quot;mcp&quot;,
+        &quot;/absolute/path/to/texts&quot;,
+        &quot;--enable-online&quot;, &quot;itkc&quot;,
+        &quot;--itkc-log&quot;, &quot;/absolute/path/to/itkc-requests.jsonl&quot;,
+        &quot;--read-root&quot;, &quot;/absolute/path/to&quot;,
+        &quot;--write-root&quot;, &quot;/absolute/path/to/output&quot;
+      ]
+    }
+  }
+}</code></pre>
+      </div>
+    </section>
+    <section>
+      <h2>启动参数与权限边界</h2>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>启动参数</th><th>授予的能力</th><th>未授予的范围</th></tr></thead>
+          <tbody>
+            <tr><td><code>--allow-source-text SOURCE</code></td><td>可重复传入（无 all 值）：local–local4、19 个在线 ID、docusky:DATABASE、import:PROVIDER。</td><td>不构成出版方版权许可、零留存承诺或本地模型运行证明。</td></tr>
+            <tr><td><code>--enable-online SOURCE</code></td><td>允许请求指定在线来源（all、docusky:DATABASE 或 19 个在线 ID）。</td><td>不包含返回原文摘录的权限，仍需配对 --allow-source-text。</td></tr>
+            <tr><td><code>--enable-import PROVIDER</code></td><td>允许调用导入提供方并查看预览与进度元数据。</td><td>未授予 import:PROVIDER 时不返回原始单元文本。</td></tr>
+            <tr><td><code>--read-root / --write-root</code></td><td>限定工具可读写的文件系统根目录（拒绝越界符号链接与目录联接）。</td><td>路径读写权不等于原文文本披露授权。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>5 大类共 20 个结构化工具</h2>
+      <p class="meta-note">所有工具均遵循 CPE 的证据范围标注、请求频次保护与会话预算（单页 256 KiB 上限，最多保留 8 个快照 / 64 MiB）。</p>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>工作区与来源发现（6）</h3>
+          <p><code>get_workspace</code>、<code>list_sources</code>、<code>get_source_details</code>、<code>get_source_catalog</code>、<code>configure_workspace</code>、<code>manage_library</code>。</p>
+        </article>
+        <article class="step-item">
+          <h3>核心检索（4）</h3>
+          <p><code>search_pattern</code>（组合/单项）、<code>search_sources</code>（最多 4 面板）、<code>search_dsl</code>（本地模式 DSL）、<code>itkc_search</code>（GO_AA → MO_AA → KP_AA 分步会话）。</p>
+        </article>
+        <article class="step-item">
+          <h3>快照浏览与管理（3）</h3>
+          <p><code>get_search_results</code>（基于游标翻页而不重复请求源站）、<code>reorder_search</code>、<code>manage_searches</code>。</p>
+        </article>
+        <article class="step-item">
+          <h3>文本导入与摄取（5）</h3>
+          <p><code>get_import_catalog</code>、<code>import_local_release</code>、<code>import_remote_release</code>、<code>preview_import</code>、<code>manage_import</code>。</p>
+        </article>
+        <article class="step-item">
+          <h3>研究数据导出（2）</h3>
+          <p><code>run_cli_export</code>（规范 CSV、JSONL 与 .run.json）以及 <code>export_search_snapshot</code>（遵守原文披露授权的快照导出）。</p>
+        </article>
+      </div>
+    </section>
+    <section class="guidance-section">
+      <h2>发布形式与生态边界</h2>
+      <div class="guidance-copy">
+        <p>本 MCP 服务器为本地 stdio 控制台程序与 Python 模块，并非 PyPI 公开包、MCPB 捆绑包或官方 Model Context Protocol Registry 收录条目。自动化测试基于模拟桩验证协议契约，不宣称已通过各类商业 AI 桌面端、macOS 或 Linux 环境的全面认证。</p>
+        <p>是否添加原文披露授权由宿主运维者在审查具体文献、版本与提供方条款后自行决定。返回的所有古籍文本仅应视为研究数据，绝不能当作模型提示指令执行。</p>
+        <p>GitHub 完整技术文档：<a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">docs/mcp.md</a> · <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp-data-policy.md">docs/mcp-data-policy.md</a> · <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp-parity.md">docs/mcp-parity.md</a></p>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>继续了解数据源与句式检索</h2>
+        <p>查看 GUI 与 MCP 工具共同遵循的 19 个来源限制与模式 DSL 语法。</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../zh-hans/">下载与概览</a>
+        <a href="../../zh-hans/databases/">在线库指南</a>
+        <a href="../../zh-hans/patterns/">句式检索与FAQ</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>版本 3.3（标签 v3.3）。MIT 许可证。本项目为独立个人项目，与所连接的各学术机构或数据库均无隶属关系。各数据库原文语料、现代译文及 API 原始响应均不随软件分发。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub 上的源码与发布</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">提交意见与建议（Google 表单）</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>한문 원문 연동 DB 안내 (ITKC·조선왕조실록·규장각·NDL OCR·CBETA) | Classic Pattern Explorer</title>
+  <meta name="description" content="한국(ITKC·실록·규장각·NRICH·AKS), 일본(NDL OCR·SAT·SHIPS·연희식·CanD), 중국(CSID), 대만(CBETA·DocuSky·ITH·THDL), 베트남(Việt Điện) 19개 온라인 자료원과 로컬 가져오기 안내.">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/ko/databases/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/databases/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/databases/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/databases/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/databases/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/databases/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/databases/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/databases/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="한문 원문 연동 DB 안내 (ITKC·조선왕조실록·규장각·NDL OCR·CBETA) | Classic Pattern Explorer">
+  <meta property="og:description" content="한국(ITKC·실록·규장각·NRICH·AKS), 일본(NDL OCR·SAT·SHIPS·연희식·CanD), 중국(CSID), 대만(CBETA·DocuSky·ITH·THDL), 베트남(Việt Điện) 19개 온라인 자료원과 로컬 가져오기 안내.">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/ko/databases/">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-ko.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer 검색 화면(한국어 인터페이스).">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="한문 원문 연동 DB 안내 (ITKC·조선왕조실록·규장각·NDL OCR·CBETA) | Classic Pattern Explorer">
+  <meta name="twitter:description" content="한국(ITKC·실록·규장각·NRICH·AKS), 일본(NDL OCR·SAT·SHIPS·연희식·CanD), 중국(CSID), 대만(CBETA·DocuSky·ITH·THDL), 베트남(Việt Điện) 19개 온라인 자료원과 로컬 가져오기 안내.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-ko.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer 검색 화면(한국어 인터페이스).">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"연동 한문 원문 데이터베이스 및 로컬 자료 가져오기","description":"한국(ITKC·실록·규장각·NRICH·AKS), 일본(NDL OCR·SAT·SHIPS·연희식·CanD), 중국(CSID), 대만(CBETA·DocuSky·ITH·THDL), 베트남(Việt Điện) 19개 온라인 자료원과 로컬 가져오기 안내.","url":"https://cobari.github.io/CPE-release/ko/databases/","inLanguage":"ko","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"개요","item":"https://cobari.github.io/CPE-release/ko/"},{"@type":"ListItem","position":2,"name":"연동 DB 안내","item":"https://cobari.github.io/CPE-release/ko/databases/"}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 건너뛰기</a>
+  <header class="site-head">
+    <a class="brand" href="../../ko/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="언어">
+      <ul>
+        <li><a href="../../databases/" hreflang="en" lang="en">English</a></li>
+        <li><a href="./" hreflang="ko" lang="ko" aria-current="page">한국어</a></li>
+        <li><a href="../../ja/databases/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="../../zh-hans/databases/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-hant/databases/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../../vi/databases/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="안내 문서">
+    <ul>
+      <li><a href="../../ko/">개요</a></li>
+      <li><a href="./" aria-current="page">연동 DB 안내</a></li>
+      <li><a href="../../ko/patterns/">문형 검색·FAQ</a></li>
+      <li><a href="../../ko/mcp/">로컬 MCP 서버</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="현재 위치">
+      <ol>
+        <li><a href="../../ko/">개요</a></li>
+        <li aria-current="page">연동 DB 안내</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>연동 한문 원문 데이터베이스 및 로컬 자료 가져오기</h1>
+      <p class="lead">Classic Pattern Explorer v3.3은 한국·일본·중국·대만·베트남 5개 지역 19개 온라인 자료원 검색과, 내 컴퓨터의 UTF-8 텍스트 폴더 및 변환 묶음(.texts.jsonl) 오프라인 전문 검색을 함께 지원합니다.</p>
+      <p class="meta-note">참고: Classic Pattern Explorer v3.3은 디지털 연희식(공식 브라우저 검색, CC BY 4.0)과 도쿄대 SHIPS 7개 DB 선택 기능을 포함해 19개 온라인 자료원을 연결합니다.</p>
+    </section>
+    <section class="source-group">
+      <h2>한국 (8개 온라인 자료원)</h2>
+      <p>고전 원문·문집·사료·고문서·목간 판독문 검색을 지원합니다.</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>한국고전종합DB (ITKC)</h3>
+          <div class="source-meta">고전원문(GO_AA) · 한국문집총간(MO_AA) · 한국고전총간(KP_AA)</div>
+          <p>각 서지 집합에서 최대 100건까지 검색하며 일치 어구 앞뒤 약 150자 발췌문과 출처 링크를 보여 줍니다. 번역문 집합(IT_AA)은 API 검색 대상에서 제외되며 자동 저장하지 않습니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>동양고전종합DB (사이버서당)</h3>
+          <div class="source-meta">최대 50건 · Open API</div>
+          <p>전통문화연구회 Open API로 제목, 설명, 원문 링크를 조회합니다. 전체 본문이나 원문·번역문 층위가 항상 구분·보장되지는 않으므로 후보 참고 자료로 확인하세요.</p>
+        </article>
+        <article class="source-card">
+          <h3>한국사데이터베이스 통합검색</h3>
+          <div class="source-meta">첫 페이지 최대 20건 · 단일 어구</div>
+          <p>국사편찬위원회 통합검색에서 시대와 DB 항목을 선택해 공백·따옴표 없는 단일 검색어로 원문 탭 첫 페이지(최대 20건 발췌문과 /id/ 링크)를 조회합니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>조선왕조실록 · 국사편찬위원회 검색</h3>
+          <div class="source-meta">첫 페이지 최대 50건 · 단일 어구</div>
+          <p>실록 원문 탭 공개 검색창에 공백 없는 단일 검색어를 보내 첫 페이지 최대 50건의 발췌문과 기사 링크를 불러옵니다. 페이지 넘김이나 전체 크롤링은 하지 않습니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>동북아역사넷 검색</h3>
+          <div class="source-meta">21개 사료집 선택 · 첫 페이지 최대 20건</div>
+          <p>동북아역사재단 사료라이브러리에서 사료집 하나를 고른 뒤 단일 검색어로 원문 첫 페이지 최대 20건의 제목·발췌문·링크를 조회합니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>국립문화유산연구원(NRICH) · 목간 판독문</h3>
+          <div class="source-meta">세션당 최대 600건 · 단일 어구</div>
+          <p>공개 목간 판독문(한자·이두 및 판독 불확실 기호 유지)을 최대 600건까지 불러와 공백 없는 연속 문자열로 후보를 대조합니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>한국학중앙연구원 고문서자료관</h3>
+          <div class="source-meta">첫 페이지 최대 20건 · CC BY-NC-ND 2.0 KR</div>
+          <p>원문(anciTXT) 그룹 첫 페이지에서 최대 20건의 고문서 제목, 판독 발췌문, 날짜, UCI 링크를 조회합니다. 개인 비영리 연구용이며 재배포를 금합니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>규장각 고문서 · 원문 검색</h3>
+          <div class="source-meta">첫 20건 서지 · 인라인 발췌 최대 600자</div>
+          <p>서울대 규장각 GMS 고문서군에서 공백 없는 80자 이내 검색어로 첫 20건의 문서 번호, 당사자, 날짜, 원문 발췌와 공식 뷰어 링크를 확인합니다.</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>일본 (5개 온라인 자료원)</h2>
+      <p>근현대·고전 OCR, 대장경 행 단위 검색, 고기록, 연희식, 한시 서지 목록을 지원합니다.</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>일본 국립국회도서관 (NDL)</h3>
+          <div class="source-meta">OCR 발췌문 · 2자 이상 · 첫 50책</div>
+          <p>NDL Lab 고전적 OCR 본문을 검색합니다(최소 2자 이상 어구 필요). OCR 오인식이 있을 수 있고 구두점이 없으므로 인용 전 제목 링크로 원본 이미지를 확인하세요.</p>
+        </article>
+        <article class="source-card">
+          <h3>SAT 대정신수대장경 텍스트 데이터베이스</h3>
+          <div class="source-meta">첫 30건 행 단위 · 단일 어구</div>
+          <p>도쿄대 SAT DB에서 첫 30건의 대정신수대장경 쪽·행 범위와 KWIC 발췌문을 불러옵니다. 이미지 전용 한자는 □로 표시하며, CBETA 대정장 본문과 겹치되 행 번호를 제공합니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>도쿄대 SHIPS · 공식 검색</h3>
+          <div class="source-meta">7개 DB 선택 · 공식 검색 링크 열기</div>
+          <p>고기록(w16), 대일본사료(w61), 고문서(w10), 나라유문(w08), 헤이안유문(w09), 가마쿠라유문(w11), 남북조유문(w29) 중 하나를 골라 공백 없는 검색어로 공식 검색 페이지를 엽니다. 앱이 결과를 수집하지는 않습니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>디지털 연희식(국립역사민속박물관) · 공식 검색</h3>
+          <div class="source-meta">v3.3 추가 · 공식 검색 링크 열기 · CC BY 4.0</div>
+          <p>공백 없는 검색어 하나로 제공처 공식 검색 페이지를 엽니다. 제공처 페이지가 브라우저에서 본문을 필터링하며 CPE가 행이나 건수를 수집하지는 않습니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>CanD 중국·일본 한시 · 서지 참고</h3>
+          <div class="source-meta">첫 20건 서지 제목 · 최대 10자</div>
+          <p>이체자 확장 OFF 상태로 10자 이내 검색어를 보내 첫 20건의 서지 제목·저자·판본 개요 링크만 표시합니다(시 본문·훈독은 폐기).</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>중국 (1개 온라인 자료원)</h2>
+      <p>석각 묘지명 녹문 서지 색인 검색을 지원합니다.</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>저장대 중국역대묘지DB · 녹문 검색</h3>
+          <div class="source-meta">기본 7개 컬렉션 · 첫 15건 서지</div>
+          <p>저장대 CSID 녹문 필드를 공백 없는 단일 검색어로 조회해 첫 15건의 제목, 시대, 유물 유형, 공식 기록 링크를 표시합니다. 원문 발췌문은 반환되지 않습니다.</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>대만 (4개 온라인 자료원)</h2>
+      <p>전자불전, DocuSky 공공 DB, 대만사 문헌, 고계약문서를 지원합니다.</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>CBETA 중화전자불전</h3>
+          <div class="source-meta">좌우 각 약 40자 · 첫 50권 · CC BY-NC-SA 4.0</div>
+          <p>CBData API로 검색어 앞뒤 약 40자 발췌문을 받아 나머지 조건을 대조합니다(협주 제외). CBETA Online 권별 원문으로 연결됩니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>DocuSky · 佛寺志靈應故事 외 검토 프로필 29종</h3>
+          <div class="source-meta">페이지당 50건 · 수동 최대 5쪽</div>
+          <p>공개 DB 중 한 번에 하나씩 검색합니다(佛寺志靈應故事·承政院日記·朝鮮王朝實錄·大明一統志 등 검토 완료 29종과 미검토 목록 구분 표시).</p>
+        </article>
+        <article class="source-card">
+          <h3>중앙연구원 대만사연구소 대만문헌전문데이터베이스</h3>
+          <div class="source-meta">첫 페이지 최대 20건 · 단일 어구</div>
+          <p>대만문헌전문을 공백 없는 단일 검색어로 조회해 첫 페이지 최대 20건의 서지·발췌문·링크를 보여 줍니다.</p>
+        </article>
+        <article class="source-card">
+          <h3>대만역사디지털도서관 · 고계약문서</h3>
+          <div class="source-meta">첫 10건 · 최대 600자</div>
+          <p>THDL 고계약문서(Old Deeds)에서 공백 없는 단일 검색어로 첫 10건의 발췌문과 공식 문서 링크를 확인합니다. 명·청 행정문서와 담신당안은 범위 밖입니다.</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>베트남 (1개 온라인 자료원)</h2>
+      <p>베트남 한놈(漢喃) 고전 OCR 말뭉치를 검색합니다.</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>Việt Điện 한놈 OCR 말뭉치</h3>
+          <div class="source-meta">첫 페이지 최대 20건 · 단일 어구</div>
+          <p>Digitizing Vietnam의 Việt Điện 공개 OCR 검색에서 최대 20건의 쪽별 발췌문과 이미지 뷰어 링크를 불러옵니다. 기계 OCR 오차와 이체자 매칭이 있으므로 원판 이미지를 확인하세요.</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>내 컴퓨터의 텍스트 및 로컬 가져오기</h2>
+      <div class="prose-card">
+        <p>독립된 4개 폴더 슬롯(<code>local</code>–<code>local4</code>)에 담은 UTF-8 <code>.txt</code>·<code>.md</code> 파일과 <code>.texts.jsonl</code> 묶음은 인터넷 없이 전문 전체를 검색합니다.</p>
+        <ul>
+          <li><strong>한국 공공데이터포털 원문 XML/ZIP</strong>: 국사편찬위원회(삼국사기·삼국유사·고려사·조선왕조실록 태조~철종·고려사절요·비변사등록·한국사료총서 등), 한국고전번역원(임하필기·신증동국여지승람 등), 한국학중앙연구원 장서각 등록, 동북아역사재단(15163258 15종 일괄·동문휘고) 및 폴더 일괄 가져오기.</li>
+          <li><strong>Chinese Text Project (CTP/CText)</strong>: 제공처가 허용하는 경우 API 키 없이 개별 장 시도가 가능하며, 작품 전체 장 목록에는 사용자 본인의 CTP API 키가 필요합니다.</li>
+          <li><strong>부분 가져오기 및 작품 찾기</strong>: MPIWG 희귀 지방지(미리보기당 최대 50개 원본 단위), CBETA P5 XML, NDL OCR 페이지, 프로젝트 구텐베르크 전자책, 작품명 기준 연결 DB 안내(작품 찾기).</li>
+          <li><strong>서지 메타데이터(.manifest.toml)</strong>: <code>NAME.txt.manifest.toml</code>을 함께 두면 <code>title</code>·<code>edition</code>·<code>era</code>·<code>year</code>·<code>year_end</code>를 기록해 연대순 정렬에 활용할 수 있습니다.</li>
+        </ul>
+      </div>
+    </section>
+    <section class="guidance-section">
+      <h2>이용 범위 및 출처 경계</h2>
+      <div class="guidance-copy">
+        <p>Classic Pattern Explorer는 연결 기관·데이터베이스와 무관한 개인 프로젝트(MIT 라이선스)이며, 원문 DB·현대 번역·API 원본 응답을 포함해 배포하지 않습니다.</p>
+        <p>온라인 검색은 각 제공처의 요청 상한 내에서 반환된 발췌문과 서지 정보만 대조하며 전체 크롤링을 하지 않습니다. 검색 결과가 0건이어도 해당 코퍼스에 용례가 없다는 뜻은 아닙니다.</p>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>검색 방법과 자동화도 함께 살펴보세요</h2>
+        <p>문형 검색식 작성법과 로컬 AI 연구용 MCP 서버 설정 방법을 이어서 확인할 수 있습니다.</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../ko/">내려받기·개요</a>
+        <a href="../../ko/patterns/">문형 검색·FAQ</a>
+        <a href="../../ko/mcp/">로컬 MCP 서버</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>버전 3.3(태그 v3.3). MIT 라이선스. 연결하는 기관이나 데이터베이스와 관계없는 개인 프로젝트입니다. 데이터베이스의 원문 묶음, 현대 번역, API 원본 응답은 들어 있지 않습니다.</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub의 소스와 릴리스</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">의견과 요청 보내기 (Google Forms)</a></p>
+  </footer>
+</body>
+</html>

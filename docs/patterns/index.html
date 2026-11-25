@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>Literary Sinitic Pattern Search &amp; FAQ (以…爲, 雖…而, Pattern DSL) | Classic Pattern Explorer</title>
+  <meta name="description" content="How to search Literary Sinitic patterns such as 以…爲, 雖…而, and 非…不 using Single search, Compound search, and Pattern DSL, plus answers to common questions.">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/patterns/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/patterns/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/patterns/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/patterns/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/patterns/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/patterns/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/patterns/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="Literary Sinitic Pattern Search &amp; FAQ (以…爲, 雖…而, Pattern DSL) | Classic Pattern Explorer">
+  <meta property="og:description" content="How to search Literary Sinitic patterns such as 以…爲, 雖…而, and 非…不 using Single search, Compound search, and Pattern DSL, plus answers to common questions.">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/patterns/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-en.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer search screen in English.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Literary Sinitic Pattern Search &amp; FAQ (以…爲, 雖…而, Pattern DSL) | Classic Pattern Explorer">
+  <meta name="twitter:description" content="How to search Literary Sinitic patterns such as 以…爲, 雖…而, and 非…不 using Single search, Compound search, and Pattern DSL, plus answers to common questions.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-en.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer search screen in English.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Searching Literary Sinitic patterns and reviewing candidates","description":"How to search Literary Sinitic patterns such as 以…爲, 雖…而, and 非…不 using Single search, Compound search, and Pattern DSL, plus answers to common questions.","url":"https://cobari.github.io/CPE-release/patterns/","inLanguage":"en","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Overview","item":"https://cobari.github.io/CPE-release/"},{"@type":"ListItem","position":2,"name":"Pattern search & FAQ","item":"https://cobari.github.io/CPE-release/patterns/"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why did an online database return zero results or reject spaces?","acceptedAnswer":{"@type":"Answer","text":"Many public search windows (such as Sillok, HistoryDB, NAHF, NRICH, ITH, SAT, AKS Archive, THDL, CSID, CanD, Kyujanggak, SHIPS, and Engishiki) accept only a single continuous term without spaces, quotes, or operators. Also, NDL requires at least two characters. An empty result reflects the returned page slice, not corpus absence."}},{"@type":"Question","name":"Does 'likely' or 'less likely' mean a grammatical judgment?","acceptedAnswer":{"@type":"Answer","text":"No. In Compound search, 'likely' and 'less likely' (and 'Matched' / 'Needs review' in Pattern DSL) only reflect structural signals such as skipping a nearer second element or crossing clause punctuation. Always open the source link and verify the reading yourself."}},{"@type":"Question","name":"Does changing the UI language convert Classical Chinese characters?","acceptedAnswer":{"@type":"Answer","text":"No. Switching between English, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Vietnamese changes only interface labels and never converts source characters, punctuation, or variants."}},{"@type":"Question","name":"Why does my .docx or .pdf file not load in a local folder?","acceptedAnswer":{"@type":"Answer","text":"Local library slots only scan UTF-8 plain text (.txt, .md) and .texts.jsonl bundles saved by CPE importers. Export word-processor or PDF files as UTF-8 .txt first."}},{"@type":"Question","name":"Can I export search results for citation and further analysis?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both the desktop GUI (Export… CSV/JSONL with .meta.json provenance sidecar), the CLI (cpe match), and the Review Notebook export displayed snapshots and saved candidate notes."}}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-head">
+    <a class="brand" href="../"><img src="../assets/icon-36.png" srcset="../assets/icon-36.png 1x, ../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="Language">
+      <ul>
+        <li><a href="./" hreflang="en" lang="en" aria-current="page">English</a></li>
+        <li><a href="../ko/patterns/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../ja/patterns/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="../zh-hans/patterns/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../zh-hant/patterns/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../vi/patterns/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="Guides">
+    <ul>
+      <li><a href="../">Overview</a></li>
+      <li><a href="../databases/">Connected DBs</a></li>
+      <li><a href="./" aria-current="page">Pattern Search &amp; FAQ</a></li>
+      <li><a href="../mcp/">Local MCP Server</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../">Overview</a></li>
+        <li aria-current="page">Pattern search &amp; FAQ</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>Searching Literary Sinitic patterns (<span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span>) and reviewing candidates</h1>
+      <p class="lead">Combine local full-text matching and online excerpt search to locate candidate passages, inspect A/B slots and structural cues, and keep your own review notes without altering original characters.</p>
+      <p class="meta-note">Pattern DSL visual builder, Review Notebook, and candidate comparison are included in the v3.3 release alongside Single search and Compound search.</p>
+    </section>
+    <section>
+      <h2>Three search modes</h2>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>1. Single search</h3>
+          <p>Search a word or phrase. Local folders support Boolean <code>AND</code>, <code>OR</code>, <code>NOT</code>, exact <code>"phrase"</code>, and character distance <code>NEAR/n</code>. Online adapters follow each provider's native query rules.</p>
+        </article>
+        <article class="step-item">
+          <h3>2. Compound search</h3>
+          <p>Enter a first and second element (for example <span class="pattern" lang="lzh">以</span> and <span class="pattern" lang="lzh">爲</span>, or <span class="pattern" lang="lzh">雖</span> and <span class="pattern" lang="lzh">而</span>) to find ordered occurrences. Use ⇄ to swap them, and inspect captured slot <strong>A</strong> (intervening text) and slot <strong>B</strong> (following text).</p>
+        </article>
+        <article class="step-item">
+          <h3>3. Pattern DSL</h3>
+          <p>Build multi-step local queries visually in v3.3 (word boxes with <code>|</code> alternatives, min/max character gaps, exclusions, and sentence/clause/window scopes) or load a UTF-8 <code>.toml</code> pattern file.</p>
+        </article>
+      </div>
+    </section>
+    <section>
+      <h2>Pattern DSL syntax (.toml &amp; visual builder)</h2>
+      <div class="prose-card">
+        <p>Pattern files express attested constructions such as <span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span>, and <span class="pattern" lang="lzh">非…不</span> with bounded slot lengths and punctuation boundaries:</p>
+        <pre class="code-block"><code>schema = 1
+
+[[pattern]]
+id = &quot;yi-wei&quot;
+expr = &quot;以 {A:1..20} 爲 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;sui-er&quot;
+expr = &quot;雖 {A:1..20} 而 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;fei-bu&quot;
+expr = &quot;非 {A:1..20} 不 {B:1..20} @sentence&quot;
+</code></pre>
+        <ul>
+          <li><code>{A:1..20}</code> captures 1 to 20 characters into named slot <code>A</code>; add exclusions such as <code>{A:1..20 not 是}</code> when needed.</li>
+          <li><code>{..3}</code> specifies a non-capturing distance gap of up to 3 characters (empty or <code>0</code> in the visual builder matches adjacent elements).</li>
+          <li><code>@sentence</code>, <code>@clause</code>, and <code>@window:N</code> control the matching boundary; non-pair DSL shapes are placed under <strong>Needs review</strong> (<code>classification_unreviewed</code>).</li>
+        </ul>
+      </div>
+    </section>
+    <section>
+      <h2>Reviewing evidence &amp; preserving source text</h2>
+      <div class="method-grid">
+        <article class="method-item">
+          <h3>Unchanged source script</h3>
+          <p>Original Han, Nôm, and Idu characters remain untouched regardless of UI locale. Variant mapping applies only when explicitly configured in normalization settings.</p>
+        </article>
+        <article class="method-item">
+          <h3>Review Notebook &amp; comparison</h3>
+          <p>Save candidate cards from local or online panels into the persistent Review Notebook with status labels, research notes, and provenance export.</p>
+        </article>
+        <article class="method-item">
+          <h3>Boundary-aware excerpts</h3>
+          <p>When an online excerpt ends at a provider truncation boundary, CPE appends an ellipsis (<code>…</code>) so truncated context is never mistaken for a complete sentence.</p>
+        </article>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+      <div class="faq-list">
+        <article class="faq-item">
+          <h3>Why did an online database return zero results or reject spaces?</h3>
+          <p>Many public search windows (such as Sillok, HistoryDB, NAHF, NRICH, ITH, SAT, AKS Archive, THDL, CSID, CanD, Kyujanggak, SHIPS, and Engishiki) accept only a single continuous term without spaces, quotes, or operators. Also, NDL requires at least two characters. An empty result reflects the returned page slice, not corpus absence.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Does &#x27;likely&#x27; or &#x27;less likely&#x27; mean a grammatical judgment?</h3>
+          <p>No. In Compound search, &#x27;likely&#x27; and &#x27;less likely&#x27; (and &#x27;Matched&#x27; / &#x27;Needs review&#x27; in Pattern DSL) only reflect structural signals such as skipping a nearer second element or crossing clause punctuation. Always open the source link and verify the reading yourself.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Does changing the UI language convert Classical Chinese characters?</h3>
+          <p>No. Switching between English, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Vietnamese changes only interface labels and never converts source characters, punctuation, or variants.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Why does my .docx or .pdf file not load in a local folder?</h3>
+          <p>Local library slots only scan UTF-8 plain text (.txt, .md) and .texts.jsonl bundles saved by CPE importers. Export word-processor or PDF files as UTF-8 .txt first.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Can I export search results for citation and further analysis?</h3>
+          <p>Yes. Both the desktop GUI (Export… CSV/JSONL with .meta.json provenance sidecar), the CLI (cpe match), and the Review Notebook export displayed snapshots and saved candidate notes.</p>
+        </article>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>Put these patterns to work</h2>
+        <p>Check which online databases accept compound vs. literal queries, or automate local searches over MCP.</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../">Download &amp; overview</a>
+        <a href="../databases/">Connected DBs</a>
+        <a href="../mcp/">Local MCP Server</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>Version 3.3 (tag v3.3). MIT License. An independent personal project, not affiliated with any of the institutions or databases it connects to. No database corpus, modern translation or raw API response is bundled.</p>
+    <p><a href="https://github.com/cobari/CPE-release">Source and releases on GitHub</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">Feedback and requests (Google Forms)</a></p>
+  </footer>
+</body>
+</html>

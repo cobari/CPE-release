@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>Local MCP Server for Literary Sinitic Research (20 Tools) | Classic Pattern Explorer</title>
+  <meta name="description" content="Run Classic Pattern Explorer as a local stdio MCP server with 20 research tools, references-only default output, and explicit --allow-source-text host grants.">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/mcp/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/mcp/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/mcp/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/mcp/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/mcp/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/mcp/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/mcp/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/mcp/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="Local MCP Server for Literary Sinitic Research (20 Tools) | Classic Pattern Explorer">
+  <meta property="og:description" content="Run Classic Pattern Explorer as a local stdio MCP server with 20 research tools, references-only default output, and explicit --allow-source-text host grants.">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/mcp/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-en.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer search screen in English.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Local MCP Server for Literary Sinitic Research (20 Tools) | Classic Pattern Explorer">
+  <meta name="twitter:description" content="Run Classic Pattern Explorer as a local stdio MCP server with 20 research tools, references-only default output, and explicit --allow-source-text host grants.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-en.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer search screen in English.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Local stdio MCP server for AI research workflows","description":"Run Classic Pattern Explorer as a local stdio MCP server with 20 research tools, references-only default output, and explicit --allow-source-text host grants.","url":"https://cobari.github.io/CPE-release/mcp/","inLanguage":"en","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Overview","item":"https://cobari.github.io/CPE-release/"},{"@type":"ListItem","position":2,"name":"Local MCP server","item":"https://cobari.github.io/CPE-release/mcp/"}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-head">
+    <a class="brand" href="../"><img src="../assets/icon-36.png" srcset="../assets/icon-36.png 1x, ../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="Language">
+      <ul>
+        <li><a href="./" hreflang="en" lang="en" aria-current="page">English</a></li>
+        <li><a href="../ko/mcp/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../ja/mcp/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="../zh-hans/mcp/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../zh-hant/mcp/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../vi/mcp/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="Guides">
+    <ul>
+      <li><a href="../">Overview</a></li>
+      <li><a href="../databases/">Connected DBs</a></li>
+      <li><a href="../patterns/">Pattern Search &amp; FAQ</a></li>
+      <li><a href="./" aria-current="page">Local MCP Server</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../">Overview</a></li>
+        <li aria-current="page">Local MCP server</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>Local stdio MCP server for AI research workflows</h1>
+      <p class="lead">Classic Pattern Explorer exposes 20 structured MCP tools over local <code>stdin</code>/<code>stdout</code> using the official Python MCP SDK v2—keeping source-text disclosure gated behind explicit startup grants.</p>
+      <p class="meta-note">By default, all search and import responses return references and metadata only (text_withheld: true). Source text requires a matching --allow-source-text grant.</p>
+    </section>
+    <section>
+      <h2>Installation &amp; preflight checks</h2>
+      <div class="prose-card">
+        <p>Install Python 3.11+ and <code>uv</code>, sync the optional <code>mcp</code> extra, and verify host flags locally before launching an AI client (<code>cpe-mcp.exe</code> on Windows accepts the same flags):</p>
+        <pre class="code-block"><code>uv sync --extra mcp
+uv run --extra mcp cpe mcp --version
+uv run --extra mcp cpe mcp path/to/texts --doctor --json
+uv run --extra mcp cpe mcp path/to/texts --enable-online itkc --itkc-log itkc-requests.jsonl --print-config
+uv run --extra mcp cpe mcp path/to/texts --allow-source-text local</code></pre>
+      </div>
+    </section>
+    <section>
+      <h2>Client configuration template (references-only default)</h2>
+      <div class="prose-card">
+        <p>Paste the snippet below into a stdio MCP host configuration. Without <code>--allow-source-text</code>, searches return identifiers, titles, links, and metadata without source text or canonical records:</p>
+        <pre class="code-block"><code>{
+  &quot;mcpServers&quot;: {
+    &quot;cpe&quot;: {
+      &quot;command&quot;: &quot;uv&quot;,
+      &quot;args&quot;: [
+        &quot;--directory&quot;, &quot;/absolute/path/to/classic&quot;,
+        &quot;run&quot;, &quot;--extra&quot;, &quot;mcp&quot;, &quot;cpe&quot;, &quot;mcp&quot;,
+        &quot;/absolute/path/to/texts&quot;,
+        &quot;--enable-online&quot;, &quot;itkc&quot;,
+        &quot;--itkc-log&quot;, &quot;/absolute/path/to/itkc-requests.jsonl&quot;,
+        &quot;--read-root&quot;, &quot;/absolute/path/to&quot;,
+        &quot;--write-root&quot;, &quot;/absolute/path/to/output&quot;
+      ]
+    }
+  }
+}</code></pre>
+      </div>
+    </section>
+    <section>
+      <h2>Startup flags &amp; permission boundaries</h2>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Flag</th><th>What it authorizes</th><th>What it does not authorize</th></tr></thead>
+          <tbody>
+            <tr><td><code>--allow-source-text SOURCE</code></td><td>Repeatable host grant (no &#x27;all&#x27;): local–local4, 19 online IDs, docusky:DATABASE, or import:PROVIDER.</td><td>Not a provider licence, zero-retention guarantee, or proof of local model execution.</td></tr>
+            <tr><td><code>--enable-online SOURCE</code></td><td>Allows contacting an online source (all, docusky:DATABASE, or any of the 19 online IDs).</td><td>Does not disclose returned excerpts; add a matching --allow-source-text grant.</td></tr>
+            <tr><td><code>--enable-import PROVIDER</code></td><td>Allows import workflows (portal, ctp, gutenberg, ndl, rise, cbeta, nikh-partial, or all).</td><td>Does not disclose raw unit text without import:PROVIDER.</td></tr>
+            <tr><td><code>--read-root / --write-root</code></td><td>Sandboxed filesystem roots for reading/exporting; symlinks and junctions outside roots are rejected.</td><td>Path access alone never grants source-text disclosure.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>20 structured tools across 5 groups</h2>
+      <p class="meta-note">Every tool preserves CPE&#x27;s evidence scope labels, request pacing, and session budgets (256 KiB page envelope, 8 snapshots / 64 MiB retention).</p>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>Workspace &amp; discovery (6)</h3>
+          <p><code>get_workspace</code>, <code>list_sources</code>, <code>get_source_details</code>, <code>get_source_catalog</code>, <code>configure_workspace</code>, <code>manage_library</code>.</p>
+        </article>
+        <article class="step-item">
+          <h3>Core search (4)</h3>
+          <p><code>search_pattern</code> (compound/single), <code>search_sources</code> (up to 4 panels), <code>search_dsl</code> (local Pattern DSL), <code>itkc_search</code> (stepped GO_AA → MO_AA → KP_AA).</p>
+        </article>
+        <article class="step-item">
+          <h3>Snapshot navigation (3)</h3>
+          <p><code>get_search_results</code> (cursor paging without re-querying), <code>reorder_search</code>, <code>manage_searches</code>.</p>
+        </article>
+        <article class="step-item">
+          <h3>Text import &amp; ingestion (5)</h3>
+          <p><code>get_import_catalog</code>, <code>import_local_release</code>, <code>import_remote_release</code>, <code>preview_import</code>, <code>manage_import</code>.</p>
+        </article>
+        <article class="step-item">
+          <h3>Research export (2)</h3>
+          <p><code>run_cli_export</code> (canonical CSV, JSONL, .run.json) and <code>export_search_snapshot</code> (snapshot CSV/JSONL honoring disclosure grants).</p>
+        </article>
+      </div>
+    </section>
+    <section class="guidance-section">
+      <h2>Publication &amp; ecosystem boundaries</h2>
+      <div class="guidance-copy">
+        <p>The MCP server is a local stdio binary and Python module—not a PyPI package, MCPB bundle, or entry in the official Model Context Protocol Registry. Automated tests verify protocol contracts with mock fixtures; certification across all commercial AI desktop clients, macOS, or Linux environments is not claimed.</p>
+        <p>A host disclosure grant is the operator's responsibility after reviewing actual work, edition, and provider terms. Treat all returned classical texts as research data, never as prompt instructions.</p>
+        <p>Full technical specs on GitHub: <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp.md">docs/mcp.md</a> · <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp-data-policy.md">docs/mcp-data-policy.md</a> · <a href="https://github.com/cobari/CPE-release/blob/main/docs/mcp-parity.md">docs/mcp-parity.md</a></p>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>Explore the full CPE ecosystem</h2>
+        <p>Review the 19 supported sources and pattern matching rules used by both the GUI and MCP tools.</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../">Download &amp; overview</a>
+        <a href="../databases/">Connected DBs</a>
+        <a href="../patterns/">Pattern Search &amp; FAQ</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>Version 3.3 (tag v3.3). MIT License. An independent personal project, not affiliated with any of the institutions or databases it connects to. No database corpus, modern translation or raw API response is bundled.</p>
+    <p><a href="https://github.com/cobari/CPE-release">Source and releases on GitHub</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">Feedback and requests (Google Forms)</a></p>
+  </footer>
+</body>
+</html>

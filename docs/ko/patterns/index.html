@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>한문 문형 검색 방법 및 FAQ (以…爲·雖…而·패턴 DSL) | Classic Pattern Explorer</title>
+  <meta name="description" content="단일 검색, 복합 검색(以…爲·雖…而·非…不), 패턴 DSL 작성법, 구조적 단서 분류와 원문 불변 원칙, 자주 묻는 질문을 정리했습니다.">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/ko/patterns/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/patterns/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/patterns/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/patterns/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/patterns/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/patterns/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/patterns/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/patterns/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="한문 문형 검색 방법 및 FAQ (以…爲·雖…而·패턴 DSL) | Classic Pattern Explorer">
+  <meta property="og:description" content="단일 검색, 복합 검색(以…爲·雖…而·非…不), 패턴 DSL 작성법, 구조적 단서 분류와 원문 불변 원칙, 자주 묻는 질문을 정리했습니다.">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/ko/patterns/">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="zh_TW">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-ko.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer 검색 화면(한국어 인터페이스).">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="한문 문형 검색 방법 및 FAQ (以…爲·雖…而·패턴 DSL) | Classic Pattern Explorer">
+  <meta name="twitter:description" content="단일 검색, 복합 검색(以…爲·雖…而·非…不), 패턴 DSL 작성법, 구조적 단서 분류와 원문 불변 원칙, 자주 묻는 질문을 정리했습니다.">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-ko.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer 검색 화면(한국어 인터페이스).">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"한문 문형 검색 방법 및 자주 묻는 질문","description":"단일 검색, 복합 검색(以…爲·雖…而·非…不), 패턴 DSL 작성법, 구조적 단서 분류와 원문 불변 원칙, 자주 묻는 질문을 정리했습니다.","url":"https://cobari.github.io/CPE-release/ko/patterns/","inLanguage":"ko","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"개요","item":"https://cobari.github.io/CPE-release/ko/"},{"@type":"ListItem","position":2,"name":"문형 검색·FAQ","item":"https://cobari.github.io/CPE-release/ko/patterns/"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"온라인 자료원 검색에서 결과가 0건이거나 공백을 입력할 수 없는 이유는 무엇인가요?","acceptedAnswer":{"@type":"Answer","text":"조선왕조실록(NIKH)·한국사DB·동북아역사넷·NRICH·ITH·SAT·AKS·THDL·CSID·CanD·규장각·SHIPS·연희식 등 다수의 공개 검색창은 공백·따옴표·연산자가 없는 연속된 단일 어구만 허용합니다. 또한 NDL은 2자 이상이 필요합니다. 결과가 없더라도 전체 문헌에 해당 용례가 없음을 뜻하지는 않습니다."}},{"@type":"Question","name":"‘가능성 높음/낮음’ 분류가 문법적 정답을 판정해 주나요?","acceptedAnswer":{"@type":"Answer","text":"아닙니다. 복합 검색의 높음/낮음(패턴 DSL의 ‘일치’/‘검토 필요’)은 더 가까운 둘째 요소를 건너뛰었는지, 절 경계 구두점을 넘는지 같은 구조적 단서만 표시합니다. 실제 문법 해석과 인용 여부는 반드시 원문 링크를 열어 연구자가 직접 판단해야 합니다."}},{"@type":"Question","name":"화면 언어를 바꾸면 한문 원문의 번체자·간체자·이체자가 바뀌나요?","acceptedAnswer":{"@type":"Answer","text":"바뀌지 않습니다. 한국어·일본어·중국어 간체·중국어 번체·베트남어·영어 전환은 UI 메뉴와 안내 문구만 바꾸며 원문 글자를 절대 변환하지 않습니다."}},{"@type":"Question","name":"내 폴더에 넣은 .docx나 .pdf 파일이 읽히지 않는 이유는 무엇인가요?","acceptedAnswer":{"@type":"Answer","text":"로컬 텍스트 폴더는 UTF-8 일반 텍스트(.txt, .md)와 CPE 가져오기로 저장한 .texts.jsonl 파일만 읽습니다. 워드(.docx), 한글(HWP), PDF 파일은 해당 프로그램에서 UTF-8 .txt로 저장한 뒤 불러오세요."}},{"@type":"Question","name":"검색 결과와 연구 메모를 파일로 내보낼 수 있나요?","acceptedAnswer":{"@type":"Answer","text":"네. GUI 상단의 내보내기(CSV/JSONL 및 .meta.json 출처 사이드카), CLI(cpe match), 검토 노트 JSONL 내보내기를 통해 확인한 결과와 연구 메모를 저장할 수 있습니다."}}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 건너뛰기</a>
+  <header class="site-head">
+    <a class="brand" href="../../ko/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="언어">
+      <ul>
+        <li><a href="../../patterns/" hreflang="en" lang="en">English</a></li>
+        <li><a href="./" hreflang="ko" lang="ko" aria-current="page">한국어</a></li>
+        <li><a href="../../ja/patterns/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="../../zh-hans/patterns/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-hant/patterns/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></li>
+        <li><a href="../../vi/patterns/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="안내 문서">
+    <ul>
+      <li><a href="../../ko/">개요</a></li>
+      <li><a href="../../ko/databases/">연동 DB 안내</a></li>
+      <li><a href="./" aria-current="page">문형 검색·FAQ</a></li>
+      <li><a href="../../ko/mcp/">로컬 MCP 서버</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="현재 위치">
+      <ol>
+        <li><a href="../../ko/">개요</a></li>
+        <li aria-current="page">문형 검색·FAQ</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>한문 문형 검색 방법(<span class="pattern" lang="lzh">以…爲</span>·<span class="pattern" lang="lzh">雖…而</span>) 및 FAQ</h1>
+      <p class="lead">로컬 전문 검색과 온라인 발췌 검색을 결합해 문형 후보를 찾고, A·B 구간과 구조적 단서를 검토하며 원문 표기를 훼손하지 않고 연구 노트를 정리합니다.</p>
+      <p class="meta-note">패턴 DSL 시각 빌더, 검토 노트, 후보 비교 기능은 단일 검색·복합 검색과 함께 v3.3에 포함되어 있습니다.</p>
+    </section>
+    <section>
+      <h2>세 가지 검색 모드</h2>
+      <div class="steps-grid">
+        <article class="step-item">
+          <h3>1. 단일 검색</h3>
+          <p>단어나 구절을 찾습니다. 로컬 폴더에서는 <code>AND</code>, <code>OR</code>, <code>NOT</code>, 정확한 <code>"구문"</code>, 글자 거리 <code>NEAR/n</code>을 지원하며, 온라인 자료원은 각 제공처의 입력 규칙을 따릅니다.</p>
+        </article>
+        <article class="step-item">
+          <h3>2. 복합 검색</h3>
+          <p>첫째 요소와 둘째 요소(예: <span class="pattern" lang="lzh">以</span>와 <span class="pattern" lang="lzh">爲</span>, <span class="pattern" lang="lzh">雖</span>와 <span class="pattern" lang="lzh">而</span>)가 순서대로 나오는 문장을 찾습니다. ⇄ 버튼으로 순서를 바꾸고, 사이 구간 <strong>A</strong>와 뒤따르는 구간 <strong>B</strong>를 함께 살핍니다.</p>
+        </article>
+        <article class="step-item">
+          <h3>3. 패턴 DSL (로컬 전용)</h3>
+          <p>v3.3에서는 단어 칸(<code>|</code> 선택지), 슬롯 최소·최대 글자 수, 제외 글자, 문장/절/범위 경계를 화면에서 조립하거나 UTF-8 <code>.toml</code> 패턴 파일을 불러와 다단계 문형을 정밀 검색할 수 있습니다.</p>
+        </article>
+      </div>
+    </section>
+    <section>
+      <h2>패턴 DSL 작성 예시 (.toml 및 빌더)</h2>
+      <div class="prose-card">
+        <p><span class="pattern" lang="lzh">以…爲</span>, <span class="pattern" lang="lzh">雖…而</span>, <span class="pattern" lang="lzh">非…不</span> 같은 문형을 글자 간격과 경계 조건과 함께 정의할 수 있습니다:</p>
+        <pre class="code-block"><code>schema = 1
+
+[[pattern]]
+id = &quot;yi-wei&quot;
+expr = &quot;以 {A:1..20} 爲 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;sui-er&quot;
+expr = &quot;雖 {A:1..20} 而 {B:1..20} @sentence&quot;
+
+[[pattern]]
+id = &quot;fei-bu&quot;
+expr = &quot;非 {A:1..20} 不 {B:1..20} @sentence&quot;
+</code></pre>
+        <ul>
+          <li><code>{A:1..20}</code>는 1~20자를 캡처해 <code>A</code> 슬롯에 담습니다. 필요 시 <code>{A:1..20 not 是}</code>처럼 제외 문자를 지정합니다.</li>
+          <li><code>{..3}</code>는 캡처 없이 최대 3자 간격을 허용합니다(시각 빌더에서 비워 두거나 <code>0</code>이면 인접 일치).</li>
+          <li><code>@sentence</code>, <code>@clause</code>, <code>@window:N</code>으로 검색 경계를 지정합니다. 단순 2요소 쌍이 아닌 패턴은 자동 분류 미검토(<code>classification_unreviewed</code>)로 구분해 보여 줍니다.</li>
+        </ul>
+      </div>
+    </section>
+    <section>
+      <h2>증거 확인과 원문 보존 원칙</h2>
+      <div class="method-grid">
+        <article class="method-item">
+          <h3>원문 표기 불변</h3>
+          <p>화면 언어를 무엇으로 선택하든 원문의 한자·한놈·이두는 그대로 유지됩니다. 이체자 매핑은 정규화 설정에서 직접 켠 경우에만 적용됩니다.</p>
+        </article>
+        <article class="method-item">
+          <h3>검토 노트와 후보 비교</h3>
+          <p>로컬 또는 온라인 결과 카드의 후보를 ‘검토 노트’에 저장해 검토 상태와 연구 메모를 남기고 나란히 비교할 수 있습니다.</p>
+        </article>
+        <article class="method-item">
+          <h3>발췌 경계 표시(…)</h3>
+          <p>온라인 자료원 발췌문이 제공처 절단 경계에 닿으면 구두점 뒤라도 말줄임표(<code>…</code>)를 붙여 온전한 문장으로 오해하지 않게 합니다.</p>
+        </article>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>자주 묻는 질문 (FAQ)</h2>
+      <div class="faq-list">
+        <article class="faq-item">
+          <h3>온라인 자료원 검색에서 결과가 0건이거나 공백을 입력할 수 없는 이유는 무엇인가요?</h3>
+          <p>조선왕조실록(NIKH)·한국사DB·동북아역사넷·NRICH·ITH·SAT·AKS·THDL·CSID·CanD·규장각·SHIPS·연희식 등 다수의 공개 검색창은 공백·따옴표·연산자가 없는 연속된 단일 어구만 허용합니다. 또한 NDL은 2자 이상이 필요합니다. 결과가 없더라도 전체 문헌에 해당 용례가 없음을 뜻하지는 않습니다.</p>
+        </article>
+        <article class="faq-item">
+          <h3>‘가능성 높음/낮음’ 분류가 문법적 정답을 판정해 주나요?</h3>
+          <p>아닙니다. 복합 검색의 높음/낮음(패턴 DSL의 ‘일치’/‘검토 필요’)은 더 가까운 둘째 요소를 건너뛰었는지, 절 경계 구두점을 넘는지 같은 구조적 단서만 표시합니다. 실제 문법 해석과 인용 여부는 반드시 원문 링크를 열어 연구자가 직접 판단해야 합니다.</p>
+        </article>
+        <article class="faq-item">
+          <h3>화면 언어를 바꾸면 한문 원문의 번체자·간체자·이체자가 바뀌나요?</h3>
+          <p>바뀌지 않습니다. 한국어·일본어·중국어 간체·중국어 번체·베트남어·영어 전환은 UI 메뉴와 안내 문구만 바꾸며 원문 글자를 절대 변환하지 않습니다.</p>
+        </article>
+        <article class="faq-item">
+          <h3>내 폴더에 넣은 .docx나 .pdf 파일이 읽히지 않는 이유는 무엇인가요?</h3>
+          <p>로컬 텍스트 폴더는 UTF-8 일반 텍스트(.txt, .md)와 CPE 가져오기로 저장한 .texts.jsonl 파일만 읽습니다. 워드(.docx), 한글(HWP), PDF 파일은 해당 프로그램에서 UTF-8 .txt로 저장한 뒤 불러오세요.</p>
+        </article>
+        <article class="faq-item">
+          <h3>검색 결과와 연구 메모를 파일로 내보낼 수 있나요?</h3>
+          <p>네. GUI 상단의 내보내기(CSV/JSONL 및 .meta.json 출처 사이드카), CLI(cpe match), 검토 노트 JSONL 내보내기를 통해 확인한 결과와 연구 메모를 저장할 수 있습니다.</p>
+        </article>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>실제 검색에 적용해 보세요</h2>
+        <p>지원하는 19개 온라인 DB의 검색 제한을 확인하거나 로컬 MCP 서버로 연구 에이전트와 연동할 수 있습니다.</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../ko/">내려받기·개요</a>
+        <a href="../../ko/databases/">연동 DB 안내</a>
+        <a href="../../ko/mcp/">로컬 MCP 서버</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>버전 3.3(태그 v3.3). MIT 라이선스. 연결하는 기관이나 데이터베이스와 관계없는 개인 프로젝트입니다. 데이터베이스의 원문 묶음, 현대 번역, API 원본 응답은 들어 있지 않습니다.</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub의 소스와 릴리스</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">의견과 요청 보내기 (Google Forms)</a></p>
+  </footer>
+</body>
+</html>

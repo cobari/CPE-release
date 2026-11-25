@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <title>線上漢文資料庫與本機匯入指南（CBETA・DocuSky・中研院・NDL OCR・ITKC）｜Classic Pattern Explorer</title>
+  <meta name="description" content="了解 Classic Pattern Explorer 支援的 19 個線上檢索來源（CBETA、DocuSky、中研院臺史所、THDL、NDL OCR、SAT、SHIPS、ITKC、CSID、Việt Điện）及本機純文字與 XML 匯入方式。">
+  <link rel="canonical" href="https://cobari.github.io/CPE-release/zh-hant/databases/">
+  <link rel="alternate" hreflang="en" href="https://cobari.github.io/CPE-release/databases/">
+  <link rel="alternate" hreflang="ko" href="https://cobari.github.io/CPE-release/ko/databases/">
+  <link rel="alternate" hreflang="ja" href="https://cobari.github.io/CPE-release/ja/databases/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://cobari.github.io/CPE-release/zh-hans/databases/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://cobari.github.io/CPE-release/zh-hant/databases/">
+  <link rel="alternate" hreflang="vi" href="https://cobari.github.io/CPE-release/vi/databases/">
+  <link rel="alternate" hreflang="x-default" href="https://cobari.github.io/CPE-release/databases/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Classic Pattern Explorer">
+  <meta property="og:title" content="線上漢文資料庫與本機匯入指南（CBETA・DocuSky・中研院・NDL OCR・ITKC）｜Classic Pattern Explorer">
+  <meta property="og:description" content="了解 Classic Pattern Explorer 支援的 19 個線上檢索來源（CBETA、DocuSky、中研院臺史所、THDL、NDL OCR、SAT、SHIPS、ITKC、CSID、Việt Điện）及本機純文字與 XML 匯入方式。">
+  <meta property="og:url" content="https://cobari.github.io/CPE-release/zh-hant/databases/">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hant.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Classic Pattern Explorer 檢索介面（繁體中文）。">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="線上漢文資料庫與本機匯入指南（CBETA・DocuSky・中研院・NDL OCR・ITKC）｜Classic Pattern Explorer">
+  <meta name="twitter:description" content="了解 Classic Pattern Explorer 支援的 19 個線上檢索來源（CBETA、DocuSky、中研院臺史所、THDL、NDL OCR、SAT、SHIPS、ITKC、CSID、Việt Điện）及本機純文字與 XML 匯入方式。">
+  <meta name="twitter:image" content="https://cobari.github.io/CPE-release/assets/og-image-zh-hant.png">
+  <meta name="twitter:image:alt" content="Classic Pattern Explorer 檢索介面（繁體中文）。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"連線的漢文（文言文）資料庫與本機文本匯入","description":"了解 Classic Pattern Explorer 支援的 19 個線上檢索來源（CBETA、DocuSky、中研院臺史所、THDL、NDL OCR、SAT、SHIPS、ITKC、CSID、Việt Điện）及本機純文字與 XML 匯入方式。","url":"https://cobari.github.io/CPE-release/zh-hant/databases/","inLanguage":"zh-Hant","author":{"@type":"Person","name":"cobari"},"about":{"@type":"SoftwareApplication","name":"Classic Pattern Explorer","url":"https://cobari.github.io/CPE-release/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"概覽","item":"https://cobari.github.io/CPE-release/zh-hant/"},{"@type":"ListItem","position":2,"name":"線上資料庫指南","item":"https://cobari.github.io/CPE-release/zh-hant/databases/"}]}</script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳至主要內容</a>
+  <header class="site-head">
+    <a class="brand" href="../../zh-hant/"><img src="../../assets/icon-36.png" srcset="../../assets/icon-36.png 1x, ../../assets/icon-72.png 2x" alt="" width="36" height="36"><span>Classic Pattern Explorer</span></a>
+    <nav class="languages" aria-label="語言">
+      <ul>
+        <li><a href="../../databases/" hreflang="en" lang="en">English</a></li>
+        <li><a href="../../ko/databases/" hreflang="ko" lang="ko">한국어</a></li>
+        <li><a href="../../ja/databases/" hreflang="ja" lang="ja">日本語</a></li>
+        <li><a href="../../zh-hans/databases/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a></li>
+        <li><a href="./" hreflang="zh-Hant" lang="zh-Hant" aria-current="page">繁體中文</a></li>
+        <li><a href="../../vi/databases/" hreflang="vi" lang="vi">Tiếng Việt</a></li>
+      </ul>
+    </nav>
+  </header>
+  <nav class="guide-nav" aria-label="專題指南">
+    <ul>
+      <li><a href="../../zh-hant/">概覽</a></li>
+      <li><a href="./" aria-current="page">線上資料庫指南</a></li>
+      <li><a href="../../zh-hant/patterns/">句式檢索與FAQ</a></li>
+      <li><a href="../../zh-hant/mcp/">本機 MCP 伺服器</a></li>
+    </ul>
+  </nav>
+  <main id="main">
+    <nav class="breadcrumb" aria-label="目前位置">
+      <ol>
+        <li><a href="../../zh-hant/">概覽</a></li>
+        <li aria-current="page">線上資料庫指南</li>
+      </ol>
+    </nav>
+    <section class="sub-hero">
+      <h1>連線的漢文（文言文）資料庫與本機文本匯入</h1>
+      <p class="lead">Classic Pattern Explorer v3.3 連線分布於 5 個國家或地區的 19 個線上文獻來源，並支援對本機 UTF-8 資料夾及轉換文字集（.texts.jsonl）進行離線全文檢索。</p>
+      <p class="meta-note">註：Classic Pattern Explorer v3.3 支援 19 個線上資料來源，包含數位延喜式（官方瀏覽器檢索，CC BY 4.0）與東京大學 SHIPS 七庫選單。</p>
+    </section>
+    <section class="source-group">
+      <h2>臺灣（4 個線上來源）</h2>
+      <p>漢文佛典、DocuSky 公開資料庫、臺灣文獻全文與古契書檢索。</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>CBETA 漢文佛典</h3>
+          <div class="source-meta">前後各約 40 字 · 前 50 卷 · CC BY-NC-SA 4.0</div>
+          <p>透過 CBData API 檢索佛典文本，在命中前後約 40 字摘錄（排除夾注）中核對組合條件，並連結至 CBETA Online 對應卷次。</p>
+        </article>
+        <article class="source-card">
+          <h3>DocuSky · 佛寺志靈應故事及 29 個已審設定檔</h3>
+          <div class="source-meta">每頁 50 筆 · 手動翻頁最多 5 頁</div>
+          <p>每次檢索單一 DocuSky 公開資料庫（含 佛寺志靈應故事、承政院日記、朝鮮王朝實錄、大明一統志 等 29 個已審設定檔；其餘項目明確標為未審）。</p>
+        </article>
+        <article class="source-card">
+          <h3>中央研究院臺灣史研究所 臺灣文獻全文資料庫</h3>
+          <div class="source-meta">首頁最多 20 筆 · 單一檢索詞</div>
+          <p>使用不含空白的單一檢索詞查詢公開檢索頁面，讀取首批最多 20 筆候選題名、摘錄與官方連結。</p>
+        </article>
+        <article class="source-card">
+          <h3>臺灣歷史數位圖書館 · 古契書</h3>
+          <div class="source-meta">前 10 筆 · 最多 600 字</div>
+          <p>以無空白關鍵詞檢索 THDL 古契書典藏，回傳前 10 筆候選參照與官方文件連結；明清行政檔案與淡新檔案不在此連線範圍內。</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>日本（5 個線上來源）</h2>
+      <p>國立國會圖書館 OCR、大正藏行號、史料編纂所古記錄、數位延喜式與漢詩書目。</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>日本國立國會圖書館 (NDL)</h3>
+          <div class="source-meta">OCR 摘錄 · 至少 2 字 · 前 50 冊</div>
+          <p>檢索 NDL Lab 古籍 OCR 文本（至少需 2 個字元）。OCR 文本無標點且可能存在辨識誤差，引用前請透過標題連結核對原書影像。</p>
+        </article>
+        <article class="source-card">
+          <h3>SAT大正新脩大藏經文本資料庫</h3>
+          <div class="source-meta">前 30 筆行級命中 · 單一檢索詞</div>
+          <p>讀取前 30 筆大正藏頁行範圍與上下文摘錄，缺字圖版以 □ 顯示。與 CBETA 大正藏文本重疊，並提供對應行號參照。</p>
+        </article>
+        <article class="source-card">
+          <h3>東京大學史料編纂所 SHIPS · 官方檢索</h3>
+          <div class="source-meta">7 個資料庫選擇 · 僅開啟官方連結</div>
+          <p>支援古記錄（w16）、大日本史料（w61）、古文書（w10）、奈良（w08）、平安（w09）、鎌倉（w11）、南北朝（w29），以無空白關鍵詞開啟官方檢索頁，程式不擷取結果或筆數。</p>
+        </article>
+        <article class="source-card">
+          <h3>數位延喜式（日本國立歷史民俗博物館）· 官方檢索</h3>
+          <div class="source-meta">v3.3 新增 · 僅開啟官方連結 · CC BY 4.0</div>
+          <p>以無空白關鍵詞開啟官方瀏覽器檢索頁，由提供方網頁於瀏覽器內篩選文本；程式不擷取列資料或筆數。</p>
+        </article>
+        <article class="source-card">
+          <h3>CanD 中國與日本漢詩 · 書目參考</h3>
+          <div class="source-meta">前 20 筆書目 · 最多 10 字</div>
+          <p>關閉異體字擴展檢索最多 10 字，僅顯示前 20 筆題名、作者與版本概覽連結（捨棄詩文正文與訓讀）。</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>韓國（8 個線上來源）</h2>
+      <p>韓國古典綜合資料庫、朝鮮王朝實錄、奎章閣古文書與木簡釋文等公開來源。</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>韓國古典綜合資料庫 (ITKC)</h3>
+          <div class="source-meta">古典原文 GO_AA · 韓國文集叢刊 MO_AA · 韓國古典叢刊 KP_AA</div>
+          <p>每個集合最多檢索前 100 筆記錄，回傳命中前後約 150 字摘錄及官方連結；現代韓文譯文集合 IT_AA 不參與檢索，亦不自動儲存資料。</p>
+        </article>
+        <article class="source-card">
+          <h3>東洋古典綜合資料庫 (Cyber Seodang)</h3>
+          <div class="source-meta">最多 50 筆 · Open API</div>
+          <p>呼叫 Open API 取得題名、說明與連結，但不保證提供完整正文或區分原文與譯文層級，僅供候選參照。</p>
+        </article>
+        <article class="source-card">
+          <h3>韓國史資料庫綜合檢索</h3>
+          <div class="source-meta">首頁最多 20 筆 · 單一檢索詞</div>
+          <p>依時代與項目使用無空白連續詞彙查詢國史編纂委員會原文頁籤首頁（最多 20 筆）。</p>
+        </article>
+        <article class="source-card">
+          <h3>朝鮮王朝實錄，國史編纂委員會檢索</h3>
+          <div class="source-meta">首頁最多 50 筆 · 單一檢索詞</div>
+          <p>向實錄公開檢索的原文頁籤傳送單一詞語，讀取首頁最多 50 筆截斷摘錄與連結，不翻頁不爬取。</p>
+        </article>
+        <article class="source-card">
+          <h3>東北亞歷史財團 東北亞歷史網檢索</h3>
+          <div class="source-meta">21 個史料集單選 · 首頁最多 20 筆</div>
+          <p>選定單一史料集後，以單一檢索詞讀取原文首頁最多 20 筆候選記錄。</p>
+        </article>
+        <article class="source-card">
+          <h3>NRICH 木簡釋文（韓國）</h3>
+          <div class="source-meta">單次工作階段最多 600 筆 · 單一檢索詞</div>
+          <p>載入最多 600 筆公開木簡釋文（原樣保留漢字、吏讀與不確定標記）並進行連續字面比對。</p>
+        </article>
+        <article class="source-card">
+          <h3>韓國學中央研究院 古文書資料館</h3>
+          <div class="source-meta">首頁最多 20 筆 · CC BY-NC-ND 2.0 KR</div>
+          <p>讀取原文組（anciTXT）前 20 筆題名、反白釋文摘錄、日期與 UCI 連結，限個人非商業研究且禁止再散布。</p>
+        </article>
+        <article class="source-card">
+          <h3>奎章閣古文書 · 原文檢索</h3>
+          <div class="source-meta">前 20 筆 · 內嵌摘錄最多 600 字</div>
+          <p>檢索首爾大學奎章閣 GMS 古文書群（無空白 80 字以內），顯示文書號、當事方、日期、內嵌摘錄與官方檢視連結。</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>中國（1 個線上來源）</h2>
+      <p>歷代石刻墓誌錄文書目檢索。</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>浙江大學 CSID · 錄文檢索</h3>
+          <div class="source-meta">預設 7 個子庫 · 前 15 筆書目</div>
+          <p>以無空白關鍵詞檢索錄文欄位，回傳前 15 筆題名、朝代、器物類型與官方記錄連結（不向程式回傳正文摘錄）。</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>越南（1 個線上來源）</h2>
+      <p>越南漢喃數位化語料庫 OCR 檢索。</p>
+      <div class="source-cards">
+        <article class="source-card">
+          <h3>Việt Điện 漢喃OCR語料庫</h3>
+          <div class="source-meta">首頁最多 20 筆 · 單一檢索詞</div>
+          <p>讀取 Digitizing Vietnam 公開 OCR 檢索前 20 筆頁級片段與影像檢視連結。機器 OCR 可能有誤且會比對異體與簡繁變體，請核對原書影像。</p>
+        </article>
+      </div>
+    </section>
+    <section class="source-group">
+      <h2>本機文本資料夾與匯入工具</h2>
+      <div class="prose-card">
+        <p>4 個獨立資料夾槽位（<code>local</code>–<code>local4</code>）中的 UTF-8 <code>.txt</code>、<code>.md</code> 與 <code>.texts.jsonl</code> 文字集均可完全離線全文檢索。</p>
+        <ul>
+          <li><strong>韓國公共資料入口網站 XML/ZIP</strong>：支援匯入國史編纂委員會（三國史記、高麗史、朝鮮王朝實錄太祖~哲宗等）、韓國古典翻譯院、韓國學中央研究院藏書閣、東北亞歷史財團發布包及資料夾批次匯入。</li>
+          <li><strong>Chinese Text Project（CTP/CText）</strong>：於 CTP 允許時可無金鑰嘗試取得單一章節；取得整部著作的章節目錄須自備個人 CTP API 金鑰。</li>
+          <li><strong>精選部分匯入與作品尋找</strong>：MPIWG 稀見地方志（每次預覽最多 50 個來源單元）、CBETA P5 XML、NDL OCR 頁面、古騰堡計畫電子書及作品尋找精靈。</li>
+          <li><strong>書目中繼資料（.manifest.toml）</strong>：於文本旁放置 <code>NAME.txt.manifest.toml</code> 可記錄 <code>title</code>、<code>edition</code>、<code>era</code>、<code>year</code> 與 <code>year_end</code> 以供年代排序。</li>
+        </ul>
+      </div>
+    </section>
+    <section class="guidance-section">
+      <h2>檢索範圍與聲明邊界</h2>
+      <div class="guidance-copy">
+        <p>Classic Pattern Explorer 為獨立個人專案（MIT 授權條款），與上述任何機構或資料庫均無隸屬關係，軟體不捆綁任何語料庫、現代譯文或 API 原始回應。</p>
+        <p>線上檢索僅在提供方限制內取得有限摘錄或書目參照，不執行全庫下載。檢索無結果並不代表該文獻中不存在對應句式。</p>
+      </div>
+    </section>
+    <aside class="cta-band">
+      <div>
+        <h2>繼續了解句式語法與 MCP 整合</h2>
+        <p>查看組合檢索與模式 DSL 運算式寫法，或了解如何透過本機 MCP 伺服器連接研究工作流程。</p>
+      </div>
+      <div class="cta-links">
+        <a class="primary" href="../../zh-hant/">下載與概覽</a>
+        <a href="../../zh-hant/patterns/">句式檢索與FAQ</a>
+        <a href="../../zh-hant/mcp/">本機 MCP 伺服器</a>
+      </div>
+    </aside>
+  </main>
+  <footer class="site-foot">
+    <p>版本 3.3（標籤 v3.3）。MIT 授權條款。本專案為獨立個人專案，與所連線的各學術機構或資料庫均無隸屬關係。各資料庫原文語料、現代譯文及 API 原始回應均不隨軟體套件散布。</p>
+    <p><a href="https://github.com/cobari/CPE-release">GitHub 上的原始碼與發布</a></p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfcg9NjJil-pxO_e833Xjzo-sVar1YDY8hRIkunBhEZmtPn2A/viewform">提供意見與建議（Google 表單）</a></p>
+  </footer>
+</body>
+</html>
