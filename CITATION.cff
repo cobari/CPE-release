@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use Classic Pattern Explorer in your research, please cite it using the metadata below."
+title: "Classic Pattern Explorer"
+version: "3.3"
+authors:
+  - alias: "cobari"
+license: "MIT"
+repository-code: "https://github.com/cobari/CPE-release"
+url: "https://cobari.github.io/CPE-release/"
+abstract: >-
+  Classic Pattern Explorer (CPE) is a digital humanities research tool for
+  locating and examining sentence-pattern candidates in Literary Sinitic
+  source texts across local UTF-8 libraries, 19 online historical and
+  Buddhist databases, a command-line interface, and a local
+  stdio MCP server.
+keywords:
+  - "Literary Sinitic"
+  - "Classical Chinese"
+  - "Digital Humanities"
+  - "ITKC"
+  - "CBETA"
+  - "NDL OCR"
+  - "Pattern Search"
+  - "MCP"

@@ -33,7 +33,7 @@ RESEARCH_CONTEXT = {
 
 _TEXT_VIEWS = {
     "display": {
-        "fields": ["segment", "before", "after", "a", "b"],
+        "fields": ["segment", "before", "after", "a", "b", "slots"],
         "content": (
             "Marked source text or provider excerpt. It is not a normalized "
             "rendering, translation, or exact complete article."

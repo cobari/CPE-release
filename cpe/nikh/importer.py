@@ -44,20 +44,24 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 import xml.etree.ElementTree as ET
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from contextlib import closing
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint
 from cpe.local.releases import (
     ReleaseError,
     bundle_name,
     documents,
     parse,
     save_bundles,
+    save_streamed_bundles,
 )
-from cpe.local.txt import BUNDLE_SUFFIX, InputError, read_bundle
+from cpe.local.txt import BUNDLE_SUFFIX, InputError, iter_bundle_ids
 
 ARTICLE_LINK = "https://db.history.go.kr/id/"
 # Interlinear-note markers written into the text and declared in each manifest; chosen
@@ -496,19 +500,45 @@ def check_existing(target: Path, release: Release) -> None:
     the researcher imports into a new folder. A bundle that does not read as a bundle
     is not searched (the folder skips it) and is ignored here.
     """
-    if not release.skipped or not target.is_dir():
-        return
     overwritten = {bundle_name(article.volume) for article in release.articles}
-    left_out = {"nikh:" + item.article_id for item in release.skipped}
+    _check_existing(target, overwritten, release.skipped)
+
+
+def _check_existing(
+    target: Path, overwritten: set[str], skipped: list[Skipped]
+) -> None:
+    if not skipped or not target.is_dir():
+        return
+    left_out = {"nikh:" + item.article_id for item in skipped}
     for bundle in target.glob("*" + BUNDLE_SUFFIX):
         if bundle.name in overwritten:
             continue
         try:
-            texts = read_bundle(bundle)
+            ids = set(iter_bundle_ids(bundle))
         except InputError:
             continue
-        if any(text.text_id in left_out for text in texts):
+        if ids & left_out:
             raise ReleaseError("release_existing_conflict")
+
+
+def _article_record(article: Article, book: str) -> dict[str, Any]:
+    record: dict[str, Any] = {
+        "text_id": "nikh:" + article.article_id,
+        "title": " · ".join([book, *article.titles] if book else article.titles),
+        "source": ARTICLE_LINK + article.article_id,
+        "edition": "국사편찬위원회 한국사데이터베이스",
+        "note_open": NOTE_OPEN,
+        "note_close": NOTE_CLOSE,
+        # NIKH's approved halfwidth punctuation setting must accompany every
+        # bundle row or local searches would use different source boundaries.
+        "halfwidth_punctuation": True,
+    }
+    if article.date_text:
+        record["era"] = article.date_text
+    if article.year is not None:
+        record["year"] = article.year
+    record["text"] = article.text
+    return record
 
 
 def save(
@@ -523,22 +553,7 @@ def save(
     target = target_folder(folder, prefix)
     groups: dict[str, list[dict[str, Any]]] = {}
     for article in articles:
-        record: dict[str, Any] = {
-            "text_id": "nikh:" + article.article_id,
-            "title": " · ".join([book, *article.titles] if book else article.titles),
-            "source": ARTICLE_LINK + article.article_id,
-            "edition": "국사편찬위원회 한국사데이터베이스",
-            "note_open": NOTE_OPEN,
-            "note_close": NOTE_CLOSE,
-            # These releases punctuate with halfwidth . , (researcher decision: read
-            # as punctuation, the text itself unchanged; spec 3.9).
-            "halfwidth_punctuation": True,
-        }
-        if article.date_text:
-            record["era"] = article.date_text
-        if article.year is not None:
-            record["year"] = article.year
-        record["text"] = article.text
+        record = _article_record(article, book)
         groups.setdefault(article.volume, []).append(record)
     save_bundles(target, groups, "nikh:", report=report)
     return target
@@ -588,4 +603,134 @@ def import_documents(
         # Articles left out; distinct from a batch's count of files skipped.
         "skipped_articles": len(release.skipped),
         "report": str(report),
+    }
+
+
+def import_zip(
+    path: Path,
+    folder: Path,
+    *,
+    saryo: bool = False,
+    checkpoint: Checkpoint = None,
+    progress: Callable[[int, int, str], None] | None = None,
+) -> dict[str, object]:
+    """Convert a ZIP or XML using bounded document reads and per-volume spools."""
+    with closing(documents(path, checkpoint=checkpoint, progress=progress)) as found:
+        return import_documents_streamed(
+            found, folder, saryo=saryo, checkpoint=checkpoint
+        )
+
+
+def import_documents_streamed(
+    found: Iterable[bytes],
+    folder: Path,
+    *,
+    saryo: bool = False,
+    checkpoint: Checkpoint = None,
+) -> dict[str, object]:
+    """Keep article bodies for at most one XML document before spooling them."""
+    book = ""
+    prefix = ""
+    accepted = 0
+    skipped: list[Skipped] = []
+    volume_ids: dict[str, set[str]] = {}
+    article_ids: set[str] = set()
+    with tempfile.TemporaryDirectory(prefix="cpe-nikh-") as temporary:
+        spool = Path(temporary)
+        volume_files: dict[str, Path] = {}
+        for document in found:
+            if checkpoint:
+                checkpoint()
+            root = parse(document)
+            release = Release("", "", [])
+            if root.tag == "item":
+                book = root.get("name", "") or book
+                for child in root:
+                    if _LEVEL.match(child.tag):
+                        _articles(child, [], release, child.get("id", ""), True, saryo)
+            elif _LEVEL.match(root.tag):
+                _articles(root, [], release, root.get("id", ""), True, saryo)
+            else:
+                raise ReleaseError("release_unknown")
+            skipped.extend(release.skipped)
+            for article in release.articles:
+                if checkpoint:
+                    checkpoint()
+                text_id = "nikh:" + article.article_id
+                if text_id in article_ids:
+                    raise ReleaseError("release_existing_conflict")
+                article_ids.add(text_id)
+                if not prefix:
+                    prefix = article.article_id.split("_")[0] or "nikh"
+                if article.volume not in volume_files:
+                    volume_files[article.volume] = (
+                        spool / f"volume-{len(volume_files)}.jsonl"
+                    )
+                record = _article_record(article, "")
+                record["_titles"] = article.titles
+                with volume_files[article.volume].open(
+                    "a", encoding="utf-8", newline=""
+                ) as stream:
+                    stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+                volume_ids.setdefault(article.volume, set()).add(text_id)
+                accepted += 1
+            # Release the last parsed XML tree and article bodies before reading
+            # the next compressed member; their lifetime must not span the ZIP.
+            del root, release
+        if not accepted:
+            raise ReleaseError("release_new_character" if skipped else "release_empty")
+        for volume, path in list(volume_files.items()):
+            destination = path.with_suffix(".texts.jsonl")
+            with path.open(encoding="utf-8", newline="") as source:
+                with destination.open("w", encoding="utf-8", newline="") as output:
+                    for line in source:
+                        if checkpoint:
+                            checkpoint()
+                        record = json.loads(line)
+                        titles = record.pop("_titles")
+                        record["title"] = " · ".join(
+                            [book, *titles] if book else titles
+                        )
+                        output.write(json.dumps(record, ensure_ascii=False) + "\n")
+            volume_files[volume] = destination
+        target = target_folder(folder, prefix)
+        _check_existing(
+            target, {bundle_name(volume) for volume in volume_files}, skipped
+        )
+        report = (
+            json.dumps(
+                {
+                    "schema": 1,
+                    "importer": "nikh",
+                    "book": book,
+                    "accepted": accepted,
+                    "skipped": len(skipped),
+                    "skipped_articles": [
+                        {
+                            "id": item.article_id,
+                            "reason": item.reason,
+                            "source": ARTICLE_LINK + item.article_id,
+                        }
+                        for item in skipped
+                    ],
+                },
+                ensure_ascii=False,
+                indent=1,
+            )
+            + "\n"
+        )
+        save_streamed_bundles(
+            target,
+            volume_files,
+            "nikh:",
+            volume_ids=volume_ids,
+            report=report,
+            checkpoint=checkpoint,
+        )
+    return {
+        "book": book,
+        "articles": accepted,
+        "folder": str(target),
+        "skipped_articles": len(skipped),
+        "report": str(target / REPORT_NAME),
     }

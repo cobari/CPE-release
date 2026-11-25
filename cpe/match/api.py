@@ -6,6 +6,7 @@ from typing import Any
 
 from cpe.export.jsonl import to_record
 from cpe.match.engine import (
+    PreparedPattern,
     Settings,
     TextInput,
     assign_ids,
@@ -13,7 +14,7 @@ from cpe.match.engine import (
     match_text,
     prepare_pattern,
 )
-from cpe.match.pattern_file import from_mapping
+from cpe.match.pattern_file import PatternSpec, from_mapping
 from cpe.match.result import Result
 from cpe.normalize.options import Options, normalize, options_from_mapping
 
@@ -30,6 +31,24 @@ def run(wire: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def run_results(wire: dict[str, Any]) -> list[Result]:
+    settings, texts, patterns = _prepare_wire(wire)
+    found = [
+        (text_index, pattern_index, result)
+        for text_index, text in enumerate(texts)
+        for pattern_index, (spec, prepared) in enumerate(patterns)
+        for result in match_text(spec, text, settings, prepared=prepared)
+    ]
+    return assign_ids(found)
+
+
+def validate_wire(wire: dict[str, Any]) -> None:
+    """Check match inputs and normalization without searching the text."""
+    _prepare_wire(wire)
+
+
+def _prepare_wire(
+    wire: dict[str, Any],
+) -> tuple[Settings, list[TextInput], list[tuple[PatternSpec, PreparedPattern]]]:
     if not isinstance(wire, dict):
         raise WireError("wire input must be an object")
     settings = _settings(wire.get("settings", {}))
@@ -41,20 +60,12 @@ def run_results(wire: dict[str, Any]) -> list[Result]:
     specs = [from_mapping(entry) for entry in _entries(wire, "patterns")]
     _unique("text_id", [text.text_id for text in texts])
     _unique("pattern id", [spec.id for spec in specs])
-    prepared = (
-        [prepare_pattern(spec, settings.normalization) for spec in specs]
+    patterns = (
+        [(spec, prepare_pattern(spec, settings.normalization)) for spec in specs]
         if texts
         else []
     )
-    found = [
-        (text_index, pattern_index, result)
-        for text_index, text in enumerate(texts)
-        for pattern_index, (spec, prepared_spec) in enumerate(
-            zip(specs, prepared, strict=True)
-        )
-        for result in match_text(spec, text, settings, prepared=prepared_spec)
-    ]
-    return assign_ids(found)
+    return settings, texts, patterns
 
 
 def _text(entry: dict[str, Any], options: Options) -> TextInput:

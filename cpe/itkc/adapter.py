@@ -30,10 +30,14 @@ from cpe.itkc.client import (
 from cpe.itkc.search_cli import make_link
 from cpe.local.txt import LocalText
 
-# Collections of classical originals: 고전원문, 한국문집총간 and 일성록. BT_AA
-# (translations) mixes Korean translation and original in one excerpt and is not
-# searched. IT_AA is the Ilseongnok collection answered by the same API.
-COLLECTIONS = ("GO_AA", "MO_AA", "IT_AA")
+# Collections of classical originals: 고전원문, 한국문집총간 and 한국고전총간.
+# BT_AA (translations) mixes Korean translation and original in one excerpt and is
+# not searched. IT_AA is the Ilseongnok *Korean translation* collection: inspected
+# records name a translator (역자) and the provider's translation institute, and
+# their search excerpts are Hangul-dominant. It is not searched as an
+# original-text collection. KP_AA was verified by a bounded probe on 2026-11-17
+# (Han excerpts, no Hangul/kana in the sample).
+COLLECTIONS = ("GO_AA", "MO_AA", "KP_AA")
 PAGE_ROWS = 100
 # Excerpts of one record are joined by "... ..." (two runs of three dots).
 _JOIN = re.compile(r"\s*\.{3}\s*\.{3}\s*")

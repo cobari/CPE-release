@@ -92,9 +92,13 @@ function uiCopyRuns(key) {
 }
 
 // Catalog text for every marked element under root (the page, or a new panel).
+function i18nVars(el) {
+  if (!el.dataset.i18nVars) return undefined;
+  try { return JSON.parse(el.dataset.i18nVars); } catch { return undefined; }
+}
 function translate(root) {
   root.querySelectorAll("[data-i18n]").forEach(el => {
-    if (!el.hasAttribute("data-ui-copy")) { el.textContent = t(el.dataset.i18n); return; }
+    if (!el.hasAttribute("data-ui-copy")) { el.textContent = t(el.dataset.i18n, i18nVars(el)); return; }
     const fragment = document.createDocumentFragment();
     for (const run of uiCopyRuns(el.dataset.i18n)) {
       if (!run.control) { fragment.append(document.createTextNode(run.text)); continue; }
@@ -114,21 +118,26 @@ function translate(root) {
     }
     el.replaceChildren(fragment);
   });
-  root.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
-  root.querySelectorAll("[data-i18n-placeholder]").forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
-  root.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  root.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nAria, i18nVars(el))); });
+  root.querySelectorAll("[data-i18n-placeholder]").forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder, i18nVars(el)); });
+  root.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle, i18nVars(el)); });
 }
 
 function applyCatalog() {
   translate(document);
   labelDocuskyOptions();
   updateHint();
+  syncPatternBuilderControls?.();
+  syncPatternFile();
   showLibrary();
   updateSource();
   if (currentView === "search") renderAll();
   else resultsNeedTranslation = true;
   updateSelectionNotice();
   syncSearchStatus();
+  syncExportStatus();
+  syncExportOverwriteDialog();
+  renderWorkFinder();
   updateExternalProvider();
   updateExternal();
   updateLanguageList();
@@ -184,7 +193,9 @@ function showView(name, { focus = true } = {}) {
   if (!focus) return;
   if (name === "search") {
     const currentMode = document.querySelector('input[name=mode]:checked')?.value;
-    document.getElementById(currentMode === "words" ? "query" : "first")?.focus();
+    document.getElementById(
+      currentMode === "words" ? "query" : currentMode === "pattern" ? "pattern-term-0" : "first"
+    )?.focus();
   } else {
     viewElement(name)?.querySelector("h2")?.focus();
   }
@@ -461,6 +472,7 @@ async function saveSources() {
       historydb_site: historydbSite,
       historydb_item: historydbItem,
       nahf_item: nahfItem,
+      ships_database: shipsDatabase,
     });
     if (answer.error) { localError(answer); restoreSources(); }
     else localState.selected = answer.sources;
@@ -1513,7 +1525,10 @@ async function refreshHistoryAvailability() {
   if (!button || !note) return;
   const check = ++historyCheck;
   try {
-    const answer = await api().external_history();
+    const bridge = api();
+    const answer = typeof bridge.has_external_history === "function"
+      ? await bridge.has_external_history()
+      : await bridge.external_history();
     if (check !== historyCheck) return;
     if (answer.error) {
       // A failed check is not proof that history is absent; leave the entry
@@ -1522,7 +1537,9 @@ async function refreshHistoryAvailability() {
       note.classList.add("is-hidden");
       return;
     }
-    const available = Array.isArray(answer.books) && answer.books.length > 0;
+    const available = typeof answer.available === "boolean"
+      ? answer.available
+      : (Array.isArray(answer.books) && answer.books.length > 0);
     button.disabled = !available;
     note.classList.toggle("is-hidden", available);
   } catch {
@@ -1628,6 +1645,100 @@ document.getElementById("release-open").addEventListener("click", async () => {
     }
   }
 });
+function formatBytes(bytes) {
+  const n = Number(bytes) || 0;
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
+  if (n >= 1024) return `${Math.round(n / 1024)} KiB`;
+  return `${numberText(n)} B`;
+}
+function releaseProgressText(state) {
+  if (state.cancelling) return t("release.cancelling");
+  if (state.phase === "downloading") {
+    if (state.size_known && state.total > 0) {
+      const base = t("release.phase.downloading_sized", {
+        received: formatBytes(state.received),
+        total: formatBytes(state.total),
+      });
+      return state.total >= 50 * 1024 * 1024 ? `${base} · ${t("release.large_notice")}` : base;
+    }
+    return t("release.phase.downloading_unknown", { received: formatBytes(state.received) });
+  }
+  if (state.phase === "importing") {
+    return state.total_files > 0
+      ? t("release.phase.importing_count", { done: numberText(state.done_files), total: numberText(state.total_files) })
+      : t("release.phase.importing");
+  }
+  return t("release.phase.reading");
+}
+async function waitRelease(jobId) {
+  const progress = document.getElementById("release-progress");
+  const detail = document.getElementById("release-progress-detail");
+  const cancelBtn = document.getElementById("release-cancel");
+  let shownKey = "", shownAt = 0;
+  if (progress) {
+    progress.removeAttribute("value");
+    progress.classList.remove("is-hidden");
+  }
+  if (detail) {
+    detail.textContent = t("release.phase.reading");
+    detail.classList.remove("is-hidden");
+  }
+  if (cancelBtn) {
+    cancelBtn.disabled = false;
+    cancelBtn.classList.remove("is-hidden");
+    cancelBtn.onclick = async () => {
+      cancelBtn.disabled = true;
+      try { await api().cancel_release_import(jobId); } catch {}
+    };
+  }
+  try {
+    while (true) {
+      const state = await api().release_progress(jobId);
+      if (state.error) return state;
+      if (state.done) return state.answer || { error: "release_write_failed" };
+      if (progress) {
+        if (state.phase === "downloading" && state.size_known && state.total > 0) {
+          progress.max = state.total;
+          progress.value = state.received;
+        } else if (state.phase === "importing" && state.total_files > 0) {
+          progress.max = state.total_files;
+          progress.value = state.done_files;
+        } else {
+          progress.removeAttribute("value");
+        }
+      }
+      const key = state.cancelling ? "cancelling" : state.phase;
+      const now = Date.now();
+      if (detail && (key !== shownKey || now - shownAt >= STATUS_REFRESH_MS)) {
+        detail.textContent = releaseProgressText(state);
+        shownKey = key;
+        shownAt = now;
+      }
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+  } finally {
+    if (progress) {
+      progress.removeAttribute("value");
+      progress.classList.add("is-hidden");
+    }
+    if (detail) {
+      detail.textContent = "";
+      detail.classList.add("is-hidden");
+    }
+    if (cancelBtn) {
+      cancelBtn.disabled = false;
+      cancelBtn.classList.add("is-hidden");
+      cancelBtn.onclick = null;
+    }
+  }
+}
+async function startAndWaitRelease(startCall) {
+  const started = await startCall();
+  if (started && typeof started.job === "string" && started.job) {
+    return await waitRelease(started.job);
+  }
+  return started;
+}
 async function runRelease(taskText, call, name) {
   showView("search");
   const task = beginLocalBusy();
@@ -1743,15 +1854,32 @@ document.getElementById("release-start").addEventListener("click", async () => {
   if (!await ensureTargetFolder("release-status")) return;
   const name = t(`release.ds.${pk}`);
   releaseDialog.close();
-  runRelease(t("release.background.download", { name }), () => api().import_dataset(pk, library.folder), name);
+  const call = typeof api().start_release_download === "function"
+    ? () => startAndWaitRelease(() => api().start_release_download(pk, library.folder))
+    : () => api().import_dataset(pk, library.folder);
+  runRelease(t("release.background.download", { name }), call, name);
 });
 document.getElementById("release-directory").addEventListener("click", async () => {
   if (!await ensureTargetFolder("release-status")) return;
+  if (typeof api().choose_release_directory === "function" && typeof api().start_release_directory === "function") {
+    const chosen = await api().choose_release_directory();
+    if (!chosen || chosen.cancelled || !chosen.source) return;
+    releaseDialog.close();
+    runRelease(t("release.background"), () => startAndWaitRelease(() => api().start_release_directory(chosen.source, library.folder)), "");
+    return;
+  }
   releaseDialog.close();
   runRelease(t("release.background"), () => api().import_releases(library.folder), "");
 });
 document.getElementById("release-file").addEventListener("click", async () => {
   if (!await ensureTargetFolder("release-status")) return;
+  if (typeof api().choose_release_file === "function" && typeof api().start_release_file === "function") {
+    const chosen = await api().choose_release_file(t("release.filetype"));
+    if (!chosen || chosen.cancelled || !chosen.path) return;
+    releaseDialog.close();
+    runRelease(t("release.background"), () => startAndWaitRelease(() => api().start_release_file(chosen.path, library.folder)), "");
+    return;
+  }
   releaseDialog.close();
   runRelease(t("release.background"), () => api().import_release(t("release.filetype"), library.folder), "");
 });
@@ -1761,13 +1889,13 @@ function mode() { return form.querySelector("input[name=mode]:checked").value; }
 // Every searchable source, in menu order. "local" is the text folder; the others are
 // online and each has a catalog name source.<code> and an explanation source.<code>.note.
 // Adding a source here adds its selection and contextual guide controls.
-const SOURCES = ["local", "itkc", "ndl", "cbeta", "cyberseodang", "docusky", "historydb", "sillok", "ith", "nahf", "nrich", "vietdien", "sat", "aksarchive", "ships", "thdl", "csid", "cand", "kyudb"];
+const SOURCES = ["local", "itkc", "ndl", "cbeta", "cyberseodang", "docusky", "historydb", "sillok", "ith", "nahf", "nrich", "vietdien", "sat", "aksarchive", "ships", "engishiki", "thdl", "csid", "cand", "kyudb"];
 const ONLINE = SOURCES.filter(code => code !== "local");
 // Browsing groups follow source/service context, not operator addresses or script.
 // Keep SOURCES order stable for saved choices and result-panel ordering.
 const SOURCE_REGIONS = Object.freeze([
   { id: "korea", label: "sources.region.korea", sources: ["itkc", "cyberseodang", "historydb", "sillok", "nahf", "nrich", "aksarchive", "kyudb"] },
-  { id: "japan", label: "sources.region.japan", sources: ["ndl", "sat", "ships", "cand"] },
+  { id: "japan", label: "sources.region.japan", sources: ["ndl", "sat", "ships", "engishiki", "cand"] },
   { id: "china", label: "sources.region.china", sources: ["csid"] },
   { id: "taiwan", label: "sources.region.taiwan", sources: ["cbeta", "docusky", "ith", "thdl"] },
   { id: "vietnam", label: "sources.region.vietnam", sources: ["vietdien"] },
@@ -1845,6 +1973,36 @@ localFilesHelp.append(sourceInfoIcon());
 localFilesHelp.addEventListener("click", () => showSourceGuide("local"));
 sourceHelpButtons.set("local", localFilesHelp);
 sourceOptions.set("local", document.getElementById("local-files-help-row"));
+
+// SHIPS exposes separate public databases under one provider. The diary database
+// and Dai Nihon Shiryō already use different native query fields, so the source
+// prepares one official search URL for the chosen database; it fetches no rows.
+const shipsBox = sourceBoxes[ONLINE.indexOf("ships")];
+const shipsDatabases = ["diaries", "dai_nihon", "komonjo", "nara", "heian", "kamakura", "nanbokucho"];
+const shipsControls = document.createElement("span");
+shipsControls.className = "ships-controls is-hidden";
+const shipsDatabaseSelect = document.createElement("select");
+shipsDatabaseSelect.className = "ships-database";
+shipsDatabaseSelect.dataset.i18nAria = "source.ships.database_label";
+for (const database of shipsDatabases) {
+  const option = document.createElement("option");
+  option.value = database;
+  option.dataset.i18n = `source.ships.database.${database}`;
+  shipsDatabaseSelect.appendChild(option);
+}
+shipsDatabaseSelect.value = "diaries";
+shipsControls.append(shipsDatabaseSelect);
+sourceOptions.get("ships").appendChild(shipsControls);
+let shipsDatabase = "diaries";
+shipsDatabaseSelect.addEventListener("change", async () => {
+  shipsDatabase = shipsDatabaseSelect.value;
+  shipsBox.checked = true;
+  updateSource();
+  await saveSources();
+});
+shipsBox.addEventListener("change", () => {
+  shipsControls.classList.toggle("is-hidden", !shipsBox.checked);
+});
 
 // The integrated NIKH search is one source with an era and a database-item choice.
 // The provider counts the whole integrated search but serves rows only from one era
@@ -1996,6 +2154,13 @@ function applySourceOptions(options) {
   }
   if (typeof options.historydb_item === "string") historydbItem = options.historydb_item;
   if (typeof options.nahf_item === "string") nahfItem = options.nahf_item;
+  if (
+    typeof options.ships_database === "string"
+    && shipsDatabases.includes(options.ships_database)
+  ) {
+    shipsDatabase = options.ships_database;
+    shipsDatabaseSelect.value = shipsDatabase;
+  }
 }
 nahfControls.append(nahfItemSelect);
 sourceOptions.get("nahf").appendChild(nahfControls);
@@ -2211,13 +2376,20 @@ sourceOfficialLink.addEventListener("click", event => {
 // Search-mode help shares the source guide; its keys are defined before
 // updateSourceOfficial, which must tell them apart from source codes.
 const MODE_HELP = Object.freeze({
-  words: Object.freeze({ key: "mode:words", title: "search.single", body: "search.hint.single" }),
-  pair: Object.freeze({ key: "mode:pair", title: "search.compound", body: "search.hint.compound" }),
+  words: Object.freeze({ key: "mode:words", title: "search.single", hint: "search.hint.single", body: "search.hint.single" }),
+  pair: Object.freeze({ key: "mode:pair", title: "search.compound", hint: "search.hint.compound", body: "search.hint.compound" }),
+  pattern: Object.freeze({ key: "mode:pattern", title: "search.pattern", hint: "search.hint.pattern", body: "search.pattern.guide" }),
 });
-function modeHelpKey() { return mode() === "pair" ? MODE_HELP.pair.key : MODE_HELP.words.key; }
+function modeHelpKey() {
+  const current = mode();
+  return current === "pair" ? MODE_HELP.pair.key
+    : current === "pattern" ? MODE_HELP.pattern.key
+    : MODE_HELP.words.key;
+}
 function modeHelpEntry(code) {
   return code === MODE_HELP.words.key ? MODE_HELP.words
     : code === MODE_HELP.pair.key ? MODE_HELP.pair
+    : code === MODE_HELP.pattern.key ? MODE_HELP.pattern
     : null;
 }
 function updateSourceOfficial(code) {
@@ -2239,8 +2411,10 @@ if (modeHelpButton) {
   modeHelpButton.addEventListener("click", () => showSourceGuide(modeHelpKey()));
   sourceHelpButtons.set(MODE_HELP.words.key, modeHelpButton);
   sourceHelpButtons.set(MODE_HELP.pair.key, modeHelpButton);
+  sourceHelpButtons.set(MODE_HELP.pattern.key, modeHelpButton);
   sourceOptions.set(MODE_HELP.words.key, modeHelpButton);
   sourceOptions.set(MODE_HELP.pair.key, modeHelpButton);
+  sourceOptions.set(MODE_HELP.pattern.key, modeHelpButton);
 }
 const GUIDE_HEADINGS = Object.freeze({
   scope: "guide.scope",
@@ -2279,11 +2453,25 @@ function renderSourceGuideBody(code) {
     return section;
   }));
 }
+function renderModeGuideBody(key) {
+  const text = t(key);
+  if (!text.includes("\n\n")) {
+    sourceGuideBody.replaceChildren();
+    sourceGuideBody.textContent = text;
+    return;
+  }
+  const paragraphs = text.split("\n\n").map(value => {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = value;
+    return paragraph;
+  });
+  sourceGuideBody.replaceChildren(...paragraphs);
+}
 function updateModeHelpButton() {
   if (!modeHelpButton) return;
   const entry = modeHelpEntry(modeHelpKey());
-  modeHelpButton.setAttribute("aria-label", t(entry.body));
-  modeHelpButton.setAttribute("title", t(entry.body));
+  modeHelpButton.setAttribute("aria-label", t(entry.hint));
+  modeHelpButton.setAttribute("title", t(entry.hint));
   modeHelpButton.setAttribute("aria-expanded", String(sourceGuideCode === entry.key));
 }
 function refreshSourceGuide() {
@@ -2301,7 +2489,7 @@ function refreshSourceGuide() {
   const activeMode = modeHelpEntry(sourceGuideCode);
   if (activeMode) {
     sourceGuideTitle.textContent = t(activeMode.title);
-    sourceGuideBody.textContent = t(activeMode.body);
+    renderModeGuideBody(activeMode.body);
     updateSourceOfficial(sourceGuideCode);
     return;
   }
@@ -2424,6 +2612,7 @@ function updateSource() {
     box.disabled = savingSources || missing || (!box.checked && chosen.length >= MAX_SOURCES);
   });
   showLocalControls();
+  shipsControls.classList.toggle("is-hidden", !shipsBox.checked);
   docuskyProfiles.classList.toggle("is-hidden", !docuskyBox.checked);
   if (historydbControls) {
     historydbControls.classList.toggle("is-hidden", !historydbBox.checked);
@@ -2489,12 +2678,688 @@ let searchBusy = false;
 // reuse the same lifecycle and original request.
 let activeRun = null;
 let terminalStatusKey = "";
+let exportStatusState = null;
+function setExportStatus(messageOrKey, state = null) {
+  exportStatusState = state;
+  const status = typeof document.getElementById === "function" ? document.getElementById("export-status") : null;
+  if (!status) return;
+  status.textContent = messageOrKey || "";
+  status.classList.toggle("is-hidden", !messageOrKey);
+  status.classList.toggle("is-error", Boolean(state?.isError));
+}
+function syncExportStatus() {
+  if (!exportStatusState) return;
+  if (exportStatusState.type === "error") {
+    setExportStatus(errorText(exportStatusState.code, exportStatusState.payload), exportStatusState);
+  } else if (exportStatusState.type === "key") {
+    setExportStatus(t(exportStatusState.key, exportStatusState.vars), exportStatusState);
+  }
+}
+let pendingExportOverwritePath = "";
+let resolveExportOverwrite = null;
+function syncExportOverwriteDialog() {
+  if (!pendingExportOverwritePath) return;
+  const msg = typeof document.getElementById === "function" ? document.getElementById("export-overwrite-message") : null;
+  if (msg) msg.textContent = t("export.overwrite_prompt", { path: pendingExportOverwritePath });
+}
+function askExportOverwrite(path) {
+  pendingExportOverwritePath = String(path || "");
+  syncExportOverwriteDialog();
+  const dialog = typeof document.getElementById === "function" ? document.getElementById("export-overwrite-dialog") : null;
+  if (!dialog || typeof dialog.showModal !== "function") {
+    pendingExportOverwritePath = "";
+    return Promise.resolve(false);
+  }
+  return new Promise(resolve => {
+    resolveExportOverwrite = confirmed => {
+      resolveExportOverwrite = null;
+      pendingExportOverwritePath = "";
+      resolve(Boolean(confirmed));
+    };
+    dialog.showModal();
+  });
+}
+document.getElementById("export-overwrite-confirm")?.addEventListener("click", () => {
+  const resolve = resolveExportOverwrite;
+  if (resolve) resolve(true);
+  document.getElementById("export-overwrite-dialog")?.close("confirm");
+});
+document.getElementById("export-overwrite-dialog")?.addEventListener("close", () => {
+  const resolve = resolveExportOverwrite;
+  if (resolve) resolve(false);
+});
+
+let patternFile = null;
+function syncPatternFile() {
+  const chip = typeof document.getElementById === "function" ? document.getElementById("pattern-file-chip") : null;
+  const label = typeof document.getElementById === "function" ? document.getElementById("pattern-file-label") : null;
+  const formEl = typeof document.getElementById === "function" ? document.getElementById("search") : null;
+  formEl?.classList?.toggle?.("is-pattern-file", Boolean(patternFile));
+  if (!chip || !label) return;
+  if (patternFile) {
+    label.textContent = t("search.pattern.file_badge", { name: patternFile.name, count: patternFile.count });
+    chip.classList.remove("is-hidden");
+  } else {
+    label.textContent = "";
+    chip.classList.add("is-hidden");
+  }
+}
+function clearPatternFileState({ notify = true } = {}) {
+  const token = patternFile?.token || "";
+  patternFile = null;
+  syncPatternFile();
+  if (notify && token) api().clear_pattern_file?.(token)?.catch?.(() => {});
+}
+
+let nextPatternStepId = 0;
+function patternSlotName(index) {
+  return index < 26 ? String.fromCharCode(65 + index) : "S" + (index + 1);
+}
+function patternStepId(step) {
+  if (!step || !step.dataset) return "";
+  if (!step.dataset.stepId) {
+    while (typeof document.querySelector === "function"
+      && document.querySelector(`#pattern-builder-steps .pattern-step[data-step-id="step-${nextPatternStepId}"]`)) {
+      nextPatternStepId += 1;
+    }
+    step.dataset.stepId = `step-${nextPatternStepId++}`;
+  }
+  return step.dataset.stepId;
+}
+function parsePatternFixedInput(raw) {
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return { value: "" };
+  if (trimmed.includes("|")) {
+    const parts = trimmed.split("|").map(part => part.trim());
+    if (parts.length < 2 || parts.some(part => !part || /[\s{}()|@]/.test(part))) {
+      return { errorKey: "search.pattern.err_invalid_chars" };
+    }
+    return { value: "(" + parts.join("|") + ")" };
+  }
+  if (/[\s{}()@]/.test(trimmed)) return { errorKey: "search.pattern.err_invalid_chars" };
+  return { value: trimmed };
+}
+function parsePatternGapInput(minEl, maxEl) {
+  // The browser exposes partially typed numbers as blank values.
+  if (minEl?.validity?.badInput) return { errorKey: "search.pattern.err_gap_range", field: minEl };
+  if (maxEl?.validity?.badInput) return { errorKey: "search.pattern.err_gap_range", field: maxEl };
+  const minRaw = String(minEl?.value ?? "").trim();
+  const maxRaw = String(maxEl?.value ?? "").trim();
+  if (!minRaw && !maxRaw) return { slot: null };
+  if (maxRaw === "0" && (!minRaw || minRaw === "0")) return { slot: null };
+  if (minRaw === "0" && !maxRaw) return { slot: null };
+  const minVal = minRaw ? Number(minRaw) : 1;
+  const maxVal = maxRaw ? Number(maxRaw) : NaN;
+  if (!Number.isInteger(minVal) || minVal < 1) {
+    return { errorKey: "search.pattern.err_gap_range", field: minEl };
+  }
+  if (!Number.isInteger(maxVal) || maxVal < minVal) {
+    return { errorKey: "search.pattern.err_gap_range", field: maxEl };
+  }
+  return { slot: { min: minVal, max: maxVal } };
+}
+function parsePatternExclusions(raw) {
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return { nots: [] };
+  const tokens = trimmed.split(/[\s,|]+/).filter(Boolean);
+  if (tokens.some(token => /[{}()|@]/.test(token))) {
+    return { errorKey: "search.pattern.err_invalid_chars" };
+  }
+  return { nots: tokens };
+}
+function buildPatternExpression() {
+  const stepsEl = typeof document.getElementById === "function" ? document.getElementById("pattern-builder-steps") : null;
+  if (!stepsEl) return { errorKey: "error.empty" };
+  const exclByStepId = new Map();
+  if (typeof document.querySelectorAll === "function") {
+    document.querySelectorAll("#pattern-exclusions .pattern-exclusion-input").forEach(input => {
+      if (input.dataset?.stepId) exclByStepId.set(input.dataset.stepId, input);
+    });
+  }
+  const steps = [...stepsEl.querySelectorAll(".pattern-step")];
+  const parsedSteps = steps.map((step, index) => {
+    const termEl = step.querySelector(".pattern-term-input");
+    const minEl = step.querySelector(".pattern-gap-min");
+    const maxEl = step.querySelector(".pattern-gap-max");
+    const stepId = step.dataset?.stepId || "";
+    const exclEl = (stepId && exclByStepId.get(stepId)) || document.getElementById(`pattern-exclusion-${index}`);
+    return {
+      index,
+      stepId,
+      termEl,
+      termRaw: termEl?.value || "",
+      minEl,
+      maxEl,
+      exclEl,
+      exclRaw: exclEl?.value || "",
+    };
+  });
+  if (!parsedSteps.length || !parsedSteps[0].termRaw.trim()) {
+    return { errorKey: "error.empty", field: parsedSteps[0]?.termEl || null };
+  }
+  let lastFilled = 0;
+  for (let i = 0; i < parsedSteps.length; i++) {
+    if (parsedSteps[i].termRaw.trim()) lastFilled = i;
+  }
+  for (let i = 1; i < lastFilled; i++) {
+    if (!parsedSteps[i].termRaw.trim()) {
+      return {
+        errorKey: "search.pattern.err_empty_middle",
+        errorVars: { n: i + 1 },
+        field: parsedSteps[i].termEl,
+      };
+    }
+  }
+  const tokens = [];
+  for (let i = 0; i <= lastFilled; i++) {
+    const step = parsedSteps[i];
+    const fixed = parsePatternFixedInput(step.termRaw);
+    if (fixed.errorKey) return { errorKey: fixed.errorKey, field: step.termEl };
+    tokens.push(fixed.value);
+    const gap = parsePatternGapInput(step.minEl, step.maxEl);
+    if (gap.errorKey) return { errorKey: gap.errorKey, field: gap.field };
+    const excl = parsePatternExclusions(step.exclRaw);
+    if (excl.errorKey) return { errorKey: excl.errorKey, field: step.exclEl };
+    const name = patternSlotName(i);
+    if (gap.slot) {
+      const notSuffix = excl.nots.map(literal => ` not ${literal}`).join("");
+      tokens.push(`{${name}:${gap.slot.min}..${gap.slot.max}${notSuffix}}`);
+    } else if (excl.nots.length) {
+      return {
+        errorKey: "search.pattern.err_exclusion_needs_gap",
+        errorVars: { slot: name },
+        field: step.minEl || step.exclEl,
+      };
+    }
+  }
+  for (let i = lastFilled + 1; i < parsedSteps.length; i++) {
+    const step = parsedSteps[i];
+    const gap = parsePatternGapInput(step.minEl, step.maxEl);
+    if (gap.errorKey) return { errorKey: gap.errorKey, field: gap.field };
+    const excl = parsePatternExclusions(step.exclRaw);
+    if (excl.errorKey) return { errorKey: excl.errorKey, field: step.exclEl };
+    if (gap.slot || excl.nots.length) {
+      return {
+        errorKey: "search.pattern.err_empty_middle",
+        errorVars: { n: i + 1 },
+        field: step.termEl || (gap.slot ? step.minEl : step.exclEl),
+      };
+    }
+  }
+  const scopeEl = document.getElementById("pattern-scope");
+  const scope = scopeEl?.value || "sentence";
+  if (scope === "clause") {
+    tokens.push("@clause");
+  } else if (scope === "window") {
+    const winEl = document.getElementById("pattern-window");
+    const size = Number((winEl?.value ?? "").trim());
+    if (!Number.isInteger(size) || size < 1) {
+      return { errorKey: "search.pattern.err_window", field: winEl };
+    }
+    tokens.push(`@window:${size}`);
+  } else {
+    tokens.push("@sentence");
+  }
+  return { expression: tokens.join(" ") };
+}
+function syncPatternExclusionCount() {
+  const btn = typeof document.getElementById === "function" ? document.getElementById("pattern-toggle-exclusions") : null;
+  const badge = typeof document.getElementById === "function" ? document.getElementById("pattern-exclusion-count") : null;
+  if (!btn || !badge || typeof document.querySelectorAll !== "function") return;
+  let active = 0;
+  document.querySelectorAll("#pattern-exclusions .pattern-exclusion-input").forEach(input => {
+    if (String(input.value || "").trim()) active += 1;
+  });
+  badge.textContent = active > 0 ? String(active) : "";
+  badge.classList.toggle("is-hidden", active === 0);
+  btn.classList?.toggle?.("has-active", active > 0);
+}
+function clearSearchInput(input) {
+  if (!input) return;
+  input.value = "";
+  input.removeAttribute?.("aria-invalid");
+  if (typeof Event === "function" && typeof input.dispatchEvent === "function") {
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  } else if (typeof patternFile !== "undefined" && patternFile && input.closest?.("#view-search .boxes.pattern, #view-search .pattern-options")) {
+    clearPatternFileState();
+  }
+  input.focus?.();
+}
+function syncPatternScopeWindow() {
+  const scope = typeof document.getElementById === "function" ? document.getElementById("pattern-scope")?.value : "sentence";
+  const winEl = typeof document.getElementById === "function" ? document.getElementById("pattern-window") : null;
+  if (!winEl) return;
+  winEl.classList.toggle("is-hidden", scope !== "window");
+}
+function syncPatternBuilderControls() {
+  const stepsEl = typeof document.getElementById === "function" ? document.getElementById("pattern-builder-steps") : null;
+  const exclContainer = typeof document.getElementById === "function" ? document.getElementById("pattern-exclusions") : null;
+  if (!stepsEl) return;
+  const existingExcl = new Map();
+  if (exclContainer) {
+    exclContainer.querySelectorAll(".pattern-exclusion-input").forEach(input => {
+      const key = input.dataset?.stepId || (input.dataset?.stepIndex !== undefined ? `idx-${input.dataset.stepIndex}` : "");
+      if (key) existingExcl.set(key, input.value);
+    });
+  }
+  const steps = [...stepsEl.querySelectorAll(".pattern-step")];
+  const exclNodes = [];
+  steps.forEach((step, index) => {
+    const stepId = patternStepId(step);
+    step.dataset.stepIndex = String(index);
+    const num = index + 1;
+    const slot = patternSlotName(index);
+    const varsTerm = JSON.stringify({ n: num });
+    const varsSlot = JSON.stringify({ slot });
+    const termField = step.querySelector(".pattern-term-field");
+    const termLabel = termField?.querySelector("label");
+    const termInput = step.querySelector(".pattern-term-input");
+    if (termInput) {
+      termInput.id = `pattern-term-${index}`;
+      termInput.dataset.i18nAria = "search.pattern.term_label";
+      termInput.dataset.i18nVars = varsTerm;
+      termInput.setAttribute("aria-label", t("search.pattern.term_label", { n: num }));
+      termInput.placeholder = t("search.pattern.term_placeholder");
+      termInput.title = t("search.hint.pattern");
+    }
+    if (termLabel) {
+      termLabel.htmlFor = `pattern-term-${index}`;
+      termLabel.dataset.i18n = "search.pattern.term_label";
+      termLabel.dataset.i18nVars = varsTerm;
+      termLabel.textContent = t("search.pattern.term_label", { n: num });
+    }
+    const gapField = step.querySelector(".pattern-gap-field");
+    const gapLabel = gapField?.querySelector("label");
+    const minInput = step.querySelector(".pattern-gap-min");
+    const maxInput = step.querySelector(".pattern-gap-max");
+    if (minInput) {
+      minInput.id = `pattern-gap-min-${index}`;
+      minInput.dataset.i18nAria = "search.pattern.gap_min_aria";
+      minInput.dataset.i18nVars = varsSlot;
+      minInput.setAttribute("aria-label", t("search.pattern.gap_min_aria", { slot }));
+    }
+    if (maxInput) {
+      maxInput.id = `pattern-gap-max-${index}`;
+      maxInput.dataset.i18nAria = "search.pattern.gap_max_aria";
+      maxInput.dataset.i18nVars = varsSlot;
+      maxInput.setAttribute("aria-label", t("search.pattern.gap_max_aria", { slot }));
+    }
+    if (gapLabel) {
+      gapLabel.htmlFor = `pattern-gap-min-${index}`;
+      gapLabel.dataset.i18n = "search.pattern.gap_label";
+      gapLabel.dataset.i18nVars = varsSlot;
+      gapLabel.textContent = t("search.pattern.gap_label", { slot });
+    }
+    const removeBtn = step.querySelector(".pattern-step-remove");
+    if (removeBtn) {
+      removeBtn.setAttribute("aria-label", t("search.pattern.remove_step", { n: num }));
+    }
+    if (exclContainer) {
+      const wrap = document.createElement("span");
+      wrap.className = "field pattern-exclusion-field";
+      const label = document.createElement("label");
+      label.htmlFor = `pattern-exclusion-${index}`;
+      label.textContent = t("search.pattern.exclusion_label", { slot });
+      const input = document.createElement("input");
+      input.id = `pattern-exclusion-${index}`;
+      input.className = "pattern-exclusion-input";
+      input.autocomplete = "off";
+      input.dataset.stepId = stepId;
+      input.dataset.stepIndex = String(index);
+      input.value = existingExcl.get(stepId) ?? existingExcl.get(`idx-${index}`) ?? "";
+      input.placeholder = t("search.pattern.exclusion_placeholder");
+      input.setAttribute("aria-label", t("search.pattern.exclusion_label", { slot }));
+      wrap.append(label, input);
+      exclNodes.push(wrap);
+    }
+  });
+  if (exclContainer) exclContainer.replaceChildren(...exclNodes);
+  syncPatternExclusionCount();
+}
+function addPatternStep({ focus = true } = {}) {
+  const stepsEl = document.getElementById("pattern-builder-steps");
+  if (!stepsEl) return null;
+  const index = stepsEl.querySelectorAll(".pattern-step").length;
+  const step = document.createElement("div");
+  step.className = "pattern-step";
+  patternStepId(step);
+  step.dataset.stepIndex = String(index);
+
+  const termField = document.createElement("span");
+  termField.className = "field pattern-term-field";
+  const termLabel = document.createElement("label");
+  const inputWrap = document.createElement("span");
+  inputWrap.className = "input-wrap";
+  const termInput = document.createElement("input");
+  termInput.className = "pattern-term-input";
+  termInput.autocomplete = "off";
+  termInput.setAttribute("aria-describedby", "search-help");
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "clear";
+  clearBtn.textContent = "✕";
+  clearBtn.setAttribute("aria-label", t("search.clear"));
+  clearBtn.addEventListener("click", () => {
+    clearSearchInput(termInput);
+  });
+  inputWrap.append(termInput, clearBtn);
+  termField.append(termLabel, inputWrap);
+
+  const gapField = document.createElement("span");
+  gapField.className = "field pattern-gap-field";
+  const gapLabel = document.createElement("label");
+  const gapInputs = document.createElement("span");
+  gapInputs.className = "pattern-gap-inputs";
+  const minInput = document.createElement("input");
+  minInput.className = "pattern-gap-min";
+  minInput.type = "number";
+  minInput.min = "0";
+  minInput.step = "1";
+  minInput.placeholder = "1";
+  minInput.inputMode = "numeric";
+  const sep = document.createElement("span");
+  sep.className = "pattern-gap-sep";
+  sep.dataset.i18n = "search.pattern.gap_range_sep";
+  sep.textContent = t("search.pattern.gap_range_sep");
+  const maxInput = document.createElement("input");
+  maxInput.className = "pattern-gap-max";
+  maxInput.type = "number";
+  maxInput.min = "0";
+  maxInput.step = "1";
+  maxInput.placeholder = "20";
+  maxInput.inputMode = "numeric";
+  gapInputs.append(minInput, sep, maxInput);
+  gapField.append(gapLabel, gapInputs);
+
+  step.append(termField, gapField);
+  if (index >= 2) {
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "pattern-step-remove";
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", () => {
+      step.remove();
+      syncPatternBuilderControls();
+      if (patternFile) clearPatternFileState();
+    });
+    step.append(removeBtn);
+  }
+  stepsEl.appendChild(step);
+  syncPatternBuilderControls();
+  if (focus) termInput.focus();
+  return step;
+}
+
+let workFinderCatalog = [];
+function renderWorkFinder() {
+  const select = typeof document.getElementById === "function" ? document.getElementById("work-finder-select") : null;
+  if (!select) return;
+  const previous = select.value;
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = t("work_finder.placeholder");
+  const items = [placeholder];
+  const groups = new Map();
+  for (const work of workFinderCatalog) {
+    const option = document.createElement("option");
+    option.value = work.id;
+    option.textContent = t(work.title_key);
+    if (work.category_key) {
+      let group = groups.get(work.category_key);
+      if (!group) {
+        group = document.createElement("optgroup");
+        group.label = t(work.category_key);
+        groups.set(work.category_key, group);
+        items.push(group);
+      }
+      group.appendChild(option);
+    } else {
+      items.push(option);
+    }
+  }
+  select.replaceChildren(...items);
+  if (previous && workFinderCatalog.some(work => work.id === previous)) {
+    select.value = previous;
+  }
+  renderWorkFinderDetail();
+}
+function renderWorkFinderDetail() {
+  const select = document.getElementById("work-finder-select");
+  const cardEl = document.getElementById("work-finder-card");
+  if (!select || !cardEl) return;
+  const work = workFinderCatalog.find(item => item.id === select.value);
+  if (!work) {
+    cardEl.classList.add("is-hidden");
+    return;
+  }
+  document.getElementById("work-finder-title").textContent = t(work.title_key);
+  document.getElementById("work-finder-summary").textContent = t(work.summary_key);
+  const groups = document.getElementById("work-finder-groups");
+  const built = [];
+
+  const onlineGroup = document.createElement("div");
+  onlineGroup.className = "work-finder-group";
+  const onlineHeading = document.createElement("h5");
+  onlineHeading.textContent = t("work_finder.online_heading");
+  onlineGroup.appendChild(onlineHeading);
+  if (Array.isArray(work.online) && work.online.length) {
+    const list = document.createElement("ul");
+    list.className = "work-finder-items";
+    for (const match of work.online) {
+      const li = document.createElement("li");
+      li.className = "work-finder-item";
+      const text = document.createElement("span");
+      text.className = "work-finder-item-text";
+      const title = document.createElement("span");
+      title.className = "work-finder-item-title";
+      const srcKey = "source." + match.source;
+      title.textContent = t(srcKey);
+      const note = document.createElement("span");
+      note.className = "work-finder-item-note";
+      note.textContent = t(match.note_key);
+      text.append(title, note);
+      const actions = document.createElement("span");
+      actions.className = "work-finder-item-actions";
+      const selectBtn = document.createElement("button");
+      selectBtn.type = "button";
+      selectBtn.className = "open";
+      selectBtn.textContent = t("work_finder.select_db");
+      selectBtn.setAttribute("aria-label", t("local.folder_action", { name: title.textContent, action: selectBtn.textContent }));
+      selectBtn.addEventListener("click", () => { void selectWorkFinderOnline(match); });
+      const guideBtn = document.createElement("button");
+      guideBtn.type = "button";
+      guideBtn.className = "link-button";
+      guideBtn.textContent = t("work_finder.open_guide");
+      guideBtn.setAttribute("aria-label", t("local.folder_action", { name: title.textContent, action: guideBtn.textContent }));
+      guideBtn.addEventListener("click", () => showSourceGuide(match.source));
+      actions.append(selectBtn, guideBtn);
+      li.append(text, actions);
+      list.appendChild(li);
+    }
+    onlineGroup.appendChild(list);
+  } else {
+    const none = document.createElement("p");
+    none.className = "work-finder-item-note";
+    none.textContent = t("work_finder.none_online");
+    onlineGroup.appendChild(none);
+  }
+  built.push(onlineGroup);
+
+  if (Array.isArray(work.releases) && work.releases.length) {
+    const relGroup = document.createElement("div");
+    relGroup.className = "work-finder-group";
+    const relHeading = document.createElement("h5");
+    relHeading.textContent = t("work_finder.releases_heading");
+    const list = document.createElement("ul");
+    list.className = "work-finder-items";
+    for (const pk of work.releases) {
+      const li = document.createElement("li");
+      li.className = "work-finder-item";
+      const text = document.createElement("span");
+      text.className = "work-finder-item-text";
+      const title = document.createElement("span");
+      title.className = "work-finder-item-title";
+      const dsKey = "release.ds." + pk;
+      title.textContent = t(dsKey);
+      text.appendChild(title);
+      const actions = document.createElement("span");
+      actions.className = "work-finder-item-actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "open";
+      btn.textContent = t("work_finder.open_release");
+      btn.setAttribute("aria-label", t("local.folder_action", { name: title.textContent, action: btn.textContent }));
+      btn.addEventListener("click", () => { void openWorkFinderRelease(pk); });
+      actions.appendChild(btn);
+      li.append(text, actions);
+      list.appendChild(li);
+    }
+    relGroup.append(relHeading, list);
+    built.push(relGroup);
+  }
+
+  if (Array.isArray(work.external_imports) && work.external_imports.length) {
+    const extGroup = document.createElement("div");
+    extGroup.className = "work-finder-group";
+    const extHeading = document.createElement("h5");
+    extHeading.textContent = t("work_finder.external_heading");
+    const list = document.createElement("ul");
+    list.className = "work-finder-items";
+    for (const code of work.external_imports) {
+      const li = document.createElement("li");
+      li.className = "work-finder-item";
+      const text = document.createElement("span");
+      text.className = "work-finder-item-text";
+      const title = document.createElement("span");
+      title.className = "work-finder-item-title";
+      const extKey = "work_finder.external." + code;
+      title.textContent = t(extKey);
+      text.appendChild(title);
+      const actions = document.createElement("span");
+      actions.className = "work-finder-item-actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "open";
+      btn.textContent = t("work_finder.open_import_view");
+      btn.setAttribute("aria-label", t("local.folder_action", { name: title.textContent, action: btn.textContent }));
+      btn.addEventListener("click", () => openWorkFinderExternal(code));
+      actions.appendChild(btn);
+      li.append(text, actions);
+      list.appendChild(li);
+    }
+    extGroup.append(extHeading, list);
+    built.push(extGroup);
+  }
+
+  groups.replaceChildren(...built);
+  cardEl.classList.remove("is-hidden");
+}
+async function selectWorkFinderOnline(match) {
+  const box = sourceBoxes.find(
+    item => item.value === match.source || (match.source === "docusky" && item.value.startsWith("docusky:"))
+  );
+  if (!box) return;
+  if (!box.checked && sources().length >= MAX_SOURCES) {
+    const note = typeof document.getElementById === "function" ? document.getElementById("sources-selection-notice") : null;
+    if (note) {
+      note.classList.remove("is-hidden");
+      note.textContent = t("source.pick");
+    }
+    allSourceBoxes().find(item => item.checked)?.focus();
+    return;
+  }
+  if (!box.checked && sources().length < MAX_SOURCES) {
+    box.checked = true;
+  }
+  if (match.source === "historydb" && match.site && historydbSites.includes(match.site)) {
+    historydbSite = match.site;
+    historydbSiteSelect.value = match.site;
+    historydbItem = "";
+  } else if (match.source === "docusky" && match.database && typeof docuskySelect !== "undefined") {
+    const targetSource = match.database === "佛寺志靈應故事" ? "docusky" : `docusky:${match.database}`;
+    if (![...docuskySelect.options].some(option => option.value === targetSource)) {
+      docuskyOption(targetSource, match.database, true);
+    }
+    docuskySelect.value = targetSource;
+    box.value = targetSource;
+  }
+  updateSource();
+  updateSelectionNotice();
+  await saveSources();
+  box.focus();
+}
+async function openWorkFinderRelease(pk) {
+  try {
+    if (!release.datasets.length) release.datasets = await api().datasets();
+    const dataset = release.datasets.find(d => d.pk === pk);
+    if (dataset) {
+      release.institute = dataset.institute;
+      release.pk = pk;
+    }
+  } catch {}
+  showView("import");
+  showImportProviders(true);
+  document.getElementById("release-open")?.click();
+}
+function openWorkFinderExternal(code) {
+  showView("import");
+  showImportProviders(true);
+  if (code === "ctp") {
+    document.getElementById("ctp-open")?.click();
+  } else if (code === "release_local") {
+    const savedDetails = document.getElementById("release-file")?.closest?.("details");
+    if (savedDetails) savedDetails.open = true;
+    document.getElementById("release-open")?.click();
+  } else {
+    openExternal(code);
+  }
+}
+async function loadWorkFinder() {
+  try {
+    const answer = await api().work_finder?.();
+    if (Array.isArray(answer?.works)) {
+      workFinderCatalog = answer.works;
+      renderWorkFinder();
+    }
+  } catch {}
+}
+document.getElementById("work-finder-select")?.addEventListener("change", renderWorkFinderDetail);
+
+function exportablePanels() {
+  if (typeof lastAnswers === "undefined" || !Array.isArray(lastAnswers)) return [];
+  const panels = [];
+  for (const entry of lastAnswers) {
+    const answer = entry?.answer;
+    if (!answer || answer.error || answer.stopped) continue;
+    if (typeof answer.snapshot_id === "string" && answer.snapshot_id) {
+      panels.push({ source: entry.source, snapshot_id: answer.snapshot_id });
+    } else if (entry.source === "itkc" && answer.session?.id) {
+      const revision = answer.session.displayedRevision ?? answer.session.revision;
+      if (Number.isInteger(revision) && revision >= 0) {
+        panels.push({ source: "itkc", session_id: answer.session.id, revision });
+      }
+    }
+  }
+  return panels;
+}
+
+let exportBusy = false;
 function syncResultsBar() {
+  if (typeof reviewUI !== "undefined") reviewUI.sync();
   const bar = document.getElementById("results-bar");
   if (!bar) return;
   const hasPanels = Boolean(document.querySelector("#panels .panel"));
   const hasStatus = Boolean(document.getElementById("status").textContent);
   bar.classList.toggle("is-hidden", !hasPanels && !hasStatus);
+  const ready = exportablePanels();
+  const busy = typeof searchBusy !== "undefined" ? Boolean(searchBusy) : false;
+  const exportBtn = document.getElementById("export-results");
+  if (exportBtn) {
+    exportBtn.disabled = busy || exportBusy;
+    exportBtn.title = !ready.length && !busy && !exportBusy ? t("error.export_empty") : "";
+  }
+  const exportFmt = document.getElementById("export-format");
+  if (exportFmt) exportFmt.disabled = busy || exportBusy || !ready.length;
 }
 function syncSearchButton() {
   const button = document.querySelector("#search .go");
@@ -2526,7 +3391,9 @@ function updateSelectionNotice() {
     || submitted.some((source, index) => source !== selected[index])
     || lastAnswers.some(({ source, request }) => source === "historydb"
       ? request?.site !== historydbSite || request?.item !== historydbItem
-      : source === "nahf" && request?.item !== nahfItem));
+      : source === "nahf"
+        ? request?.item !== nahfItem
+        : source === "ships" && request?.database !== shipsDatabase));
   notice.classList.toggle("is-hidden", !changed);
   notice.textContent = changed ? t("results.selection_changed") : "";
 }
@@ -2583,6 +3450,7 @@ function syncSourceChoiceReason() {
 }
 
 function clearResults() {
+  if (typeof reviewUI !== "undefined") reviewUI.clear();
   const run = typeof activeRun === "undefined" ? null : activeRun;
   if (run && !run.finished) {
     // Clearing while calls are in flight is a stop request, not an unlock: the
@@ -2592,6 +3460,7 @@ function clearResults() {
     else setStatusKey(run.stopAck === "failed" ? "results.stop_unconfirmed" : "results.stopping");
     lastAnswers = [];
     document.getElementById("panels").replaceChildren();
+    if (typeof setExportStatus === "function") setExportStatus("", null);
     updateWelcome();
     updateSelectionNotice();
     syncSearchButton();
@@ -2601,9 +3470,11 @@ function clearResults() {
   terminalStatusKey = "";
   activeRun = null;
   api().invalidate_searches?.(searchVersion)?.catch(() => {});
+  api().clear_result_snapshots?.()?.catch(() => {});
   lastAnswers = [];
   document.getElementById("status").textContent = "";
   document.getElementById("panels").replaceChildren();
+  if (typeof setExportStatus === "function") setExportStatus("", null);
   updateWelcome();
   updateSelectionNotice();
   syncSearchButton();
@@ -2613,8 +3484,15 @@ document.getElementById("search-scope-change").addEventListener("click", () => s
 const searchStopButton = document.getElementById("search-stop");
 if (searchStopButton) searchStopButton.addEventListener("click", () => { void requestSearchStop(); });
 function updateHint() {
-  form.classList.toggle("is-compound", mode() === "pair");
-  document.getElementById("search-help").textContent = t(mode() === "pair" ? "search.hint.compound" : "search.hint.single");
+  const current = mode();
+  form.classList.toggle("is-compound", current === "pair");
+  form.classList.toggle("is-pattern", current === "pattern");
+  const hintKey = current === "pair"
+    ? "search.hint.compound"
+    : current === "pattern"
+      ? "search.hint.pattern"
+      : "search.hint.single";
+  document.getElementById("search-help").textContent = t(hintKey);
   if (sourceGuideCode && modeHelpEntry(sourceGuideCode)) {
     sourceGuideCode = modeHelpKey();
     refreshSourceGuide();
@@ -2678,8 +3556,9 @@ const CITATION_FIELDS = Object.freeze([
   ["csid_number", "source.csid.citation_number"],
 ]);
 
-function card(row, number) {
+function card(row, number, section) {
   const node = document.getElementById("card").content.firstElementChild.cloneNode(true);
+  if (typeof reviewUI !== "undefined") reviewUI.card(node, row, section);
   if (typeof row.id === "string" && (row.id.startsWith("csid:") || row.id.startsWith("cand:") || (row.id.startsWith("kyudb:") && !row.segment))) {
     node.querySelector(".text").hidden = true;
   }
@@ -2706,6 +3585,16 @@ function card(row, number) {
     src.removeAttribute("href");
   }
   node.querySelector(".era").textContent = eraText(row.era);
+  const patternBadge = node.querySelector(".pattern-id");
+  if (patternBadge) {
+    if (row.pattern_id) {
+      patternBadge.textContent = t("results.pattern_id_label", { id: row.pattern_id });
+      patternBadge.classList.remove("is-hidden");
+    } else {
+      patternBadge.textContent = "";
+      patternBadge.classList.add("is-hidden");
+    }
+  }
   if (row.matched_field) {
     node.dataset.matchedField = row.matched_field;
   }
@@ -2733,6 +3622,23 @@ function card(row, number) {
   const footer = node.querySelector("footer");
   if (row.kind === "occurrence") {
     footer.classList.add("is-hidden");
+  } else if (Array.isArray(row.slots) && row.slots.length) {
+    const slotElements = row.slots.map(entry => {
+      const slot = document.createElement("span");
+      const slotClass = entry.name === "A" ? " a" : entry.name === "B" ? " b" : "";
+      slot.className = `slot${slotClass}`;
+      const label = document.createElement("span");
+      label.className = "slot-label";
+      label.textContent = t("slot.named.label", { slot: entry.name });
+      const v = document.createElement("span");
+      v.className = "v";
+      v.lang = "lzh";
+      if (entry.value) v.textContent = entry.value;
+      else { v.textContent = t("slot.none"); v.classList.add("none"); }
+      slot.append(label, v);
+      return slot;
+    });
+    footer.replaceChildren(...slotElements);
   } else {
     const a = node.querySelector(".a .v");
     if (row.a) a.textContent = row.a;
@@ -2740,14 +3646,11 @@ function card(row, number) {
     const b = node.querySelector(".b .v");
     if (row.b.length) b.textContent = row.b.join(" · ");
     else { b.textContent = t("slot.none"); b.classList.add("none"); }
-  }
-  // A and B are labels for the two text slots, not for the query elements.
-  // The complete localized label is shown once above its value; the value below
-  // keeps the source characters and lang unchanged.
-  for (const [slotName, labelKey] of [["a", "slot.a.label"], ["b", "slot.b.label"]]) {
-    const label = node.querySelector(`.slot.${slotName} .slot-label`);
-    if (!label) continue;
-    label.textContent = t(labelKey);
+    for (const [slotName, labelKey] of [["a", "slot.a.label"], ["b", "slot.b.label"]]) {
+      const label = node.querySelector(`.slot.${slotName} .slot-label`);
+      if (!label) continue;
+      label.textContent = t(labelKey);
+    }
   }
   return node;
 }
@@ -2820,7 +3723,7 @@ function fill(section, rows, labelKey, keepVisibleWhenEmpty = false, keepHidden 
     page.dirty = true;
     if (section.isConnected !== false && !section.classList.contains("is-closed")
       && !section.classList.contains("is-hidden")) {
-      list.replaceChildren(...rows.slice(start, shown).map((row, i) => card(row, start + i + 1)));
+      list.replaceChildren(...rows.slice(start, shown).map((row, i) => card(row, start + i + 1, section)));
       page.dirty = false;
     }
     section.dataset.start = String(start);
@@ -2938,10 +3841,20 @@ function eraText(era) {
 function sorted(rows) {
   const order = document.getElementById("sort").value;
   if (order !== "era" && order !== "era-desc") return rows;
+  // Reuse the sorted projection across renderAll() redraws while answer arrays stay immutable.
+  const cache = sorted._cache || (sorted._cache = new WeakMap());
+  let entry = cache.get(rows);
+  if (entry && entry[order]) return entry[order];
   // Unknown dates stay last in both directions; equal dates keep source order.
   const direction = order === "era-desc" ? -1 : 1;
   const key = row => (row.era && Number.isFinite(row.era.year) ? direction * row.era.year : Infinity);
-  return rows.map((row, index) => [row, index]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map(pair => pair[0]);
+  const result = rows.map((row, index) => [row, index]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map(pair => pair[0]);
+  if (!entry) {
+    entry = Object.create(null);
+    cache.set(rows, entry);
+  }
+  entry[order] = result;
+  return result;
 }
 let sortSaveVersion = 0;
 let sortSaveQueue = Promise.resolve();
@@ -3010,7 +3923,13 @@ function sourceSummary(info) {
   if (info.name === "vietdien") return t("source.vietdien.summary", info);
   if (info.name === "sat") return t("source.sat.summary", info);
   if (info.name === "aksarchive") return t("source.aksarchive.summary", info);
-  if (info.name === "ships") return t("source.ships.summary", info);
+  if (info.name === "ships") {
+    const summary = t("source.ships.summary", info);
+    return info.database
+      ? `${summary} · ${t(`source.ships.database.${info.database}`)}`
+      : summary;
+  }
+  if (info.name === "engishiki") return t("source.engishiki.summary", info);
   if (info.name === "thdl") return t("source.thdl.summary", info);
   if (info.name === "csid") return t("source.csid.summary", info);
   if (info.name === "cand") return t("source.cand.summary", info);
@@ -3067,6 +3986,7 @@ const REFERENCE_SOURCES = Object.freeze({
 });
 
 function renderPanel(panel, name, answer, request) {
+  if (typeof reviewUI !== "undefined") reviewUI.bind(panel, answer);
   panel.querySelector(".panel-title").textContent = sourceName(name);
   // Reading the live form here would relabel old results after an input edit.
   const query = panel.querySelector(".panel-query");
@@ -3078,6 +3998,11 @@ function renderPanel(panel, name, answer, request) {
     } else if (request?.mode === "pair" && typeof request.first === "string" && typeof request.second === "string") {
       modeKey = "search.compound";
       value = t("results.query_pair", request);
+    } else if (request?.mode === "pattern") {
+      modeKey = "search.pattern";
+      value = typeof request.expression === "string" && request.expression.trim()
+        ? request.expression.trim()
+        : (typeof request.pattern_file_name === "string" ? request.pattern_file_name : "");
     }
     query.classList.toggle("is-hidden", !modeKey);
     query.querySelector(".query-mode").textContent = modeKey ? t(modeKey) : "";
@@ -3132,7 +4057,7 @@ function renderPanel(panel, name, answer, request) {
     ? t("library.folder", { n: numberText(textCount(localInfo(name))), folder: localLabel(name) })
     : sourceSummary(answer.source);
   if (LOCAL_SOURCES.includes(name) && localInfo(name)?.folder) status.title = localInfo(name).folder;
-  if (name === "ships" && answer.source?.external_only === true && external) {
+  if ((name === "ships" || name === "engishiki") && answer.source?.external_only === true && external) {
     likely.classList.add("is-hidden");
     less.classList.add("is-hidden");
     if (continuation) continuation.classList.add("is-hidden");
@@ -3147,8 +4072,13 @@ function renderPanel(panel, name, answer, request) {
     return;
   }
   likely.classList.remove("is-hidden");
-  let likelyLabel = answer.mode === "pair" ? "results.likely" : "results.all";
-  let lessLabel = "results.less";
+  const isPattern = answer.mode === "pattern";
+  let likelyLabel = isPattern
+    ? "results.matched"
+    : answer.mode === "pair"
+      ? "results.likely"
+      : "results.all";
+  let lessLabel = isPattern ? "results.needs_review" : "results.less";
   if (name === "thdl") likelyLabel = "source.thdl.candidates";
   if (name === "cyberseodang") {
     likelyLabel = "source.cyberseodang.checked";
@@ -3162,8 +4092,9 @@ function renderPanel(panel, name, answer, request) {
   }
   const lessNote = less.querySelector(".group-note");
   if (lessNote) {
-    lessNote.textContent = referenceOnly ? t(REFERENCE_SOURCES[name].note) : "";
-    lessNote.classList.toggle("is-hidden", !referenceOnly);
+    const noteKey = referenceOnly ? REFERENCE_SOURCES[name].note : isPattern ? "results.dsl_note" : "";
+    lessNote.textContent = noteKey ? t(noteKey) : "";
+    lessNote.classList.toggle("is-hidden", !noteKey);
   }
   panel.querySelectorAll(".group").forEach(group => {
     group.querySelector(".group-toggle").setAttribute("aria-expanded", String(!group.classList.contains("is-closed")));
@@ -3175,7 +4106,11 @@ function renderPanel(panel, name, answer, request) {
     fillSessionGroup(likely, entry, "likely", likelyLabel, false, referenceOnly);
     fillSessionGroup(less, entry, "less", lessLabel, referenceOnly);
   } else {
-    if (continuation) continuation.classList.add("is-hidden");
+    if (typeof renderPageContinuation === "function") {
+      renderPageContinuation(panel, entry);
+    } else if (continuation) {
+      continuation.classList.add("is-hidden");
+    }
     fill(likely, sorted(answer.likely || []), likelyLabel, false, referenceOnly);
     fill(less, sorted(answer.less || []), lessLabel, referenceOnly);
   }
@@ -3264,8 +4199,8 @@ function settlePending(run, token) {
   maybeFinishRun(run);
 }
 function runErrorCount(run) {
-  return run.entries.filter(entry => (entry.answer?.error || entry.answer?.session?.advanceError)
-    && !entry.answer.stopped).length;
+  return run.entries.filter(entry => (entry.answer?.error || entry.answer?.session?.advanceError
+    || entry.answer?.continuation?.advanceError) && !entry.answer.stopped).length;
 }
 function finishRun(run) {
   if (!run || run.finished || activeRun !== run) return;
@@ -3530,7 +4465,7 @@ function fillSessionGroup(section, entry, group, labelKey, keepVisibleWhenEmpty 
       const rows = sessionPageCache.get(cacheKey);
       sessionPageCache.delete(cacheKey);
       sessionPageCache.set(cacheKey, rows);
-      list.replaceChildren(...rows.map((row, i) => card(row, start + i + 1)));
+      list.replaceChildren(...rows.map((row, i) => card(row, start + i + 1, section)));
       if (pageErrorEl) pageErrorEl.classList.add("is-hidden");
       if (move) section.scrollIntoView?.({ block: "start" });
       return;
@@ -3580,7 +4515,7 @@ function fillSessionGroup(section, entry, group, labelKey, keepVisibleWhenEmpty 
       // Only a few visible/adjacent slices belong in JavaScript. Python owns
       // the full session; revisiting an evicted slice is a local bridge read.
       while (sessionPageCache.size > 4) sessionPageCache.delete(sessionPageCache.keys().next().value);
-      list.replaceChildren(...rows.map((row, i) => card(row, start + i + 1)));
+      list.replaceChildren(...rows.map((row, i) => card(row, start + i + 1, section)));
       if (pageErrorEl) pageErrorEl.classList.add("is-hidden");
       if (move) section.scrollIntoView?.({ block: "start" });
     } catch {
@@ -3654,6 +4589,7 @@ function renderSessionContinuation(panel, entry) {
     continuation.classList.add("is-hidden");
     return;
   }
+  continuation.dataset.continuation = "session";
   continuation.classList.remove("is-hidden");
   const scopeEl = continuation.querySelector(".continuation-scope");
   if (scopeEl) scopeEl.textContent = t("itkc.scope_hint");
@@ -3830,9 +4766,282 @@ function applySessionResults(entry, panel) {
   }
   renderPanel(panel, entry.source, entry.answer, entry.request);
 }
+
+function renderPageContinuation(panel, entry) {
+  const continuation = panel.querySelector(".panel-continuation");
+  if (!continuation) return;
+  const cont = entry.answer?.continuation;
+  const reviewed = entry.answer?.source?.reviewed !== false;
+  if (!cont || cont.mode !== "page" || !reviewed || (cont.max_pages || 1) <= 1) {
+    delete continuation.dataset.continuation;
+    continuation.classList.add("is-hidden");
+    return;
+  }
+  continuation.dataset.continuation = "page";
+  continuation.classList.remove("is-hidden");
+  const fmt = value => (typeof numberText === "function" ? numberText(value) : String(value));
+  const busy = typeof searchBusy !== "undefined" ? Boolean(searchBusy) : false;
+
+  const scopeEl = continuation.querySelector(".continuation-scope");
+  if (scopeEl) {
+    scopeEl.textContent = t("continuation.page_scope", {
+      size: fmt(cont.page_size || 50),
+      max: fmt(cont.max_pages || 5),
+    });
+  }
+
+  const progressEl = continuation.querySelector(".continuation-progress");
+  if (progressEl) {
+    progressEl.textContent = t("continuation.page_progress", {
+      page: fmt(cont.page || 1),
+      max: fmt(cont.max_pages || 5),
+      checked: fmt(cont.records || 0),
+      total: fmt(cont.total || 0),
+    });
+  }
+
+  const statusEl = continuation.querySelector(".continuation-status");
+  const advanceBtn = continuation.querySelector(".continuation-advance");
+  const applyBtn = continuation.querySelector(".continuation-apply");
+  const retryBtn = continuation.querySelector(".continuation-retry");
+
+  const pending = cont.pendingPage;
+  if (pending && applyBtn) {
+    const diff = (pending.likely?.length || 0) + (pending.less?.length || 0);
+    applyBtn.textContent = diff > 0
+      ? t("continuation.page_apply", { n: fmt(diff) })
+      : t("continuation.page_apply_same");
+    applyBtn.classList.remove("is-hidden");
+    applyBtn.disabled = Boolean(cont.advancing);
+    applyBtn.onclick = () => applyDocuSkyPage(entry, panel);
+  } else if (applyBtn) {
+    applyBtn.classList.add("is-hidden");
+    applyBtn.onclick = null;
+  }
+
+  const isStopped = Boolean(panel.dataset.stopped);
+  const atLimit = (cont.page || 1) >= (cont.max_pages || 5);
+  const atEnd = !cont.has_more && !atLimit;
+  const nextNum = (cont.page || 1) + 1;
+
+  if (isStopped) {
+    if (advanceBtn) { advanceBtn.classList.add("is-hidden"); advanceBtn.disabled = true; }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) { statusEl.textContent = t("results.stopped"); statusEl.classList.remove("is-error"); }
+    return;
+  }
+
+  if (cont.advancing) {
+    if (advanceBtn) {
+      advanceBtn.classList.remove("is-hidden");
+      advanceBtn.disabled = true;
+      advanceBtn.textContent = t("continuation.page_next", { next: fmt(nextNum), max: fmt(cont.max_pages || 5) });
+    }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("continuation.page_loading", { next: fmt(nextNum), max: fmt(cont.max_pages || 5) });
+      statusEl.classList.remove("is-error");
+    }
+    return;
+  }
+
+  if (pending) {
+    if (advanceBtn) { advanceBtn.classList.add("is-hidden"); advanceBtn.disabled = true; }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("continuation.page_ready", { page: fmt(pending.continuation?.page || nextNum) });
+      statusEl.classList.remove("is-error");
+    }
+    return;
+  }
+
+  if (cont.advanceError) {
+    const isTerminal = cont.advanceError === "page_repeated" || cont.advanceError === "source_cap" || cont.stoppedRepeated;
+    if (advanceBtn) advanceBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = errorText(cont.advanceError, entry.answer);
+      statusEl.classList.add("is-error");
+    }
+    if (retryBtn) {
+      if (isTerminal) {
+        retryBtn.classList.add("is-hidden");
+      } else {
+        retryBtn.textContent = t("continuation.page_retry", { page: fmt(nextNum), max: fmt(cont.max_pages || 5) });
+        retryBtn.classList.remove("is-hidden");
+        retryBtn.disabled = busy;
+        retryBtn.onclick = () => advanceDocuSkyPage(entry, panel);
+      }
+    }
+    return;
+  }
+
+  if (retryBtn) retryBtn.classList.add("is-hidden");
+
+  if (cont.stoppedRepeated) {
+    if (advanceBtn) advanceBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("error.page_repeated");
+      statusEl.classList.add("is-error");
+    }
+  } else if (atLimit) {
+    if (advanceBtn) advanceBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("continuation.page_limit", { max: fmt(cont.max_pages || 5) });
+      statusEl.classList.remove("is-error");
+    }
+  } else if (atEnd) {
+    if (advanceBtn) advanceBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("continuation.page_end", { total: fmt(cont.total || 0) });
+      statusEl.classList.remove("is-error");
+    }
+  } else {
+    if (advanceBtn) {
+      advanceBtn.classList.remove("is-hidden");
+      advanceBtn.disabled = busy;
+      advanceBtn.textContent = t("continuation.page_next", { next: fmt(nextNum), max: fmt(cont.max_pages || 5) });
+      advanceBtn.title = t("continuation.page_next_hint", { max: fmt(cont.max_pages || 5) });
+      advanceBtn.onclick = () => advanceDocuSkyPage(entry, panel);
+    }
+    if (statusEl) {
+      statusEl.textContent = t("continuation.page_paused", { next: fmt(nextNum), max: fmt(cont.max_pages || 5) });
+      statusEl.classList.remove("is-error");
+    }
+  }
+}
+
+async function advanceDocuSkyPage(entry, panel) {
+  const run = typeof activeRun === "undefined" ? null : activeRun;
+  if (!run || !run.finished || searchBusy || run.stopRequested || run.cleared
+    || !lastAnswers.includes(entry)) return;
+  const cont = entry.answer?.continuation;
+  if (!cont || cont.mode !== "page" || !cont.has_more || cont.page >= cont.max_pages
+    || cont.stoppedRepeated || cont.advancing || cont.pendingPage) return;
+
+  cont.advancing = true;
+  cont.advanceError = null;
+  run.finished = false;
+  run.stopAck = "none";
+
+  const token = trackPending(run);
+  try {
+    renderPageContinuation(panel, entry);
+    setStatusKey("results.searching");
+    syncSearchButton();
+    const gen = entry.request.generation ?? run.version;
+    const apiObj = typeof api === "function" ? api() : null;
+    if (!apiObj || typeof apiObj.docusky_page !== "function") return;
+    const res = await apiObj.docusky_page({
+      ...entry.request,
+      page: (cont.page || 1) + 1,
+      snapshot_id: entry.answer.snapshot_id || "",
+      generation: gen,
+    });
+
+    if (!run || run.cleared || run.stopRequested || activeRun !== run) return;
+
+    if (res && res.error) {
+      cont.advanceError = res.error;
+      if (res.error === "page_repeated") {
+        cont.has_more = false;
+        cont.stoppedRepeated = true;
+      }
+    } else if (res && res.continuation) {
+      cont.pendingPage = res;
+    } else {
+      cont.advanceError = "source_internal";
+    }
+  } catch {
+    if (!run || run.cleared || run.stopRequested || activeRun !== run) return;
+    cont.advanceError = "network";
+  } finally {
+    cont.advancing = false;
+    settlePending(run, token);
+    if (activeRun === run && !run.cleared && lastAnswers.includes(entry) && panel.isConnected !== false) {
+      try { renderPageContinuation(panel, entry); } catch { run.presentationFailed = true; }
+    }
+  }
+}
+
+async function applyDocuSkyPage(entry, panel) {
+  const cont = entry.answer?.continuation;
+  const pending = cont?.pendingPage;
+  if (!cont || !pending) return;
+  const apiObj = typeof api === "function" ? api() : null;
+  if (apiObj && typeof apiObj.apply_docusky_page === "function"
+    && entry.answer.snapshot_id && pending.page_token) {
+    let merged;
+    try {
+      merged = await apiObj.apply_docusky_page(entry.answer.snapshot_id, pending.page_token);
+    } catch {
+      cont.advanceError = "source_internal";
+      renderPageContinuation(panel, entry);
+      return;
+    }
+    if (merged && merged.error) {
+      cont.advanceError = merged.error;
+      if (merged.error === "page_repeated") {
+        cont.pendingPage = null;
+        cont.has_more = false;
+        cont.stoppedRepeated = true;
+      }
+      renderPageContinuation(panel, entry);
+      return;
+    }
+    if (merged && merged.continuation) {
+      entry.answer = merged;
+      renderPanel(panel, entry.source, entry.answer, entry.request);
+      return;
+    }
+  }
+
+  const seen = new Set((cont.identities || []).map(String));
+  const nextCont = pending.continuation || {};
+  const incoming = (nextCont.identities || []).map(String);
+  if (incoming.length > 0 && incoming.every(id => seen.has(id))) {
+    cont.pendingPage = null;
+    cont.advanceError = "page_repeated";
+    cont.has_more = false;
+    cont.stoppedRepeated = true;
+    renderPageContinuation(panel, entry);
+    return;
+  }
+  const addRows = (base, added) => [
+    ...(base || []),
+    ...(added || []).filter(r => !seen.size || !r.text_id || !seen.has(String(r.text_id))),
+  ];
+  const nextTotal = nextCont.total ?? cont.total ?? 0;
+  const mergedCont = {
+    mode: "page",
+    page: nextCont.page ?? (cont.page + 1),
+    page_size: nextCont.page_size ?? cont.page_size,
+    records: (cont.records || 0) + (nextCont.records || 0),
+    accepted: (cont.accepted || 0) + (nextCont.accepted || 0),
+    excluded: (cont.excluded || 0) + (nextCont.excluded || 0),
+    total: nextTotal,
+    has_more: Boolean(nextCont.has_more),
+    max_pages: nextCont.max_pages ?? cont.max_pages,
+    identities: [...(cont.identities || []), ...incoming.filter(id => !seen.has(id))],
+  };
+  const nextSource = { ...(entry.answer.source || {}) };
+  nextSource.total = mergedCont.total;
+  nextSource.records = mergedCont.records;
+  nextSource.accepted = mergedCont.accepted;
+  nextSource.excluded = mergedCont.excluded;
+  entry.answer = {
+    ...entry.answer,
+    likely: addRows(entry.answer.likely, pending.likely),
+    less: addRows(entry.answer.less, pending.less),
+    source: nextSource,
+    continuation: mergedCont,
+  };
+  renderPanel(panel, entry.source, entry.answer, entry.request);
+}
 form.addEventListener("submit", async event => {
+  // Validate the active controls here so hidden inputs cannot block submission.
   event.preventDefault();
   if (searchBusy) return;
+  if (typeof setExportStatus === "function") setExportStatus("", null);
   if (!hasUsableSources()) {
     // The reason belongs to this submit, so it is shown only here; the Sources
     // view itself stays free of search errors during normal navigation.
@@ -3840,32 +5049,57 @@ form.addEventListener("submit", async event => {
     showView("sources");
     return;
   }
-  const fields = mode() === "pair" ? ["first", "second"] : ["query"];
-  fields.forEach(id => document.getElementById(id).removeAttribute?.("aria-invalid"));
-  const missing = fields.find(id => !document.getElementById(id).value.trim());
-  if (missing) {
+  const currentMode = mode();
+  let patternExpr = "";
+  const failValidation = (field, key, vars) => {
     terminalStatusKey = "";
-    document.getElementById("status").textContent = t("error.empty");
+    document.getElementById("status").textContent = t(key, vars);
     document.getElementById("status").classList?.add("is-error");
-    document.getElementById(missing).setAttribute?.("aria-invalid", "true");
+    field?.setAttribute?.("aria-invalid", "true");
     document.getElementById("results-bar").classList.remove("is-hidden");
-    document.getElementById(missing).focus?.();
-    return;
+    field?.focus?.();
+  };
+  if (currentMode === "pattern") {
+    document.querySelectorAll("#view-search .boxes.pattern input, #view-search .pattern-options input")
+      .forEach(el => el.removeAttribute?.("aria-invalid"));
+    if (!patternFile) {
+      const built = buildPatternExpression();
+      if (built.errorKey) {
+        failValidation(built.field, built.errorKey, built.errorVars);
+        return;
+      }
+      patternExpr = built.expression;
+    }
+  } else {
+    const fields = currentMode === "pair" ? ["first", "second"] : ["query"];
+    fields.forEach(id => document.getElementById(id).removeAttribute?.("aria-invalid"));
+    const missing = fields.find(id => !document.getElementById(id).value.trim());
+    if (missing) {
+      failValidation(document.getElementById(missing), "error.empty");
+      return;
+    }
   }
   const version = ++searchVersion;
   let run = null;
   try {
-    const body = mode() === "pair"
+    const body = currentMode === "pair"
       ? { mode: "pair", first: document.getElementById("first").value, second: document.getElementById("second").value }
-      : { mode: "words", query: document.getElementById("query").value };
+      : currentMode === "pattern"
+        ? (patternFile
+            ? { mode: "pattern", pattern_token: patternFile.token, pattern_file_name: patternFile.name }
+            : { mode: "pattern", expression: patternExpr })
+        : { mode: "words", query: document.getElementById("query").value };
     const names = sources();
+    if (typeof reviewUI !== "undefined") reviewUI.capture(body, names);
     makePanels(names);
     lastAnswers = names.map(source => {
       const extra = source === "historydb"
         ? { site: historydbSite, item: historydbItem }
         : source === "nahf"
           ? { item: nahfItem }
-          : {};
+          : source === "ships"
+            ? { database: shipsDatabase }
+            : {};
       return { source, answer: null, request: { ...body, ...extra, source, generation: version } };
     });
     run = beginSearchRun(version, lastAnswers);
@@ -3891,6 +5125,118 @@ form.addEventListener("submit", async event => {
 });
 
 form.querySelectorAll("input[name=mode]").forEach(r => r.addEventListener("change", updateHint));
+document.getElementById("pattern-scope")?.addEventListener("change", () => {
+  syncPatternScopeWindow();
+  if (patternFile) clearPatternFileState();
+});
+document.getElementById("pattern-add-step")?.addEventListener("click", () => {
+  addPatternStep();
+  if (patternFile) clearPatternFileState();
+});
+document.getElementById("pattern-toggle-exclusions")?.addEventListener("click", event => {
+  const box = document.getElementById("pattern-exclusions");
+  if (!box) return;
+  const open = box.classList.contains("is-hidden");
+  box.classList.toggle("is-hidden", !open);
+  event.currentTarget.setAttribute("aria-expanded", String(open));
+  if (open) {
+    syncPatternBuilderControls();
+    box.querySelector("input")?.focus();
+  }
+});
+document.getElementById("pattern-exclusions")?.addEventListener("input", syncPatternExclusionCount);
+form.addEventListener("input", event => {
+  event.target?.removeAttribute?.("aria-invalid");
+});
+const clearPatternFileOnInput = () => {
+  if (patternFile) clearPatternFileState();
+};
+document.querySelector("#view-search .boxes.pattern")?.addEventListener("input", clearPatternFileOnInput);
+document.querySelector("#view-search .pattern-options")?.addEventListener("input", clearPatternFileOnInput);
+document.getElementById("pattern-file-pick")?.addEventListener("click", async () => {
+  const res = await api().pick_pattern_file?.(t("search.pattern.filetype"));
+  if (!res || res.cancelled) return;
+  if (res.error) {
+    terminalStatusKey = "";
+    const status = document.getElementById("status");
+    status.textContent = errorText(res.error, res);
+    status.classList.add("is-error");
+    document.getElementById("results-bar").classList.remove("is-hidden");
+    syncResultsBar();
+    return;
+  }
+  document.querySelectorAll("#pattern-builder-steps .pattern-step").forEach((step, index) => {
+    const termEl = step.querySelector(".pattern-term-input");
+    const minEl = step.querySelector(".pattern-gap-min");
+    const maxEl = step.querySelector(".pattern-gap-max");
+    if (termEl) termEl.value = "";
+    if (minEl) minEl.value = index === 0 ? "1" : "";
+    if (maxEl) maxEl.value = index === 0 ? "20" : "";
+  });
+  document.querySelectorAll("#pattern-exclusions .pattern-exclusion-input")
+    .forEach(input => { input.value = ""; });
+  document.querySelectorAll("#view-search .boxes.pattern input, #view-search .pattern-options input")
+    .forEach(el => el.removeAttribute?.("aria-invalid"));
+  syncPatternExclusionCount();
+  patternFile = { token: res.token, name: res.name, count: res.count };
+  syncPatternFile();
+});
+document.getElementById("pattern-file-clear")?.addEventListener("click", () => {
+  clearPatternFileState();
+  document.getElementById("pattern-file-pick")?.focus();
+});
+document.getElementById("export-results")?.addEventListener("click", async () => {
+  if (searchBusy || exportBusy) return;
+  const panels = exportablePanels();
+  if (!panels.length) {
+    setExportStatus(errorText("export_empty"), { type: "error", code: "export_empty", isError: true });
+    return;
+  }
+  const fmt = document.getElementById("export-format")?.value || "csv";
+  const sort = document.getElementById("sort")?.value || "source";
+  await exportSnapshots({ panels, format: fmt, sort });
+});
+
+async function exportSnapshots(request, report = setExportStatus) {
+  if (searchBusy || exportBusy) return;
+  exportBusy = true;
+  syncResultsBar();
+  report(t("export.working"), { type: "key", key: "export.working", isError: false });
+  try {
+    const filetypeKey = request.format === "jsonl" ? "export.filetype.jsonl" : "export.filetype.csv";
+    const prep = await api().pick_export_path(request, t(filetypeKey));
+    if (!prep || prep.cancelled) {
+      report(t("export.cancelled"), { type: "key", key: "export.cancelled", isError: false });
+      return;
+    }
+    if (prep.error) {
+      report(errorText(prep.error, prep), { type: "error", code: prep.error, payload: prep, isError: true });
+      return;
+    }
+    let res = await api().export_results(prep.token, "");
+    if (res?.error === "export_exists" && res.overwrite_token) {
+      if (await askExportOverwrite(res.path)) {
+        res = await api().export_results("", res.overwrite_token);
+      } else {
+        await api().cancel_export("", res.overwrite_token);
+        report(t("export.cancelled"), { type: "key", key: "export.cancelled", isError: false });
+        return;
+      }
+    }
+    if (!res || res.error) {
+      const code = res?.error || "export_failed";
+      report(errorText(code, res), { type: "error", code, payload: res, isError: true });
+      return;
+    }
+    const vars = { rows: res.rows, panels: res.panels, path: res.path };
+    report(t("export.done", vars), { type: "key", key: "export.done", vars, isError: false });
+  } catch {
+    report(errorText("export_failed"), { type: "error", code: "export_failed", isError: true });
+  } finally {
+    exportBusy = false;
+    syncResultsBar();
+  }
+}
 // Hovering plays the arrows' dash; leaving with the mouse without pressing plays it in reverse so the arrows
 // visibly go back (style.css ".swap.is-returning"). The class is cleared on re-entry, otherwise it would
 // override the hover dash, and it is re-added after a reflow so leaving again mid-return restarts the return.
@@ -3917,9 +5263,7 @@ swapButton.addEventListener("click", () => {
   [a.value, b.value] = [b.value, a.value];
 });
 document.querySelectorAll(".clear").forEach(button => button.addEventListener("click", () => {
-  const input = button.previousElementSibling;
-  input.value = "";
-  input.focus();
+  clearSearchInput(button.previousElementSibling);
 }));
 
 // A failed start leaves every label empty if the catalog never arrived, so the
@@ -4042,6 +5386,7 @@ async function initialize() {
   await setLanguage(currentLanguage);
   void restoreSort();
   void loadHomeIcon();
+  if (typeof loadWorkFinder === "function") void loadWorkFinder();
   const [generation, loaded, locals, options] = await Promise.all([
     api().search_generation(), api().library(), api().local_libraries(), api().source_options(),
   ]);

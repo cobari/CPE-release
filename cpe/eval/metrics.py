@@ -13,7 +13,7 @@ import bisect
 import io
 import json
 import math
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -23,7 +23,7 @@ from cpe.eval import baselines
 Record = dict[str, Any]
 Runner = Callable[[dict[str, Any]], list[Record]]
 
-_LABELS = ("valid", "lexicalized", "other_usage", "uncertain")
+USAGE_LABELS = ("valid", "lexicalized", "other_usage", "uncertain")
 _KINDS = ("matched", "adjacent", "indeterminate")
 
 
@@ -45,7 +45,13 @@ def load_entries(paths: Iterable[Path]) -> list[dict[str, Any]]:
 
 def parse_entries(snapshots: Iterable[tuple[Path, bytes]]) -> list[dict[str, Any]]:
     """Validate captured JSONL bytes; paths identify errors without being reread."""
-    entries: list[dict[str, Any]] = []
+    return [entry for _, _, entry in iter_entries(snapshots)]
+
+
+def iter_entries(
+    snapshots: Iterable[tuple[Path, bytes]],
+) -> Iterator[tuple[Path, int, dict[str, Any]]]:
+    """Yield validated entries with their file and line, checking IDs across files."""
     seen: dict[str, str] = {}
     for path, content in snapshots:
         with io.StringIO(content.decode("utf-8-sig"), newline="") as stream:
@@ -66,8 +72,7 @@ def parse_entries(snapshots: Iterable[tuple[Path, bytes]]) -> list[dict[str, Any
                         f"(first in {seen[entry['id']]})"
                     )
                 seen[entry["id"]] = where
-                entries.append(entry)
-    return entries
+                yield path, lineno, entry
 
 
 def _validate_entry(entry: Any, where: str) -> None:
@@ -111,7 +116,7 @@ def _validate_entry(entry: Any, where: str) -> None:
         )
 
 
-def _span(span: Any, length: int, where: str, what: str) -> None:
+def validate_span(span: Any, length: int, where: str, what: str) -> None:
     # bool is an int subclass: `type(...) is int` keeps [True, x] out, and
     # offsets are code points, so they must stay inside the entry text.
     if (
@@ -138,14 +143,14 @@ def _validate_record(record: Any, length: int, label: str) -> None:
     if not isinstance(fixed, list):
         raise ValueError(f"{label}: record fixed must be an array")
     for span in fixed:
-        _span(span, length, label, "fixed span")
+        validate_span(span, length, label, "fixed span")
     slots = record.get("slots")
     if not isinstance(slots, dict) or any(
         not isinstance(name, str) or not name for name in slots
     ):
         raise ValueError(f"{label}: record slots must map names to spans")
     for name, span in slots.items():
-        _span(span, length, label, f"slot {name!r}")
+        validate_span(span, length, label, f"slot {name!r}")
     ends = record.get("ends")
     if ends is not None and (
         not isinstance(ends, list)
@@ -166,16 +171,16 @@ def _validate_usage(usage: Any, length: int, label: str) -> None:
     if not isinstance(fixed, list) or not fixed:
         raise ValueError(f"{label}: usage needs at least one fixed_offsets span")
     for span in fixed:
-        _span(span, length, label, "fixed_offsets span")
+        validate_span(span, length, label, "fixed_offsets span")
     for key in ("slot_A", "slot_B"):
         spans = usage.get(key)
         if not isinstance(spans, list):
             raise ValueError(f"{label}: usage {key} must be an array")
         for span in spans:
-            _span(span, length, label, f"{key} span")
-    if usage.get("label") not in _LABELS:
+            validate_span(span, length, label, f"{key} span")
+    if usage.get("label") not in USAGE_LABELS:
         raise ValueError(
-            f"{label}: usage label must be one of {', '.join(_LABELS)}, "
+            f"{label}: usage label must be one of {', '.join(USAGE_LABELS)}, "
             f"not {usage.get('label')!r}"
         )
     for key in ("notes", "group"):
@@ -442,7 +447,7 @@ def evaluate(
         ):
             # A limit hit stays in the denominator as a failure (plan 8.3).
             report.interrupted.append(entry["id"])
-        if structure(records) == sorted(entry["expected"], key=json.dumps):
+        elif structure(records) == sorted(entry["expected"], key=json.dumps):
             report.structural_agree += 1
         else:
             report.structural_mismatches.append(entry["id"])

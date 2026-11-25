@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -238,6 +239,67 @@ def note_spans(reference: str, options: Options) -> list[tuple[int, int, str]]:
     return spans
 
 
+_NON_LB_RE = re.compile(r"[^\r\n]+")
+_NON_WS_RE = re.compile(r"[^ \t\u3000]+")
+_NON_LB_WS_RE = re.compile(r"[^\r\n \t\u3000]+")
+
+
+def _spans_without_deleted(
+    reference: str, pattern: re.Pattern[str]
+) -> tuple[tuple[int, int], ...]:
+    spans: list[tuple[int, int]] = []
+    extend = spans.extend
+    for match in pattern.finditer(reference):
+        start, end = match.span()
+        extend(zip(range(start, end), range(start + 1, end + 1), strict=True))
+    return tuple(spans)
+
+
+def _fast_normalize_no_notes(reference: str, options: Options) -> NormalizedText | None:
+    if options.variation_selectors == "delete":
+        return None
+    table = options.variants
+    if table is not None and any(len(value) != 1 for value in table.map.values()):
+        return None
+    delete_lb = options.line_breaks == "delete"
+    delete_ws = options.whitespace == "delete"
+    deleted = (LINE_BREAKS if delete_lb else frozenset()) | (
+        WHITESPACE if delete_ws else frozenset()
+    )
+    trans: dict[int, int | None] = {}
+    if table is not None:
+        trans.update(
+            {
+                ord(key): ord(value)
+                for key, value in table.map.items()
+                if key not in deleted
+            }
+        )
+    for char in deleted:
+        trans[ord(char)] = None
+    text = reference.translate(trans) if trans else reference
+    if len(text) == len(reference):
+        n = len(reference)
+        return NormalizedText(
+            reference=reference,
+            text=text,
+            spans=tuple(zip(range(n), range(1, n + 1), strict=True)),
+            _contiguous=True,
+        )
+    if delete_lb and delete_ws:
+        spans = _spans_without_deleted(reference, _NON_LB_WS_RE)
+    elif delete_lb:
+        spans = _spans_without_deleted(reference, _NON_LB_RE)
+    else:
+        spans = _spans_without_deleted(reference, _NON_WS_RE)
+    return NormalizedText(
+        reference=reference,
+        text=text,
+        spans=spans,
+        _contiguous=False,
+    )
+
+
 def normalize(reference: str, options: Options) -> NormalizedText:
     notes = note_spans(reference, options)
     if (
@@ -253,6 +315,10 @@ def normalize(reference: str, options: Options) -> NormalizedText:
         )
     ):
         return identity(reference)
+    if not notes:
+        fast = _fast_normalize_no_notes(reference, options)
+        if fast is not None:
+            return fast
     text: list[str] = []
     spans: list[tuple[int, int]] = []
     removed: list[tuple[int, int, int]] = []

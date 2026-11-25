@@ -23,14 +23,22 @@ def result_payload(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _serialized_wire_size(envelope: dict[str, Any]) -> int:
+    return PROTOCOL_RESERVE + len(
+        json.dumps(envelope, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    )
+
+
 def wire_size(payload: dict[str, Any]) -> int:
     """Reserve framing space in addition to both serialized result copies.
 
     The host controls request IDs; an arbitrarily long client-supplied ID is not
     part of the server's bounded result. Normal JSON-RPC framing fits the reserve.
     """
-    return PROTOCOL_RESERVE + len(
-        json.dumps(
-            result_payload(payload), ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
-    )
+    return _serialized_wire_size(result_payload(payload))
+
+
+def bounded_result_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+    """Return both wire byte size and envelope in a single inner JSON pass."""
+    envelope = result_payload(payload)
+    return _serialized_wire_size(envelope), envelope

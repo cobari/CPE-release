@@ -5,9 +5,8 @@ from __future__ import annotations
 import bisect
 import csv
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
-from functools import cache, partial
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +34,7 @@ from cpe.export.safe import (
 )
 from cpe.itkc.query import (
     And,
+    Leaf,
     Near,
     Node,
     Not,
@@ -134,7 +134,7 @@ def _segments(
     )
 
 
-def long_warning(segments: list[seg.Segment], settings: Settings) -> bool:
+def long_warning(segments: Sequence[seg.Segment], settings: Settings) -> bool:
     lengths = [s.end - s.start for s in segments]
     return (
         bool(lengths) and sum(lengths) / len(lengths) > settings.long_segment_threshold
@@ -149,16 +149,20 @@ def search_text(
     settings: Settings,
     mode: str = "sentence",
     checkpoint: Checkpoint = None,
-    segments: list[seg.Segment] | None = None,
+    segments: Sequence[seg.Segment] | None = None,
+    *,
+    warn_long: bool | None = None,
 ) -> list[dict[str, Any]]:
     """One record per segment of `text` that satisfies the query (spec 14.2).
 
     `segments`, when given, must be `_segments(text, normalized, settings, mode)`;
     a caller that already split the text passes it to avoid splitting twice.
+    `warn_long`, when given, is the caller's already-computed
+    `long_warning(segments, settings)` result, so the segments are not rescanned.
     """
     if segments is None:
         segments = _segments(text, normalized, settings, mode)
-    warned = long_warning(segments, settings)
+    warned = long_warning(segments, settings) if warn_long is None else warn_long
     barriers = normalized.sorted_barriers
     leaves = positive_leaves(tree)
     records = []
@@ -166,16 +170,34 @@ def search_text(
         if checkpoint:
             checkpoint()
         body = normalized.text[segment.start : segment.end]
+        allowed_fn: Callable[[int, int], bool] | None = None
+        if barriers:
+            offset = segment.start
 
-        def allowed(start: int, end: int, offset: int = segment.start) -> bool:
-            # No term, phrase, regex hit or NEAR stretch crosses a note barrier
-            # (spec 2.5); in segment coordinates, so shift by the segment start.
-            index = bisect.bisect_right(barriers, offset + start)
-            return index >= len(barriers) or barriers[index] >= offset + end
+            def allowed(start: int, end: int, offset: int = offset) -> bool:
+                # No term, phrase, regex hit or NEAR stretch crosses a note barrier
+                # (spec 2.5); in segment coordinates, so shift by the segment start.
+                index = bisect.bisect_right(barriers, offset + start)
+                return index >= len(barriers) or barriers[index] >= offset + end
 
-        find_spans = cache(partial(leaf_spans, text=body, allowed=allowed))
+            allowed_fn = allowed
 
-        if not evaluate(tree, body, allowed, find_spans=find_spans):
+        span_cache: dict[Leaf, list[tuple[int, int]]] = {}
+
+        def find_spans(
+            leaf: Leaf,
+            *,
+            _body: str = body,
+            _allowed: Callable[[int, int], bool] | None = allowed_fn,
+            _cache: dict[Leaf, list[tuple[int, int]]] = span_cache,
+        ) -> list[tuple[int, int]]:
+            cached = _cache.get(leaf)
+            if cached is None:
+                cached = leaf_spans(leaf, _body, _allowed)
+                _cache[leaf] = cached
+            return cached
+
+        if not evaluate(tree, body, allowed_fn, find_spans=find_spans):
             continue
         found = sorted(
             {
@@ -236,6 +258,13 @@ def _hit(normalized: NormalizedText, start: int, end: int) -> dict[str, Any]:
     }
 
 
+def _write_jsonl(stream: Any, records: Sequence[dict[str, Any]]) -> None:
+    for record in records:
+        stream.write(
+            json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
+        )
+
+
 def search_files(
     query: str,
     inputs: Sequence[Path],
@@ -292,30 +321,24 @@ def search_files(
             if mode == "sentence"
             else _segments(text, normalized, settings, mode)
         )
-        if long_warning(segments, settings):
+        warn = long_warning(segments, settings)
+        if warn:
             warnings.append(text.text_id)
         records.extend(
             search_text(
-                tree, query, text, normalized, settings, mode, segments=segments
+                tree,
+                query,
+                text,
+                normalized,
+                settings,
+                mode,
+                segments=segments,
+                warn_long=warn,
             )
         )
     for rank, record in enumerate(records, start=1):
         record["result_id"] = f"r{rank:06d}"
     titles = {text.text_id: text.title for text in texts}
-    jsonl_text = "".join(
-        json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
-        for record in records
-    )
-    rows = [
-        csv_row(
-            record,
-            views,
-            titles,
-            run_id,
-            normalizations.get(record["text_id"], options.name),
-        )
-        for record in records
-    ]
     run = {
         "schema": "cpe.search-run/1",
         "run_id": run_id,
@@ -332,15 +355,15 @@ def search_files(
         "itkc": LOCAL_ITKC,
     }
     run_text = json.dumps(run, ensure_ascii=False, indent=2) + "\n"
-    # All content is built before any file is opened, and each target is
-    # replaced only after its writer returns.
+    # Each output is streamed into its staged temporary file, and targets are
+    # replaced only after every writer returns cleanly.
     with staged([outputs.jsonl, outputs.csv, outputs.run], force=force) as (
         jsonl_path,
         csv_path,
         run_path,
     ):
         with jsonl_path.open("w", encoding="utf-8", newline="") as stream:
-            stream.write(jsonl_text)
+            _write_jsonl(stream, records)
         with csv_path.open("w", encoding="utf-8-sig", newline="") as stream:
             writer = csv.DictWriter(
                 stream,
@@ -350,8 +373,17 @@ def search_files(
             )
             writer.writeheader()
             writer.writerows(
-                {column: excel_safe(value) for column, value in row.items()}
-                for row in rows
+                {
+                    column: excel_safe(value)
+                    for column, value in csv_row(
+                        record,
+                        views,
+                        titles,
+                        run_id,
+                        normalizations.get(record["text_id"], options.name),
+                    ).items()
+                }
+                for record in records
             )
         with run_path.open("w", encoding="utf-8", newline="") as stream:
             stream.write(run_text)

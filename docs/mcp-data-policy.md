@@ -67,8 +67,8 @@ later tool call.
 | Kind | Valid values |
 | --- | --- |
 | Local slots | `local`, `local2`, `local3`, `local4` |
-| Online sources | `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `thdl`, `csid`, `cand`, `kyudb` |
-| DocuSky profile | `docusky:PROFILE` (a profile name accepted by the existing DocuSky catalogue); `docusky` covers its profiles |
+| Online sources | `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `engishiki`, `thdl`, `csid`, `cand`, `kyudb` |
+| DocuSky database | `docusky:DATABASE` (the catalogue's exact `source` value); `docusky` covers every catalogue database. Internal profile codes are not database identifiers. |
 | Import text | `import:gutenberg`, `import:ndl`, `import:rise`, `import:cbeta`, `import:nikh-partial` |
 
 There is no `all` value and no wildcard. Repeat the flag for each source:
@@ -89,7 +89,7 @@ The startup flags have different jobs:
 | Flag | What it grants | What it does not grant |
 | --- | --- | --- |
 | `--allow-source-text SOURCE` | Host permission to return source text and canonical records for the named scope. | Provider rights, a legal opinion, local-only processing, no-retention, or permission to publish. |
-| `--enable-online SOURCE` | Permission to contact an online source (including `all`, `docusky:PROFILE`, or one of the 18 online identifiers). | Permission to return its excerpt or record; add a separate source-text grant. |
+| `--enable-online SOURCE` | Permission to contact an online source (including `all`, `docusky:DATABASE` with the catalogue's exact `source` value, or one of the 19 online identifiers). | Permission to return its excerpt or record; add a separate source-text grant. |
 | `--enable-import PROVIDER` | Permission to use an import provider and read preview/progress metadata. | Permission to return the direct import-unit text; add `import:PROVIDER`. |
 | `--read-root PATH` | Path capability for tools that read. | Source-text disclosure. |
 | `--write-root PATH` | Path capability for tools that write or read outputs. | Source-text disclosure for returned rows. |
@@ -108,8 +108,8 @@ preview/history metadata does not implicitly grant source-text delivery.
 
 ## 3. Source rights are not one category
 
-The lead's review records an entry for all 18 online routes, but this is **not**
-18 complete licences and **not** 18 cloud approvals. Public-domain originals,
+The lead's review records an entry for all 19 online routes, but this is **not**
+19 complete licences and **not** 19 cloud approvals. Public-domain originals,
 provider-created transcriptions/OCR, annotations, database rights, access
 contracts and host-processing terms are distinct. Silence about AI is neither an
 express permission nor an express global prohibition.
@@ -123,7 +123,7 @@ collection, edition and host workflow before using a grant.
 | `ndl` | [Next Digital Library terms](https://lab.ndl.go.jp/service/tsugidigi/tsugidigi_en/#terms-of-use), [API information](https://lab.ndl.go.jp/service/tsugidigi/apiinfo/) | Next Digital Library OCR data carries Public Domain Mark; API access, attribution, edit notices and continuous-use conditions remain separate. Do not substitute NDL Search's different terms or infer a vendor AI approval. |
 | `cbeta` | [CBETA copyright](https://cbeta.org/copyright) | Default CC BY-NC-SA 4.0 with per-work exceptions; non-profit, version and reuse notices matter. No vendor-specific cloud or training permission established. |
 | `cyberseodang` | [Copyright](https://db.cyberseodang.or.kr/front/about/AboutCopyright.do), [terms](https://db.cyberseodang.or.kr/front/about/AboutPolicy.do), [API](https://db.cyberseodang.or.kr/front/openapi/OpenApiMain.do) | CC BY-NC-ND 2.0 KR and attribution conditions are material; an API interface is not a content licence. No explicit cloud permission found. |
-| `docusky` and `docusky:PROFILE` | [DocuSky service rules](https://hackmd.io/@DocuSky/rJqemuiFQ) | Personal non-commercial use under applicable rights; uploader and linked-provider rights remain. A public profile is not a corpus-reuse or cloud licence. Resolve the actual profile. |
+| `docusky` and `docusky:DATABASE` | [DocuSky service rules](https://hackmd.io/@DocuSky/rJqemuiFQ) | Personal non-commercial use under applicable rights; uploader and linked-provider rights remain. A public catalogue database is not a corpus-reuse or cloud licence. Resolve the actual database. |
 | `historydb` | [NIKH copyright policy](https://www.history.go.kr/contents/contentsPage.do?groupId=000000000571&menuId=000000000572&pageId=000000000213), [database](https://db.history.go.kr/) | Personal academic/research use with source attribution; third-party and jointly held material needs separate rights. No explicit cloud processing permission found. |
 | `sillok` | [NIKH policy](https://www.history.go.kr/contents/contentsPage.do?groupId=000000000571&menuId=000000000572&pageId=000000000213), [service](https://sillok.history.go.kr/) | Same policy family; the service footer carries All Rights Reserved. Do not treat a separate downloadable dataset's licence as covering every search result. |
 | `nrich` | [Copyright](https://portal.nrich.go.kr/kor/page.do?menuIdx=138), [developer guide](https://portal.nrich.go.kr/kor/page.do?menuIdx=666) | Inspect the actual KOGL mark and conditions; the wooden-tablet dataset's record-level assignment was not established. No blanket cloud grant. |
@@ -136,7 +136,8 @@ collection, edition and host workflow before using a grant.
 | `thdl` | [Homepage](https://thdl.ntu.edu.tw/index.html) | Research invitation and citation guidance, not blanket cloud or redistribution permission. **Unknown** beyond recorded guidance. |
 | `csid` | [Catalogue](https://libdb.zju.edu.cn/s/lib/libtb/show/1516), [library rules](https://libweb.zju.edu.cn/2016/1014/c55987a2245977/page.htm), [university terms](https://www.zju.edu.cn/english/2018/0523/c20094a813073/page.htm) | Public access and linked-library rules address authorized users, personal research and bulk access; applicability to external users and cloud processing needs clarification. Metadata is not immunity. |
 | `cand` | [Published policy](https://tool.hankeidou.jp/privacy_policy/) | Unauthorized reposting of text/images is prohibited and links are generally permitted; no cloud-processing or automated metadata-reuse grant was established. |
-| `ships` | [Database guidance](https://www.hi.u-tokyo.ac.jp/db/) | Scholarly use; no fetched SHIPS record is returned by this route. The generated URL contains the query, and a later browser visit is outside this connector. |
+| `ships` | [Database guidance](https://www.hi.u-tokyo.ac.jp/db/) | Scholarly use; no fetched SHIPS record is returned by this route. The generated URL contains the query and the selected full-text database (diaries, Dai Nihon Shiryō, premodern, Nara, Heian, Kamakura or Nanbokuchō); a later browser visit is outside this connector. |
+| `engishiki` | [Digital Engishiki](https://khirin-t.rekihaku.ac.jp/engishiki/), [terms](https://khirin-t.rekihaku.ac.jp/engishiki/) | Public search and text are CC BY 4.0 with attribution; the provider filters its published text in the browser. This route returns only a navigation URL and no fetched row or source text. |
 
 The primary links above are the published references for the route map. The
 table is not a complete licence review or a substitute for checking the actual
@@ -168,7 +169,12 @@ retention or local-model use as automatic compliance.
 
 `export_search_snapshot` writes the projected snapshot: without a grant, only
 references and metadata; with a grant, the same display and canonical fields
-that the host may return. The snapshot CSV now includes `core_result_id`,
+that the host may return. The desktop GUI's snapshot export (`pick_export_path`
+/ `export_results`, schemas `cpe.gui.snapshot/1` and `cpe.gui.snapshot-row/1`)
+shares `cpe/export/snapshot.py`, exporting displayed local/online panel snapshots
+and ITKC `displayedRevision` without re-querying providers, never inventing
+records for `SHIPS` or reference-only routes, and blocking collisions against
+loaded source texts, loaded pattern `.toml` files, settings, or ITKC logs. The snapshot CSV now includes `core_result_id`,
 `matched_field`, `positions`, `citation`, `evidence_scope`, `group_semantics`,
 `text_views`, `text_withheld` and `record_withheld` columns. CSV serializes
 structured values as JSON text. Snapshot JSONL is the better machine-fidelity
@@ -211,4 +217,4 @@ context, boundaries and evidence level.
    reconstruct withheld material.
 6. Resolve the actual source/edition rights and the host's model, retention and
    sharing arrangement before granting a route.
-7. Treat the all-18 review as a route map, not as 18 permissions.
+7. Treat the all-19 review as a route map, not as 19 permissions.

@@ -45,6 +45,7 @@ _TERMS = {
     "sat": "https://21dzk.l.u-tokyo.ac.jp/SAT/termsofuse.html",
     "aksarchive": "https://archive.aks.ac.kr/index.do",
     "ships": "https://www.hi.u-tokyo.ac.jp/db/",
+    "engishiki": "https://khirin-t.rekihaku.ac.jp/engishiki/",
     "thdl": "https://thdl.ntu.edu.tw/index.html",
     "csid": "https://libweb.zju.edu.cn/2016/1014/c55987a2245977/page.htm",
     "cand": "https://tool.hankeidou.jp/privacy_policy/",
@@ -168,17 +169,72 @@ class DisclosurePolicy:
             if not isinstance(value, dict):
                 return copy.deepcopy(value)
             result = {key: project(item) for key, item in value.items()}
-            details = result.get("details")
-            if (
-                isinstance(details, dict)
-                and "slices" in details
-                and not self.allows("import:rise")
-            ):
-                slices = details.pop("slices")
-                details["source_slices_withheld"] = True
-                if isinstance(slices, list):
-                    details["source_slices_count"] = len(slices)
-                details["source_text_scope"] = "import:rise"
+            self._redact_details(result)
             return result
 
         return cast(dict[str, Any], project(payload))
+
+    def _redact_details(self, mapping: dict[str, Any]) -> None:
+        details = mapping.get("details")
+        if (
+            isinstance(details, dict)
+            and "slices" in details
+            and not self.allows("import:rise")
+        ):
+            slices = details.pop("slices")
+            details["source_slices_withheld"] = True
+            if isinstance(slices, list):
+                details["source_slices_count"] = len(slices)
+            details["source_text_scope"] = "import:rise"
+
+    def _project_value(self, value: Any) -> Any:
+        if isinstance(value, list):
+            return [self._project_value(item) for item in value]
+        if not isinstance(value, dict):
+            return copy.deepcopy(value)
+        result = {key: self._project_value(item) for key, item in value.items()}
+        self._redact_details(result)
+        return result
+
+    def present(self, payload: dict[str, Any], scope: str = "") -> dict[str, Any]:
+        """Project search rows, source disclosure and import metadata in one pass."""
+        query = payload.get("query")
+        source = payload.get("source")
+        effective_scope = scope
+        if not effective_scope and isinstance(query, dict):
+            effective_scope = query.get("source_id", "")
+        if not effective_scope and isinstance(source, dict):
+            candidate = source.get("name", "")
+            effective_scope = (
+                candidate
+                if isinstance(candidate, str) and self.valid(candidate)
+                else ""
+            )
+        if not effective_scope and isinstance(payload.get("disclosure"), dict):
+            effective_scope = payload["disclosure"].get("source_id", "")
+
+        result: dict[str, Any] = {}
+        for key, value in payload.items():
+            if key in ("rows", "likely", "less") and isinstance(value, (list, tuple)):
+                rows = []
+                for row in value:
+                    projected_row = self.row(row, effective_scope)
+                    if "details" in projected_row:
+                        self._redact_details(projected_row)
+                    rows.append(projected_row)
+                result[key] = rows
+            elif key == "results" and isinstance(value, list):
+                result[key] = [
+                    self.present(panel, panel.get("source_id", "")) for panel in value
+                ]
+            elif key == "sources" and isinstance(value, list):
+                result[key] = [self.present(item) for item in value]
+            else:
+                result[key] = self._project_value(value)
+
+        self._redact_details(result)
+        if any(field in result for field in ("rows", "likely", "less", "search_id")):
+            result["disclosure"] = self.describe(effective_scope)
+        if isinstance(result.get("id"), str) and self.valid(result["id"]):
+            result["disclosure"] = self.describe(result["id"])
+        return result

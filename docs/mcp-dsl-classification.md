@@ -12,5 +12,9 @@ not be translated into a probability or treated as a verified reading.
 
 The existing matcher result kind, source coordinates, slots and canonical JSONL
 record stay unchanged. Pair-like patterns retain their existing diagnostics.
-CLI canonical exports do not acquire a new grading rule. A later researcher
-decision, with recorded classical-use evidence, can define a broader policy.
+The desktop GUI Pattern DSL mode shares `cpe/gui/patterns.py` and presents the two
+groups with neutral UI headings (`Matched` and `Needs review`, with an explicit
+classification note) so `classification_unreviewed` is never surfaced as a
+likelihood claim. CLI canonical exports do not acquire a new grading rule. A later
+researcher decision, with recorded classical-use evidence, can define a broader
+policy.

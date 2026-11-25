@@ -14,7 +14,11 @@ from pydantic import Field
 
 from cpe.mcp.disclosure import DisclosurePolicy
 from cpe.mcp.evidence import RESEARCH_CONTEXT
-from cpe.mcp.response import RESPONSE_LIMIT, result_payload, wire_size
+from cpe.mcp.response import (
+    RESPONSE_LIMIT,
+    bounded_result_payload,
+    result_payload,
+)
 from cpe.mcp.service import SearchService
 
 if TYPE_CHECKING:
@@ -22,19 +26,21 @@ if TYPE_CHECKING:
 
 
 def _result(payload: dict[str, Any]) -> CallToolResult:
-    size = wire_size(payload)
+    size, envelope = bounded_result_payload(payload)
     if size > RESPONSE_LIMIT:
-        payload = {
-            "error": "response_limit",
-            "bytes": size,
-            "limit": RESPONSE_LIMIT,
-            **{
-                key: payload[key]
-                for key in ("search_id", "id", "job")
-                if isinstance(payload.get(key), str) and len(payload[key]) <= 128
-            },
-        }
-    return CallToolResult.model_validate(result_payload(payload))
+        envelope = result_payload(
+            {
+                "error": "response_limit",
+                "bytes": size,
+                "limit": RESPONSE_LIMIT,
+                **{
+                    key: payload[key]
+                    for key in ("search_id", "id", "job")
+                    if isinstance(payload.get(key), str) and len(payload[key]) <= 128
+                },
+            }
+        )
+    return CallToolResult.model_validate(envelope)
 
 
 async def _search(service: SearchService, **arguments: Any) -> dict[str, Any]:
@@ -71,7 +77,7 @@ def create_server(
         workspace.disclosure = policy
 
     def present(payload: dict[str, Any]) -> CallToolResult:
-        return _result(policy.import_metadata(policy.source(policy.search(payload))))
+        return _result(policy.present(payload))
 
     server: MCPServer[Any] = MCPServer(
         "Classic Pattern Explorer",

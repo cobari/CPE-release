@@ -394,12 +394,28 @@ def search_docusky(
     settings: Settings,
     checkpoint: Callable[[], None] | None = None,
     *,
+    page: int = 1,
     include_records: bool = False,
 ) -> dict[str, Any]:
-    """Search a reviewed profile or a public catalogue database."""
+    """Search a reviewed profile or a public catalogue database.
+
+    The bridge carries the manual page in the request; direct callers may pass it
+    as ``page``. Only reviewed profiles move past their first page.
+    """
     try:
         profile = docusky.profile_for_source(str(request.get("source") or "docusky"))
     except docusky.DocuskyError:
+        return {"error": "bad_request"}
+    requested_page = request.get("page", page)
+    if (
+        isinstance(requested_page, bool)
+        or not isinstance(requested_page, int)
+        or not 1 <= requested_page <= docusky.MAX_MANUAL_PAGES
+    ):
+        return {"error": "bad_request"}
+    # The GUI offers the action for reviewed profiles alone; an unreviewed
+    # database keeps its first page.
+    if requested_page != 1 and not profile.reviewed:
         return {"error": "bad_request"}
     if request.get("mode") == "pair":
         first = str(request.get("first", "")).strip()
@@ -431,7 +447,14 @@ def search_docusky(
         return {"error": "docusky_query"}
     phrase = max(sendable, key=len)
     try:
-        fetched = docusky.fetch(phrase, client, profile, checkpoint=checkpoint)
+        if requested_page == 1:
+            # Page 1 keeps the page-less call shape so wrappers that patch `fetch`
+            # with the older signature still work.
+            fetched = docusky.fetch(phrase, client, profile, checkpoint=checkpoint)
+        else:
+            fetched = docusky.fetch(
+                phrase, client, profile, page=requested_page, checkpoint=checkpoint
+            )
     except docusky.DocuskyCapReached:
         return {"error": "source_cap"}
     except docusky.DocuskyError:
@@ -459,7 +482,71 @@ def search_docusky(
         "database": profile.database,
         "reviewed": profile.reviewed,
     }
+    # `source` keeps its established shape; the page cursor lives beside it so
+    # existing source-scope consumers (tests, panels, MCP projection) do not
+    # change their key set.
+    answer["continuation"] = _docusky_continuation(fetched)
     return answer
+
+
+def _docusky_continuation(fetched: docusky.Fetched) -> dict[str, Any]:
+    """Page cursor and deterministic identities of one manual page."""
+    return {
+        "mode": "page",
+        "page": fetched.page,
+        "page_size": fetched.page_size,
+        "records": fetched.records,
+        "accepted": fetched.accepted,
+        "excluded": fetched.excluded,
+        "total": fetched.total,
+        "has_more": fetched.has_more,
+        "max_pages": fetched.max_pages,
+        "identities": [text.text_id for text in fetched.texts],
+    }
+
+
+def repeated_docusky_page(seen_ids: set[str], page_identities: list[str]) -> bool:
+    """True when every identity of a page was already displayed.
+
+    Identity is the deterministic text_id (profile + document + paragraph); text
+    similarity is never used to dedupe. An empty page is not a repeat.
+    """
+    return bool(page_identities) and set(page_identities) <= seen_ids
+
+
+def merge_docusky_page_results(
+    existing: dict[str, Any], next_answer: dict[str, Any]
+) -> dict[str, Any]:
+    """Merge a later page's ``continuation`` metadata into ``existing``, by identity.
+
+    Updates only ``continuation`` metadata (page, counts, and deduplicated
+    identities); ``Api.apply_docusky_page`` merges the ``likely``/``less`` rows
+    and row counts. Raises ValueError when the page repeats only identities
+    already displayed, so the caller keeps the current page instead of applying
+    the same rows twice.
+    """
+    current = existing.get("continuation") or {}
+    following = next_answer.get("continuation") or {}
+    seen = [str(identity) for identity in current.get("identities") or []]
+    incoming = [str(identity) for identity in following.get("identities") or []]
+    if repeated_docusky_page(set(seen), incoming):
+        raise ValueError("repeated docusky page")
+    known = set(seen)
+    merged = dict(existing)
+    merged["continuation"] = {
+        "mode": "page",
+        "page": following.get("page", current.get("page", 1)),
+        "page_size": following.get("page_size", current.get("page_size")),
+        "records": int(current.get("records", 0)) + int(following.get("records", 0)),
+        "accepted": int(current.get("accepted", 0)) + int(following.get("accepted", 0)),
+        "excluded": int(current.get("excluded", 0)) + int(following.get("excluded", 0)),
+        "total": following.get("total", current.get("total", 0)),
+        "has_more": bool(following.get("has_more")),
+        "max_pages": following.get("max_pages", current.get("max_pages", 1)),
+        "identities": seen
+        + [identity for identity in incoming if identity not in known],
+    }
+    return merged
 
 
 def docusky_catalog(client: docusky.DocuskyClient) -> dict[str, Any]:
@@ -1199,6 +1286,8 @@ def search_historydb(
     """
     del settings
     term, error = single_term(request, "historydb_query", "|{}()@")
+    # A wrong mode or non-string query keeps its query error ahead of site/item
+    # validation; the remaining term errors keep the established site/item order.
     if request.get("mode") != "words" or not isinstance(request.get("query"), str):
         return {"error": error}
     site = request.get("site")

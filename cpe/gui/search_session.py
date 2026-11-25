@@ -13,6 +13,7 @@ import math
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from functools import partial
 from typing import Any
 
 from cpe.gui import online
@@ -86,7 +87,7 @@ class ItkcSearchSession:
         generation: int,
         current_generation: Callable[[int], bool],
         *,
-        analyzer: Callable[..., dict[str, Any]] = online.search_itkc,
+        analyzer: Callable[..., dict[str, Any]] | None = None,
     ) -> None:
         self.id = job_id
         self._request = copy.deepcopy(request)
@@ -94,7 +95,7 @@ class ItkcSearchSession:
         self._client = client
         self._generation = generation
         self._current_generation = current_generation
-        self._analyzer = analyzer
+        self._analyzer = analyzer or partial(online.search_itkc, include_records=True)
         self._lock = threading.RLock()
         self._snapshot_lock = threading.Lock()
         self._cancelled = threading.Event()
@@ -269,12 +270,44 @@ class ItkcSearchSession:
             self._state = previous.state
             self._error = ""
 
+    def snapshot_for_export(self, revision: int) -> dict[str, Any]:
+        """Copy the displayed revision without advancing or asking the provider."""
+        from cpe.export.run_file import normalization_section, settings_section
+
+        if type(revision) is not int or revision < 0:
+            return {"error": "bad_request"}
+        with self._snapshot_lock:
+            snapshot = self._snapshots.get(revision)
+            if snapshot is None:
+                return {"error": "snapshot_not_found"}
+            answer = self._metadata_for(snapshot, current=revision == self._revision)
+            rows = [
+                {**copy.deepcopy(row), "group": group}
+                for group, items in (
+                    ("likely", snapshot.likely),
+                    ("less", snapshot.less),
+                )
+                for row in items
+            ]
+            answer.update(
+                mode=self._request.get("mode", ""),
+                query=copy.deepcopy(self._request),
+                source_id="itkc",
+                snapshot_id=f"{self.id}:{revision}",
+                normalization=normalization_section(self._settings.normalization),
+                settings=settings_section(self._settings),
+                rows=rows,
+            )
+            return answer
+
     def page(
         self,
         revision: int,
         group: str,
         start: int = 0,
         sort: str = "source",
+        *,
+        include_records: bool = False,
     ) -> dict[str, Any]:
         if (
             isinstance(revision, bool)
@@ -300,5 +333,8 @@ class ItkcSearchSession:
                 self._sorted_cache[cache_key] = ordered
             answer = self._metadata_for(snapshot, current=current)
         rows = copy.deepcopy(ordered[start : start + PAGE_ROWS])
+        if not include_records:
+            for row in rows:
+                row.pop("record", None)
         answer.update({"group": group, "start": start, "rows": rows})
         return answer

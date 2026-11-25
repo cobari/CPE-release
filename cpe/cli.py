@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 OUTPUT_HELP = "output prefix; writes PREFIX.csv, PREFIX.jsonl and PREFIX.run.json"
+DEFAULT_PATTERNS = Path("patterns") / "mvp.toml"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -90,7 +91,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     evaluation.add_argument(
         "--patterns",
         type=Path,
-        default=Path("patterns") / "mvp.toml",
+        default=DEFAULT_PATTERNS,
         help="pattern file (default: patterns/mvp.toml)",
     )
     evaluation.add_argument("--out", type=Path, required=True, help="output prefix")
@@ -102,17 +103,77 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="count only entries the researcher has confirmed (gate 1-A)",
     )
+    gold = subcommands.add_parser(
+        "gold", help="Prepare and check local G2 annotations."
+    )
+    gold_commands = gold.add_subparsers(dest="gold_command", required=True)
+    sentences = gold_commands.add_parser(
+        "sentences", help="List a source passage in reading order with source offsets."
+    )
+    sentences.add_argument("passage", type=Path, help="local UTF-8 passage file")
+    sentences.add_argument(
+        "--span",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="zero-based source code-point range [START, END)",
+    )
+    validation = gold_commands.add_parser(
+        "validate",
+        help="Check G2 JSONL and its source files before evaluation.",
+        description="Check evaluation-ready G2 JSONL against its source files.",
+    )
+    validation.add_argument("gold", type=Path, nargs="+", help="G2 JSONL files")
+    validation.add_argument(
+        "--patterns",
+        type=Path,
+        default=DEFAULT_PATTERNS,
+        help="pattern file (default: patterns/mvp.toml)",
+    )
+    build = gold_commands.add_parser(
+        "build", help="Convert a passage and annotation CSV into evaluation JSONL."
+    )
+    build.add_argument("passage", type=Path, help="local UTF-8 passage file")
+    build.add_argument("annotations", type=Path, help="human annotation CSV")
+    for field, help_text in (
+        ("passage-id", "unique ID for this source passage"),
+        ("pattern-id", "ID from the pattern file"),
+        ("work", "recorded work title"),
+        ("section", "recorded chapter or section"),
+        ("edition", "recorded edition or source identifier"),
+    ):
+        build.add_argument(f"--{field}", required=True, help=help_text)
+    build.add_argument("--out", required=True, type=Path, help="output gold JSONL file")
+    build.add_argument(
+        "--patterns", type=Path, default=DEFAULT_PATTERNS, help="pattern file"
+    )
+    build.add_argument(
+        "--span",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="the same source span used with gold sentences",
+    )
+    build.add_argument(
+        "--source-sha256", help="expected source hash from gold sentences"
+    )
+    build.add_argument("--force", action="store_true", help="replace existing output")
     gui = subcommands.add_parser(
         "gui",
         help="Open the search window.",
         description=(
-            "Open the search window. The given texts (files, or folders whose .txt and "
-            ".md files are read with their subfolders) are read once at start; without "
-            "them the window opens the folder "
+            "Open the search window. The given texts (files, or folders whose .txt, "
+            ".md, and .texts.jsonl files are read with their subfolders) are read once "
+            "at start; without them the window opens the folder "
             "used last time, and another folder can be opened from the window."
         ),
     )
-    gui.add_argument("inputs", type=Path, nargs="*", help="UTF-8 text files or folders")
+    gui.add_argument(
+        "inputs",
+        type=Path,
+        nargs="*",
+        help="UTF-8 text files (.txt, .md), text bundles (.texts.jsonl), or folders",
+    )
     for flag, what in (
         ("--note-markers", "interlinear notes"),
         ("--annotation-markers", "attached annotations"),
@@ -141,6 +202,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run(args, _search)
     if args.command == "probe":
         return _probe(args)
+    if args.command == "gold":
+        if args.gold_command == "sentences":
+            return _gold_sentences(args)
+        if args.gold_command == "build":
+            return _build_gold(args)
+        return _validate_gold(args)
     return _evaluate(args)
 
 
@@ -220,6 +287,53 @@ def _evaluate(args: argparse.Namespace) -> int:
         print(f"error: {error}", file=sys.stderr)
         return 1
     print(f"wrote {json_path}, {md_path}")
+    return 0
+
+
+def _gold_sentences(args: argparse.Namespace) -> int:
+    from cpe.eval.gold import reading_list
+    from cpe.mcp.onboarding import emit
+
+    try:
+        emit(reading_list(args.passage, args.span))
+    except (OSError, ValueError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _validate_gold(args: argparse.Namespace) -> int:
+    from cpe.eval.gold import validate
+
+    try:
+        entries, sources = validate(args.gold, args.patterns)
+    except (OSError, ValueError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print(f"Validated {entries} gold entries against {sources} source files.")
+    return 0
+
+
+def _build_gold(args: argparse.Namespace) -> int:
+    from cpe.eval.gold_build import Citation, build
+
+    try:
+        entries = build(
+            args.passage,
+            args.annotations,
+            args.out,
+            passage_id=args.passage_id,
+            citation=Citation(args.work, args.section, args.edition),
+            pattern_id=args.pattern_id,
+            patterns_path=args.patterns,
+            span=args.span,
+            source_sha256=args.source_sha256,
+            force=args.force,
+        )
+    except (OSError, ValueError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print(f"wrote {args.out} ({entries} gold entries)")
     return 0
 
 

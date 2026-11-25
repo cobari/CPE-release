@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tomllib
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TypeVar
@@ -70,13 +70,8 @@ class LocalText:
     id_from_manifest: bool = False
 
 
-def read(path: Path) -> LocalText:
-    """Decode strictly with line endings kept; never replace undecodable bytes.
-
-    A leading byte-order mark is dropped from the reference text and reported, so
-    offsets count from the first character of the text itself.
-    """
-    data = path.read_bytes()
+def parse_text_bytes(path: Path, data: bytes, manifest: dict[str, object]) -> LocalText:
+    """Decode raw UTF-8 text bytes strictly and pair them with `manifest`."""
     try:
         # newline="" semantics: bytes.decode keeps CR and CRLF as they are.
         reference = data.decode("utf-8", errors="strict")
@@ -85,9 +80,16 @@ def read(path: Path) -> LocalText:
     bom = reference.startswith(_BOM)
     if bom:
         reference = reference[1:]
-    return _local_text(
-        path, reference, hashlib.sha256(data).hexdigest(), bom, _manifest(path)
-    )
+    return _local_text(path, reference, hashlib.sha256(data).hexdigest(), bom, manifest)
+
+
+def read(path: Path) -> LocalText:
+    """Decode strictly with line endings kept; never replace undecodable bytes.
+
+    A leading byte-order mark is dropped from the reference text and reported, so
+    offsets count from the first character of the text itself.
+    """
+    return parse_text_bytes(path, path.read_bytes(), _manifest(path))
 
 
 def read_inputs(paths: Iterable[Path]) -> list[LocalText]:
@@ -148,6 +150,62 @@ def parse_bundle(path: Path, content: bytes) -> list[LocalText]:
         digest = hashlib.sha256(reference.encode("utf-8")).hexdigest()
         texts.append(_local_text(path, reference, digest, False, entry, where))
     return texts
+
+
+def iter_bundle_ids(path: Path) -> Iterator[str]:
+    """Validate JSONL one line at a time without constructing source-text objects.
+
+    Consumers must exhaust this iterator before publication: a later invalid
+    line rejects the whole bundle, just as it does in ``parse_bundle``.
+    """
+    with path.open("rb") as stream:
+        for number, raw in enumerate(stream, 1):
+            where = Path(f"{path}:{number}")
+            try:
+                line = raw.decode("utf-8-sig" if number == 1 else "utf-8")
+            except UnicodeDecodeError as error:
+                raise InputError(f"{path}: not valid UTF-8 ({error})") from None
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line, object_pairs_hook=_unique_object)
+            except ValueError as error:
+                raise InputError(f"{where}: not a JSON object ({error})") from None
+            if not isinstance(entry, dict):
+                raise InputError(f"{where}: not a JSON object")
+            try:
+                json.dumps(entry, ensure_ascii=False).encode("utf-8")
+            except UnicodeEncodeError:
+                raise InputError(f"{where}: unpaired Unicode surrogate") from None
+            if not isinstance(entry.pop("text", None), str):
+                raise InputError(f"{where}: text must be a string")
+            if "text_id" not in entry:
+                raise InputError(f"{where}: a bundle entry needs a text_id")
+            for key, allowed, default in (
+                ("range", _RANGES, "excerpt"),
+                ("boundary_start", _TEXT_EDGES, "truncated"),
+                ("boundary_end", _TEXT_EDGES, "truncated"),
+                ("punctuation", _PUNCTUATIONS, "modern"),
+                ("full_stop", _FULL_STOPS, "sentence"),
+            ):
+                _choice(entry, key, allowed, default, where)
+            text_id = _string(entry, "text_id", path.stem, where)
+            if not text_id:
+                raise InputError(f"{where}: manifest text_id must not be empty")
+            for key, default in (
+                ("text_type", "original"),
+                ("title", ""),
+                ("source", ""),
+                ("edition", ""),
+                ("era", ""),
+            ):
+                _string(entry, key, default, where)
+            _year(entry, "year", where)
+            _year(entry, "year_end", where)
+            _marker(entry, "note_open", where)
+            _marker(entry, "note_close", where)
+            _flag(entry, "halfwidth_punctuation", where)
+            yield text_id
 
 
 def _local_text(
@@ -261,12 +319,23 @@ def manifest_path(path: Path) -> Path:
     return path.with_name(path.name + MANIFEST_SUFFIX)
 
 
-def _manifest(path: Path) -> dict[str, object]:
+def read_manifest_bytes(path: Path) -> bytes | None:
     sidecar = manifest_path(path)
     if not sidecar.exists():
+        return None
+    return sidecar.read_bytes()
+
+
+def parse_manifest_bytes(sidecar: Path, data: bytes | None) -> dict[str, object]:
+    if data is None:
         return {}
     try:
         # utf-8-sig accepts a manifest saved as "UTF-8 with BOM", like .txt inputs.
-        return tomllib.loads(sidecar.read_bytes().decode("utf-8-sig"))
+        return tomllib.loads(data.decode("utf-8-sig"))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as error:
         raise InputError(f"{sidecar}: not a valid TOML manifest ({error})") from None
+
+
+def _manifest(path: Path) -> dict[str, object]:
+    sidecar = manifest_path(path)
+    return parse_manifest_bytes(sidecar, read_manifest_bytes(path))

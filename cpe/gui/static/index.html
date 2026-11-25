@@ -37,11 +37,12 @@
       <h2 id="search-title" data-i18n="welcome.title"></h2>
       <p id="welcome-help" data-i18n="welcome.help" data-ui-copy data-ui-copy-action="sources"></p>
     </section>
-    <form class="search is-compound" id="search">
+    <form class="search is-compound" id="search" novalidate>
       <div class="mode-picker" id="mode-picker">
         <div class="modes" role="radiogroup" data-i18n-aria="search.mode">
           <label data-i18n-title="search.hint.single"><input type="radio" name="mode" value="words"> <span data-i18n="search.single"></span></label>
           <label data-i18n-title="search.hint.compound"><input type="radio" name="mode" value="pair" checked> <span data-i18n="search.compound"></span></label>
+          <label data-i18n-title="search.hint.pattern"><input type="radio" name="mode" value="pattern"> <span data-i18n="search.pattern"></span></label>
         </div>
       </div>
       <div class="inputs">
@@ -58,6 +59,52 @@
           </button>
           <span class="field"><label for="second" data-i18n="search.second.label"></label><span class="input-wrap"><input id="second" autocomplete="off" data-i18n-aria="search.second.label" data-i18n-placeholder="search.second.placeholder" data-i18n-title="search.hint.compound" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
         </div>
+        <div class="boxes pattern" role="group" data-i18n-aria="search.pattern.label">
+          <div class="pattern-builder-steps" id="pattern-builder-steps">
+            <div class="pattern-step" data-step-index="0" data-step-id="step-0">
+              <span class="field pattern-term-field"><label for="pattern-term-0" data-i18n="search.pattern.term_label" data-i18n-vars='{"n":1}'></label><span class="input-wrap"><input id="pattern-term-0" class="pattern-term-input" autocomplete="off" data-i18n-aria="search.pattern.term_label" data-i18n-vars='{"n":1}' data-i18n-placeholder="search.pattern.term_placeholder" data-i18n-title="search.hint.pattern" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
+              <span class="field pattern-gap-field">
+                <label for="pattern-gap-min-0" data-i18n="search.pattern.gap_label" data-i18n-vars='{"slot":"A"}'></label>
+                <span class="pattern-gap-inputs">
+                  <input id="pattern-gap-min-0" class="pattern-gap-min" type="number" min="0" step="1" value="1" placeholder="1" inputmode="numeric" data-i18n-aria="search.pattern.gap_min_aria" data-i18n-vars='{"slot":"A"}'>
+                  <span class="pattern-gap-sep" data-i18n="search.pattern.gap_range_sep"></span>
+                  <input id="pattern-gap-max-0" class="pattern-gap-max" type="number" min="0" step="1" value="20" placeholder="20" inputmode="numeric" data-i18n-aria="search.pattern.gap_max_aria" data-i18n-vars='{"slot":"A"}'>
+                </span>
+              </span>
+            </div>
+            <div class="pattern-step" data-step-index="1" data-step-id="step-1">
+              <span class="field pattern-term-field"><label for="pattern-term-1" data-i18n="search.pattern.term_label" data-i18n-vars='{"n":2}'></label><span class="input-wrap"><input id="pattern-term-1" class="pattern-term-input" autocomplete="off" data-i18n-aria="search.pattern.term_label" data-i18n-vars='{"n":2}' data-i18n-placeholder="search.pattern.term_placeholder" data-i18n-title="search.hint.pattern" aria-describedby="search-help"><button type="button" class="clear" data-i18n-aria="search.clear">✕</button></span></span>
+              <span class="field pattern-gap-field">
+                <label for="pattern-gap-min-1" data-i18n="search.pattern.gap_label" data-i18n-vars='{"slot":"B"}'></label>
+                <span class="pattern-gap-inputs">
+                  <input id="pattern-gap-min-1" class="pattern-gap-min" type="number" min="0" step="1" value="" placeholder="1" inputmode="numeric" data-i18n-aria="search.pattern.gap_min_aria" data-i18n-vars='{"slot":"B"}'>
+                  <span class="pattern-gap-sep" data-i18n="search.pattern.gap_range_sep"></span>
+                  <input id="pattern-gap-max-1" class="pattern-gap-max" type="number" min="0" step="1" value="" placeholder="20" inputmode="numeric" data-i18n-aria="search.pattern.gap_max_aria" data-i18n-vars='{"slot":"B"}'>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pattern-options" id="pattern-options">
+        <div class="pattern-toolbar">
+          <label class="pattern-scope-control">
+            <span data-i18n="search.pattern.scope_label"></span>
+            <select id="pattern-scope">
+              <option value="sentence" selected data-i18n="search.pattern.scope_sentence"></option>
+              <option value="clause" data-i18n="search.pattern.scope_clause"></option>
+              <option value="window" data-i18n="search.pattern.scope_window"></option>
+            </select>
+            <input id="pattern-window" class="pattern-window-input is-hidden" type="number" min="1" step="1" value="20" inputmode="numeric" data-i18n-aria="search.pattern.window_aria">
+          </label>
+          <button type="button" class="open pattern-tool-btn" id="pattern-add-step" data-i18n="search.pattern.add_step"></button>
+          <button type="button" class="open pattern-tool-btn pattern-exclusion-btn" id="pattern-toggle-exclusions" aria-expanded="false" aria-controls="pattern-exclusions"><span data-i18n="search.pattern.exclusions_toggle"></span><span class="pattern-exclusion-count is-hidden" id="pattern-exclusion-count" aria-hidden="true"></span></button>
+          <div class="pattern-file-controls">
+            <button type="button" class="open" id="pattern-file-pick" data-i18n="search.pattern.pick_file"></button>
+            <span class="pattern-file-chip is-hidden" id="pattern-file-chip"><span id="pattern-file-label"></span><button type="button" class="link-button" id="pattern-file-clear" data-i18n="search.pattern.clear_file"></button></span>
+          </div>
+        </div>
+        <div class="pattern-exclusions is-hidden" id="pattern-exclusions"></div>
       </div>
       <div class="search-actions">
         <button type="button" class="source-help mode-help" id="mode-help" data-i18n-aria="search.mode" aria-controls="source-guide" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle class="info-disc" cx="12" cy="12" r="9"/><path class="info-mark" d="M12 9v.01M12 12v5"/></svg></button>
@@ -74,9 +121,14 @@
       </div>
     </form>
 
+    <div class="review-entry">
+      <button type="button" class="link-button" id="review-open" data-i18n="review.open"></button>
+      <span id="review-feedback" role="status"></span>
+    </div>
     <div class="results-bar is-hidden" id="results-bar">
       <button type="button" class="search-stop is-hidden" id="search-stop" aria-controls="panels" data-i18n="search.stop"></button>
       <button type="button" class="link-button" id="results-clear" aria-controls="panels" data-i18n="search.reset"></button>
+      <button type="button" class="link-button" id="review-save-search" data-i18n="review.save_search" disabled></button>
       <p class="status" id="status" role="status" aria-live="polite"></p>
       <button type="button" class="link-button batch-details is-hidden" id="batch-details" data-i18n="batch.details"></button>
       <label class="sort"><span data-i18n="sort.label"></span>
@@ -86,6 +138,16 @@
           <option value="era-desc" data-i18n="sort.era_desc"></option>
         </select>
       </label>
+      <div class="results-export" id="results-export">
+        <label class="export-format"><span data-i18n="export.format.label"></span>
+          <select id="export-format">
+            <option value="csv" data-i18n="export.format.csv"></option>
+            <option value="jsonl" data-i18n="export.format.jsonl"></option>
+          </select>
+        </label>
+        <button type="button" class="open" id="export-results" data-i18n="export.button" aria-describedby="export-status"></button>
+      </div>
+      <p class="status is-hidden" id="export-status" role="status" aria-live="polite"></p>
       <p class="status is-error is-hidden" id="sort-status" role="status" aria-live="polite"></p>
     </div>
     <p id="selection-notice" class="selection-notice is-hidden" role="status" aria-live="polite"></p>
@@ -120,6 +182,18 @@
     <section class="view-section">
       <h3 data-i18n="sources.online"></h3>
       <p class="source-region-note" data-i18n="sources.region_note"></p>
+      <div class="work-finder" id="work-finder">
+        <div class="work-finder-bar">
+          <label for="work-finder-select" data-i18n="work_finder.label"></label>
+          <span class="select-wrap"><select id="work-finder-select"><option value="" data-i18n="work_finder.placeholder"></option></select></span>
+        </div>
+        <div class="work-finder-card is-hidden" id="work-finder-card">
+          <h4 class="work-finder-title" id="work-finder-title"></h4>
+          <p class="work-finder-summary" id="work-finder-summary"></p>
+          <div class="work-finder-groups" id="work-finder-groups"></div>
+        </div>
+        <p class="source-region-note work-finder-disclaimer" id="work-finder-disclaimer" data-i18n="work_finder.disclaimer"></p>
+      </div>
       <div class="source-workspace" id="source-workspace">
         <div class="source-guide-layout" id="source-guide-layout">
           <div class="source-chips" id="source-chips"></div>
@@ -217,7 +291,15 @@
 </main>
 
 <div class="dock">
-  <p class="task is-hidden" id="task" role="status"><span id="task-text"></span><span class="spinner small" aria-hidden="true"></span></p>
+  <div class="task is-hidden" id="task" role="status" aria-live="polite">
+    <div class="task-row">
+      <span id="task-text"></span>
+      <span class="spinner small" id="task-spinner" aria-hidden="true"></span>
+      <button type="button" class="link-button task-cancel is-hidden" id="release-cancel" data-i18n="release.cancel"></button>
+    </div>
+    <progress id="release-progress" class="task-progress is-hidden" data-i18n-aria="release.progress"></progress>
+    <p class="task-detail is-hidden" id="release-progress-detail"></p>
+  </div>
 </div>
 
 <dialog class="source-dialog ctp-dialog" id="ctp-dialog" aria-labelledby="ctp-title">
@@ -400,6 +482,7 @@
       <button type="button" class="open" id="release-directory" data-i18n="release.directory"></button>
     </div>
   </details>
+  <p class="step-hint" id="release-size-note" data-i18n="release.size_note"></p>
   <p class="local-status" id="release-status" role="status" aria-live="polite"></p>
   </div>
   <div class="dialog-actions">
@@ -434,6 +517,50 @@
     <span class="dialog-actions-end">
       <form method="dialog"><button class="open" value="cancel" data-i18n="dialog.cancel"></button></form>
       <button type="button" class="go danger" id="remove-confirm" data-i18n="sources.remove_action"></button>
+    </span>
+  </div>
+</dialog>
+<dialog class="source-dialog" id="review-dialog" aria-labelledby="review-heading">
+  <div class="dialog-head">
+    <h2 id="review-heading" class="dialog-title" data-i18n="review.open"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-body">
+    <p id="review-status" role="status"></p>
+    <button type="button" class="link-button is-hidden" id="review-accept-change" data-i18n="review.accept_change"></button>
+    <section aria-labelledby="review-candidates-heading">
+      <h3 id="review-candidates-heading" data-i18n="review.candidates"></h3>
+      <p><button type="button" class="open" id="review-compare" data-i18n="review.compare" disabled></button></p>
+      <div class="review-list" id="review-candidates"></div>
+      <p><button type="button" class="open" id="review-export" data-i18n="review.export" disabled></button></p>
+    </section>
+    <section aria-labelledby="review-searches-heading">
+      <h3 id="review-searches-heading" data-i18n="review.searches"></h3>
+      <div class="review-list" id="review-searches"></div>
+    </section>
+  </div>
+</dialog>
+<dialog class="source-dialog" id="review-compare-dialog" aria-labelledby="review-compare-heading">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="review-compare-heading" data-i18n="review.compare"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+    <div class="review-comparison" id="review-comparison"></div>
+  </div>
+</dialog>
+<dialog class="source-dialog" id="export-overwrite-dialog" aria-labelledby="export-overwrite-title" aria-describedby="export-overwrite-message">
+  <div class="dialog-head">
+    <h2 class="dialog-title" id="export-overwrite-title" data-i18n="export.button"></h2>
+    <form method="dialog"><button class="dialog-close" data-i18n-aria="dialog.close" data-i18n-title="dialog.close">×</button></form>
+  </div>
+  <div class="dialog-scroll">
+  <p class="dialog-body" id="export-overwrite-message"></p>
+  </div>
+  <div class="dialog-actions">
+    <span class="dialog-actions-end">
+      <form method="dialog"><button class="open" value="cancel" data-i18n="dialog.cancel"></button></form>
+      <button type="button" class="go danger" id="export-overwrite-confirm" data-i18n="export.button"></button>
     </span>
   </div>
 </dialog>
@@ -479,12 +606,13 @@
 </template>
 <template id="card">
   <article class="card">
-    <header><span class="num"></span><a class="src" href="#"></a><span class="era"></span><span class="reasons"></span></header>
+    <header><span class="num"></span><a class="src" href="#"></a><span class="era"></span><span class="pattern-id is-hidden"></span><span class="reasons"></span></header>
     <p class="text" lang="lzh"><span class="ctx before" lang="lzh"></span><span class="seg" lang="lzh"></span><span class="ctx after" lang="lzh"></span></p>
     <p class="citation is-hidden"></p>
     <footer><span class="slot a"><span class="slot-label"></span><span class="v" lang="lzh"></span></span><span class="slot b"><span class="slot-label"></span><span class="v" lang="lzh"></span></span></footer>
   </article>
 </template>
 <script src="app.js"></script>
+<script src="review.js"></script>
 </body>
 </html>

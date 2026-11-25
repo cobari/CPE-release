@@ -28,6 +28,10 @@ from cpe.local.txt import LocalText
 API_URL = "https://docusky.org.tw/DocuSky/WebApi/getQueryResultDocumentsJson.php"
 CATALOG_URL = "https://docusky.org.tw/DocuSky/WebApi/getDbCorpusListJson.php"
 PAGE_SIZE = 50
+# Manual paging is bounded to five pages per submitted search; the GUI opens a
+# later page only on an explicit researcher action and nothing advances
+# automatically (docs/research/source-continuation-matrix.md).
+MAX_MANUAL_PAGES = 5
 MAX_BYTES = 2 * 1024 * 1024
 CATALOG_MAX_BYTES = 1 * 1024 * 1024
 HOME_URL = "https://docusky.org.tw/"
@@ -526,12 +530,18 @@ def open_profile(database: str) -> Profile:
 
 
 def valid_database_name(name: str) -> bool:
-    """A catalogue name: no surrounding space, bounded, no control characters."""
+    """A catalogue name: bounded, no control characters, not an internal code.
+
+    Internal profile codes such as ``chengzheng`` are not catalogue source
+    values; accepting one would query an unreviewed database under a name the
+    provider does not use instead of the reviewed profile the caller meant.
+    """
     return (
         bool(name)
         and name == name.strip()
         and len(name) <= 200
         and not any(unicodedata.category(char) == "Cc" for char in name)
+        and name not in PROFILES
     )
 
 
@@ -541,6 +551,8 @@ def profile_for_source(source: str) -> Profile:
         return TEMPLE
     if source.startswith(SOURCE_PREFIX):
         database = source[len(SOURCE_PREFIX) :]
+        if database in PROFILES:
+            raise DocuskyError("profile code is not a catalogue database")
         if database in BY_DATABASE:
             return BY_DATABASE[database]
         if database:
@@ -654,24 +666,36 @@ class DocuskyClient:
         phrase: str,
         profile: Profile = TEMPLE,
         *,
-        page_size: int = PAGE_SIZE,
+        page: int = 1,
+        page_size: int | None = None,
         checkpoint: Callable[[], None] | None = None,
     ) -> dict[str, Any]:
         if not known_profile(profile) or not literal_phrase(phrase):
             raise DocuskyError("unsupported database or query")
+        size = profile.page_size if page_size is None else page_size
         if (
-            isinstance(page_size, bool)
-            or not isinstance(page_size, int)
-            or not 1 <= page_size <= PAGE_SIZE
+            isinstance(size, bool)
+            or not isinstance(size, int)
+            or not 1 <= size <= profile.page_size
         ):
             raise DocuskyError("invalid page size")
+        if (
+            isinstance(page, bool)
+            or not isinstance(page, int)
+            or not 1 <= page <= MAX_MANUAL_PAGES
+        ):
+            raise DocuskyError("invalid page")
+        # Unreviewed databases keep their single first page: new pages would
+        # multiply body text whose layers were never inspected.
+        if page != 1 and not profile.reviewed:
+            raise DocuskyError("unsupported database or page")
         params = {
             "target": "OPEN",
             "db": profile.database,
             "corpus": "[ALL]",
             "query": phrase,
-            "page": 1,
-            "pageSize": page_size,
+            "page": page,
+            "pageSize": size,
             "requester": "classic-pattern-explorer",
         }
         response = self._send(API_URL, params, checkpoint)
@@ -685,8 +709,8 @@ class DocuskyClient:
             or message.get("query") != phrase
             or type(message.get("page")) is not int
             or type(message.get("pageSize")) is not int
-            or message.get("page") != 1
-            or message.get("pageSize") != page_size
+            or message.get("page") != page
+            or message.get("pageSize") != size
         ):
             raise DocuskyError("response query scope does not match the request")
         total = message.get("totalFound")
@@ -696,9 +720,15 @@ class DocuskyClient:
             or not isinstance(total, int)
             or total < 0
             or not isinstance(docs, list)
-            or len(docs) > page_size
-            or len(docs) > total
+            or len(docs) > size
         ):
+            raise DocuskyError("invalid query result counts")
+        # A page cannot return more records than the provider reports, counting
+        # the records skipped by earlier pages.
+        if page == 1:
+            if len(docs) > total:
+                raise DocuskyError("invalid query result counts")
+        elif (page - 1) * size + len(docs) > total:
             raise DocuskyError("invalid query result counts")
         return message
 
@@ -1099,6 +1129,12 @@ class Fetched:
     accepted: int
     excluded: int
     texts: list[LocalText]
+    # Manual page cursor. Defaults keep five-field construction valid for callers
+    # that build a Fetched directly.
+    page: int = 1
+    page_size: int = PAGE_SIZE
+    has_more: bool = False
+    max_pages: int = 1
 
 
 def fetch(
@@ -1106,11 +1142,28 @@ def fetch(
     client: DocuskyClient,
     profile: Profile = TEMPLE,
     *,
+    page: int = 1,
     page_size: int | None = None,
     checkpoint: Callable[[], None] | None = None,
 ) -> Fetched:
+    if (
+        isinstance(page, bool)
+        or not isinstance(page, int)
+        or not 1 <= page <= MAX_MANUAL_PAGES
+    ):
+        raise DocuskyError("invalid page")
+    if page != 1 and not profile.reviewed:
+        raise DocuskyError("unsupported database or page")
     size = profile.page_size if page_size is None else page_size
-    message = client.search(phrase, profile, page_size=size, checkpoint=checkpoint)
+    if (
+        isinstance(size, bool)
+        or not isinstance(size, int)
+        or not 1 <= size <= profile.page_size
+    ):
+        raise DocuskyError("invalid page size")
+    message = client.search(
+        phrase, profile, page=page, page_size=size, checkpoint=checkpoint
+    )
     docs = message["docList"]
     texts: list[LocalText] = []
     accepted = 0
@@ -1128,6 +1181,21 @@ def fetch(
             seen.update(ids)
             texts.extend(found)
             accepted += 1
+    total = message["totalFound"]
+    max_pages = MAX_MANUAL_PAGES if profile.reviewed else 1
     return Fetched(
-        message["totalFound"], len(docs), accepted, len(docs) - accepted, texts
+        total,
+        len(docs),
+        accepted,
+        len(docs) - accepted,
+        texts,
+        page,
+        size,
+        bool(
+            profile.reviewed
+            and page < MAX_MANUAL_PAGES
+            and len(docs) == size
+            and page * size < total
+        ),
+        max_pages,
     )

@@ -129,6 +129,15 @@ def _book(target: Path) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]
     return records, receipts
 
 
+def has_history(folder: Path) -> bool:
+    """Return True if folder holds an external import entry without hashing sources."""
+    if not folder.is_dir():
+        raise ExternalError("release_no_folder")
+    if (folder / "import-receipt.json").exists():
+        return bool(re.fullmatch(BOOK_NAME, folder.name))
+    return any(re.fullmatch(BOOK_NAME, entry.name) for entry in folder.iterdir())
+
+
 def history(folder: Path) -> list[dict[str, Any]]:
     """Return local provenance without making any provider request."""
     if not folder.is_dir():

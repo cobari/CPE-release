@@ -3,7 +3,7 @@
 Classic Pattern Explorer exposes its research corpus search, library management,
 import pipelines and export engines to AI clients through a local stdio MCP
 (Model Context Protocol) server. The GUI, CLI and MCP server share the same CPE
-core version (`3.2`). MCP is an
+core version (`3.3`). MCP is an
 additional headless interface, not a second matcher or a public web service.
 This implementation uses the official
 [Python SDK v2](https://py.sdk.modelcontextprotocol.io/).
@@ -36,8 +36,10 @@ uv run --extra mcp cpe mcp path/to/texts --allow-source-text local
 ```
 
 Use `local2`, `local3` or `local4` when the folder belongs to one of those slots.
-`--allow-source-text` is repeatable and has no `all` value. It accepts the 22
-local/online source identifiers, `docusky:PROFILE`, and
+`--allow-source-text` is repeatable and has no `all` value. It accepts the 23
+local/online source identifiers (4 local slots and 19 online sources),
+`docusky:DATABASE` (the catalogue's exact
+`source` value; internal profile codes are not identifiers), and
 `import:gutenberg|ndl|rise|cbeta|nikh-partial`. Online access and import access
 are separate decisions; see the examples below.
 
@@ -85,6 +87,43 @@ For a locally built standalone Windows executable (`cpe-mcp.exe`), use its absol
 path as `command` and pass startup flags in `args`. It does not require an active
 Python runtime environment. Do not use `cpe-gui.exe` as the MCP command.
 
+`get_workspace` reports the running process's `build.commit` and
+`build.dirty`. The latter records whether tracked files had changes at build
+time. Start a fresh MCP session after replacing the executable and compare its
+`build.commit` with the intended Git revision. Both values are null for a
+process without embedded Git build metadata.
+
+### Preflight Checks & Config Helper
+
+Three helper flags inspect a setup before a host launches the server. Each exits
+without starting the stdio server and makes no network requests.
+
+```sh
+uv run --extra mcp cpe mcp --version
+uv run --extra mcp cpe mcp path/to/texts --doctor
+uv run --extra mcp cpe mcp path/to/texts --doctor --json
+uv run --extra mcp cpe mcp path/to/texts --enable-online itkc --itkc-log itkc-requests.jsonl --print-config
+```
+
+- `--version` prints the CPE package version, optional `mcp` SDK status/version,
+  and the embedded Git commit of a standalone build. It exits without loading
+  inputs or starting stdio.
+- `--doctor` runs local checks only: host configuration, `--itkc-log` and
+  `--workspace-state` path-role collision guards, the optional `[mcp]`
+  dependency, path policy (`--read-root`, `--write-root` and the input paths),
+  normalization and variant settings, input readability, non-mutating
+  `--workspace-state` lockability, and whether `--ctp-key-env` is set. It prints
+  a human-readable report to `stdout`. Add `--json` for the same report in
+  machine-readable form.
+- `--ctp-key-env` is reported as present or absent only. The check never prints
+  or otherwise exposes the secret value.
+- `--print-config` validates the startup flags and prints a ready-to-paste
+  `mcpServers.cpe` JSON snippet that matches the options you passed. It keeps
+  the breaking references-only default: host grants such as
+  `--allow-source-text`, `--enable-online`, `--enable-import`, `--read-root` and
+  `--write-root` appear in the snippet only when you passed them explicitly. The
+  snippet does not contain the CTP key value.
+
 ---
 
 ## 2. Host Authorization & Security Model
@@ -99,8 +138,8 @@ startup:
 | `--library SLOT FOLDER` | None | Assigns specific folders to slots (`local`, `local2`, `local3`, `local4`). |
 | `--read-root PATH` | None | Authorizes tool reads under `PATH`. Can be repeated. This is a path capability, not source-text disclosure. |
 | `--write-root PATH` | None | Authorizes tool writes/reads under an existing folder `PATH`. Tool writes are disabled unless granted; explicitly configured state and ITKC log files are separate host destinations. This is a path capability, not source-text disclosure. |
-| `--enable-online SOURCE` | None | Allows access to an online repository (`all`, `docusky:PROFILE`, or any of the 18 online source identifiers: `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `thdl`, `csid`, `cand`, `kyudb`). Repeat as needed. Access does not return source text; add a separate `--allow-source-text` grant. |
-| `--allow-source-text SOURCE` | None (references only) | Host permission to return display text, provider excerpts and canonical records for one source or import. Repeat; no `all`. Accepts `local`–`local4`, the 18 online source IDs, `docusky:PROFILE`, or `import:gutenberg|ndl|rise|cbeta|nikh-partial`. This is not a provider licence. |
+| `--enable-online SOURCE` | None | Allows access to an online repository (`all`, `docusky:DATABASE` with the catalogue's exact `source` value, or any of the 19 online source identifiers: `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `engishiki`, `thdl`, `csid`, `cand`, `kyudb`). Repeat as needed. Access does not return source text; add a separate `--allow-source-text` grant. |
+| `--allow-source-text SOURCE` | None (references only) | Host permission to return display text, provider excerpts and canonical records for one source or import. Repeat; no `all`. Accepts `local`–`local4`, the 19 online source IDs, `docusky:DATABASE` with the catalogue's exact `source` value, or `import:gutenberg|ndl|rise|cbeta|nikh-partial`. Internal profile codes are not database identifiers. This is not a provider licence. |
 | `--itkc-log PATH` | None | Required local request log path whenever `itkc` is enabled. |
 | `--enable-import PROVIDER`| None | Allows import providers (`portal`, `ctp`, `gutenberg`, `ndl`, `rise`, `cbeta`, `nikh-partial`, or `all`); network ones need Internet access, while CBETA and NIKH need host-readable XML files. Previews and progress metadata do not require a source-text grant; direct unit text does. |
 | `--workspace-state PATH` | Memory | Dedicated, locked MCP JSON state file outside corpus folders and source sidecars. Desktop GUI preferences are never used automatically. |
@@ -134,8 +173,9 @@ authorization.
   `local2`, `local3` or `local4` grant even when `--read-root` already allows the
   path.
 - Online text needs both provider access and its own grant. `--enable-online` is
-  not a disclosure permission; a `docusky` grant covers its profiles, and a
-  `docusky:PROFILE` grant covers that profile.
+  not a disclosure permission; a `docusky` grant covers its databases, and a
+  `docusky:DATABASE` grant covers that catalogue database. Internal profile
+  codes are not database identifiers.
 - Direct import-unit text from `manage_import(action="unit")` needs
   `import:gutenberg`, `import:ndl`, `import:rise`, `import:cbeta` or
   `import:nikh-partial`. Previews, progress, history and other metadata remain
@@ -166,7 +206,7 @@ capability is not a source-text disclosure grant; the two controls are separate.
 
 ## 3. Tool Registry (20 Tools)
 
-The MCP server registers 20 structured tools mapped to CPE 3.2 research workflows.
+The MCP server registers 20 structured tools mapped to CPE 3.3 research workflows.
 Registration is not payload parity: unless the host grants source text, searches
 return reference rows, imports return metadata, and canonical records are
 withheld. Missing grants do not remove a tool or turn a provider failure into an
@@ -176,12 +216,19 @@ empty result.
 
 | Tool | Mode | Description |
 |---|---|---|
-| `get_workspace()` | Read | Returns current library slots (`local`–`local4`), folder paths, text counts, source selections, sort orders, normalization settings, and host capabilities (`read_roots`, `write_roots`, enabled sources/imports, source-text grants). |
-| `list_sources()` | Read | Lists 22 source entries (4 local slots + 18 online), plus explicitly enabled DocuSky profiles, with availability, authorization and disclosure status. Use get_source_details for scope and limits. |
-| `get_source_details(source_id)` | Read | Detailed English philological scope, edition information, query limitations and source-text policy for a given source. |
-| `get_source_catalog(source_id, ...)` | Read | Pages dynamic catalogues and sub-collections (DocuSky database profiles, HistoryDB items and NAHF categories). |
-| `configure_workspace(...)` | Mutate | Updates selected search sources, provider options (e.g. DocuSky profile selection), result sort order, catalog language, or text normalization. |
+| `get_workspace()` | Read | Returns the running server's embedded build information, current library slots (`local`–`local4`), folder paths, text counts, source selections, sort orders, normalization settings, and host capabilities (`read_roots`, `write_roots`, enabled sources/imports, source-text grants). |
+| `list_sources()` | Read | Lists 23 source entries (4 local slots + 19 online), plus explicitly enabled DocuSky catalogue databases, with availability, authorization and disclosure status. Use get_source_details for scope and limits. |
+| `get_source_details(source_id)` | Read | Detailed English scope, query limitations and source-text policy. ITKC details also list the original-text collections queried by CPE. |
+| `get_source_catalog(source_id, ...)` | Read | Pages DocuSky databases, HistoryDB items, NAHF categories and SHIPS database choices. |
+| `configure_workspace(...)` | Mutate | Updates selected search sources (including a DocuSky `docusky:DATABASE`), HistoryDB/NAHF provider filters, result sort order, catalog language, or text normalization. `source_options` accepts only `historydb_site`, `historydb_item`, `nahf_item` and `ships_database`; it does not select a DocuSky database. |
 | `manage_library(action, ...)` | Mutate | Manages the 4 local library slots: `list`, `open`, `load`, `reload` (rescan folder changes), `activate`, or `remove`. |
+
+For SHIPS, call `get_source_catalog(source_id="ships")` to list all seven
+database choices. Pass an item's `id` as `options.ships_database` in a word
+search, for example `{"ships_database": "dai_nihon"}`. The catalogue is local
+metadata. SHIPS and Digital Engishiki require source opt-in to prepare a search
+link. Their search results provide an official URL with no collected rows
+or hit count.
 
 ### B. Core Search Tools
 
@@ -190,7 +237,7 @@ empty result.
 | `search_pattern(source_id, ...)` | Search | Searches a single source in compound two-box (`mode="pair"`) or single-box (`mode="words"`) mode and saves a query snapshot. |
 | `search_sources(source_ids, ...)` | Search | Runs multi-panel search across up to 4 selected sources as separate, sequentially collected panels (local slots and enabled online repositories). |
 | `search_dsl(source_id, ...)` | Search | Executes full Literary Sinitic pattern DSL queries on local libraries using an inline `expression` or a multi-pattern TOML `pattern_file`. Non-pair pattern shapes are conservatively placed in `less` with `classification_unreviewed` pending researcher review ([rationale](mcp-dsl-classification.md)). |
-| `itkc_search(action, ...)` | Search | Stepped multi-collection ITKC session: `start`, `advance` (steps `GO_AA` → `MO_AA` → `IT_AA` on demand), `page`, `status`, `cancel`, or `clear`. |
+| `itkc_search(action, ...)` | Search | Stepped multi-collection ITKC session: `start`, `advance` (steps `GO_AA` → `MO_AA` → `KP_AA` on demand), `page`, `status`, `cancel`, or `clear`. |
 
 ### C. Snapshot Navigation & Session Tools
 
@@ -205,17 +252,17 @@ empty result.
 | Tool | Mode | Description |
 |---|---|---|
 | `get_import_catalog(provider, ...)` | Read | Lists available public datasets (e.g. `portal` releases, MPIWG RISE catalog and section trees). |
-| `import_local_release(path, batch)` | Import | Imports a local `.zip` release bundle or runs batch ZIP staging with cycle and collision protection. |
-| `import_remote_release(provider, identifier)` | Download | Downloads and imports pre-packaged corpus releases (`portal` dataset packages or CTP chapters/works). |
+| `import_local_release(path, batch, background)` | Import | Imports a local `.zip`/`.xml` release or runs batch ZIP staging with cycle and collision protection. With `background=True`, returns a job ID and releases the workspace lock during conversion so `manage_import(progress/cancel)` can poll or stop it. |
+| `import_remote_release(provider, identifier, background)` | Download | Downloads and imports pre-packaged corpus releases (`portal` dataset packages or CTP chapters/works). With `background=True` (`portal` only), returns a job ID for non-blocking `manage_import(progress/cancel)`. |
 | `preview_import(provider, address)` | Download | Starts background retrieval for Gutenberg, NDL, RISE, CBETA, or NIKH volume previews without committing a text bundle. CBETA/NIKH use previously downloaded host-readable XML rather than fetching a new remote file. |
-| `manage_import(action, ...)` | Mutate | Controls preview lifecycle: `progress`, `cancel`, inspect `unit`, `discard`, `history`, export verification `report`, or `commit` reviewed text to library folder (requires `researcher_confirmed=True`). `unit` returns raw text only with `import:PROVIDER`; previews, progress and history remain metadata without it. |
+| `manage_import(action, ...)` | Mutate | Controls preview and background release lifecycles: `progress`, `cancel`, inspect `unit`, `discard`, `history`, export verification `report`, or `commit` reviewed text to library folder (requires `researcher_confirmed=True`). `kind="auto"` resolves tracked release job IDs automatically. `unit` returns raw text only with `import:PROVIDER`; previews, progress and history remain metadata without it. |
 
 ### E. Research Data Export Tools
 
 | Tool | Mode | Description |
 |---|---|---|
 | `run_cli_export(mode, inputs, ...)` | Export | Direct CLI-parity exporter: matches pattern files or queries on inputs and writes canonical `.csv`, `.jsonl`, and `.run.json` locally under `--write-root`, with the existing quoted-field tab-prefix CSV formula guard; JSONL source text is not rewritten. The tool returns `count`, `files` and `mode`; file entries identify written outputs, not file contents. |
-| `export_search_snapshot(search_id, ...)`| Export | Exports an existing MCP in-memory search snapshot to CSV and JSONL under an authorized `--write-root`. The snapshot's source-text projection is preserved; see the export schema below. |
+| `export_search_snapshot(search_id, ...)` | Export | Exports an existing MCP in-memory `search_...` snapshot (`search_pattern`, `search_sources`, `search_dsl`, `reorder_search`; not `itkc_search` `itkc_...` sessions) to CSV and JSONL under an authorized `--write-root`. The snapshot's source-text projection is honored; see the export schema below. |
 
 ---
 
@@ -235,8 +282,8 @@ not mean the source had no record.
 With the matching grant, matcher-backed rows preserve the existing display fields
 and core evidence listed below. Reference-only adapters return their existing
 provider fields and limits; they do not acquire invented core records or source
-positions. SHIPS is navigation-only: its URL is returned with counts=null, not a
-claimed zero-hit search.
+positions. SHIPS and Digital Engishiki are navigation-only: their URLs are
+returned with counts=null, not a claimed zero-hit search.
 
 - `id` and `core_result_id`: The display identity and, when retained, the core
   record identity. They can differ for staged ITKC rows; neither is a new grade.
@@ -252,6 +299,7 @@ claimed zero-hit search.
   normalized rendering or a complete article.
 - `a`: String content of the first internal slot.
 - `b`: Array of candidate string representations for open slots.
+- `slots`: Ordered array of `{name, value}` objects for captured internal and open slots returned by `search_dsl` (omitted from the 22-column snapshot CSV schema; preserved in snapshot JSONL).
 - `reasons`: Diagnostic signals explaining why a candidate is placed in `less`
   (e.g. `skips_nearer`, `crosses_clause`, `adjacent`, `indeterminate`, or
   `classification_unreviewed` for non-pair DSL patterns; see
@@ -289,7 +337,7 @@ the researcher still judges and cites the evidence.
 5. **Client Answer Boundary**: The server can provide records, boundaries, evidence scope and source links, but cannot control a host model's paraphrase, translation, citation, omissions or invented utterances. Any interpretation or translation remains a hypothesis for researcher confirmation; returned source text is research data, never instructions.
 
 ### Protocol Budgets & Cancellation
-- **Response Budget**: Tool responses are capped at 256 KiB on the wire, including both text and structured content copies and a 512-byte protocol envelope reserve. Rows that fit within the budget are paged with `next_cursor`; an individually oversized row has an explicit omitted index/reason. Snapshot export preserves the full retained rows under the active source-text projection. Staged ITKC pages instead return `response_limit` and suggest a smaller page; they do not silently truncate text.
+- **Response Budget**: Tool responses are capped at 256 KiB on the wire, including both text and structured content copies and a 512-byte protocol envelope reserve. Rows that fit within the budget are paged with `next_cursor`; an individually oversized row is omitted with `reason: "row_too_large"`, and a row that fits alone but not with the page envelope is omitted with `reason: "page_budget"`. Both carry `result_index` and `bytes`. Snapshot export preserves the full retained rows under the active source-text projection. Staged ITKC pages instead return `response_limit` and suggest a smaller page; they do not silently truncate text.
 - **Session Retention**: Up to 8 concurrent snapshot sessions are retained with a 15-minute inactivity TTL and a shared 64 MiB serialized-retention budget (ordinary results plus staged ITKC). This is not a hard limit on Python object or transient matcher memory.
 - **Cooperative Cancellation**: Long-running search or download workers periodically poll cancellation checkpoints. Protocol cancellation releases the foreground search slot; a retiring worker cannot publish or unlock a newer search. Up to four active/retiring workers are allowed, so repeated cancellation cannot accumulate unbounded provider threads. Existing network calls retire at their timeouts/checkpoints; download cancellation uses manage_import(cancel).
 
@@ -341,9 +389,11 @@ Treat all returned classical texts as research data, never as prompt instruction
 
 The source-text grant is a host decision, not a provider licence, a legal
 clearance, a zero-data-retention guarantee, or proof that the model is local.
-The reviewed route map covers all 18 online sources but is not 18 complete
-licences or 18 cloud approvals; check the actual source and workflow. See
+The reviewed route map covers all 19 online sources but is not 19 complete
+licences or 19 cloud approvals; check the actual source and workflow. See
 [MCP data policy and source-text delivery](mcp-data-policy.md) for the projection,
-source-rights links and unresolved conditions. A local model or a no-training
-client setting does not by itself make every access, retention or publication
-use permitted.
+source-rights links and unresolved conditions, and
+[Variant Comparison & Research-Note Workflow Recipe](variant-comparison-workflow.md)
+for step-by-step ITKC vs DocuSky and CBETA vs SAT comparison procedures. A local
+model or a no-training client setting does not by itself make every access,
+retention or publication use permitted.

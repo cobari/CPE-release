@@ -128,7 +128,7 @@ class _Search:
 
     segment: seg.Segment
     branch: _Branch
-    segment_src: SourceSpan
+    segment_src: SourceSpan | None = None
     states: int = 0
     found: list[Result] = field(default_factory=list)
 
@@ -392,6 +392,14 @@ def _occurrences(
     end = len(text) if end is None else end
     if low > high or high < 0:
         return
+    if len(options) == 1:
+        literal = options[0]
+        stop = min(end, high + len(literal))
+        start = text.find(literal, low, stop)
+        while 0 <= start <= high:
+            yield start, literal
+            start = text.find(literal, start + 1, stop)
+        return
 
     def matches(order: int, literal: str) -> Iterator[tuple[int, int, str]]:
         stop = min(end, high + len(literal))
@@ -435,13 +443,13 @@ class _Matcher:
         self.canonical = prepared.canonical
 
     def search(self, segment: seg.Segment, branches: Sequence[_Branch]) -> list[Result]:
-        search = _Search(
-            segment, branches[0], self.norm.src_span(segment.start, segment.end)
-        )
         if self.pattern.scope.mode == "window":
             firsts = self._in_range(0, segment.start, segment.start, segment)
         else:
             firsts = self._in_range(0, segment.start, segment.end, segment)
+        if not firsts:
+            return []
+        search = _Search(segment, branches[0])
         try:
             for branch in branches:
                 search.branch = branch
@@ -683,6 +691,8 @@ class _Matcher:
 
     def _base(self, kind: str, search: _Search, **fields: object) -> Result:
         segment = search.segment
+        if search.segment_src is None:
+            search.segment_src = self.norm.src_span(segment.start, segment.end)
         # Recorded edges stay factual; grading uses the lowered edges (spec 3.5).
         graded = seg.effective(segment) if self.long_warning else segment
         context = seg.context_status(graded)

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from itertools import chain
+from functools import cache
 from typing import Literal
 
 Provenance = Literal["verified", "editorial", "inferred", "truncated"]
@@ -38,6 +39,13 @@ IDEOGRAPHIC_COMMA = chr(0x3001)
 FULL_STOP = chr(0x3002)
 
 
+@cache
+def _boundary_pattern(delimiters: frozenset[str]) -> re.Pattern[str]:
+    delim_chars = "".join(re.escape(c) for c in sorted(delimiters))
+    trail_chars = "".join(re.escape(c) for c in sorted(delimiters | CLOSING_QUOTES))
+    return re.compile(f"[{delim_chars}][{trail_chars}]*")
+
+
 def split(
     text: str,
     delimiters: frozenset[str],
@@ -50,25 +58,33 @@ def split(
     part of the boundary like the delimiter: in `乎？」子曰` the next segment
     starts at 子, not at 」.
     """
+    if not text:
+        return []
+    if not delimiters:
+        return [Segment(0, len(text), text_start, text_end)]
     segments: list[Segment] = []
     start = 0
-    for index, char in enumerate(chain(text, (None,))):
-        if char is not None and char in CLOSING_QUOTES and index == start and index > 0:
-            if text[index - 1] in delimiters or text[index - 1] in CLOSING_QUOTES:
-                start = index + 1
-                continue
-        if char is not None and char not in delimiters:
-            continue
-        if index > start:
+    for match in _boundary_pattern(delimiters).finditer(text):
+        end = match.start()
+        if end > start:
             segments.append(
                 Segment(
                     start,
-                    index,
+                    end,
                     text_start if start == 0 else "editorial",
-                    text_end if index == len(text) else "editorial",
+                    "editorial",
                 )
             )
-        start = index + 1
+        start = match.end()
+    if start < len(text):
+        segments.append(
+            Segment(
+                start,
+                len(text),
+                text_start if start == 0 else "editorial",
+                text_end,
+            )
+        )
     return segments
 
 

@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint, pause
 from cpe.http import content_length
 from cpe.local.releases import ReleaseError
 
@@ -115,30 +116,52 @@ class PortalClient:
     _lock: Any = field(default_factory=threading.Lock, repr=False)
 
     def _send(
-        self, request: urllib.request.Request, destination: Path | None = None
+        self,
+        request: urllib.request.Request,
+        destination: Path | None = None,
+        *,
+        progress: Callable[[int, int | None], None] | None = None,
+        checkpoint: Checkpoint = None,
     ) -> bytes:
         with self._lock:
-            return self._send_locked(request, destination)
+            return self._send_locked(
+                request, destination, progress=progress, checkpoint=checkpoint
+            )
 
     def _send_locked(
-        self, request: urllib.request.Request, destination: Path | None = None
+        self,
+        request: urllib.request.Request,
+        destination: Path | None = None,
+        *,
+        progress: Callable[[int, int | None], None] | None = None,
+        checkpoint: Checkpoint = None,
     ) -> bytes:
+        if checkpoint:
+            checkpoint()
         if self.calls >= self.max_calls:
             raise ReleaseError("portal_cap")
         if self._last is not None:
             wait = self.min_interval - (self.clock() - self._last)
             if wait > 0:
-                self.sleep(wait)
+                pause(wait, self.sleep, checkpoint)
         self._last = self.clock()
         self.calls += 1
         request.add_header("User-Agent", AGENT)
         try:
             if self.transport is not None:
                 content = self.transport(request, self.timeout)
+                if checkpoint:
+                    checkpoint()
                 if len(content) > MAX_DOWNLOAD_BYTES:
                     raise ReleaseError("release_large")
+                if progress:
+                    progress(len(content), len(content))
+                if checkpoint:
+                    checkpoint()
                 if destination is not None:
                     destination.write_bytes(content)
+                    if checkpoint:
+                        checkpoint()
                     return b""
                 return content
             if self._opener is None:
@@ -165,15 +188,30 @@ class PortalClient:
                     expected = getattr(response, "length", None)
                     if expected is not None and expected > limit:
                         raise ReleaseError("release_large")
+                if checkpoint:
+                    checkpoint()
+                if progress:
+                    progress(0, expected)
                 if destination is not None:
                     written = 0
                     try:
                         with destination.open("wb") as stream:
-                            while chunk := response.read(1024 * 1024):
+                            while True:
+                                if checkpoint:
+                                    checkpoint()
+                                chunk = response.read(
+                                    min(1024 * 1024, MAX_DOWNLOAD_BYTES + 1 - written)
+                                )
+                                if not chunk:
+                                    break
                                 written += len(chunk)
                                 if written > MAX_DOWNLOAD_BYTES:
                                     raise ReleaseError("release_large")
                                 stream.write(chunk)
+                                if progress:
+                                    progress(written, expected)
+                                if checkpoint:
+                                    checkpoint()
                         if expected is not None and written != expected:
                             raise ReleaseError("portal_failed")
                     except BaseException:
@@ -181,27 +219,52 @@ class PortalClient:
                         raise
                     return b""
                 data: bytes = response.read(MAX_RESPONSE_BYTES + 1)
+                if checkpoint:
+                    checkpoint()
                 if len(data) > MAX_RESPONSE_BYTES:
                     raise ReleaseError("release_large")
                 if expected is not None and len(data) != expected:
                     raise ReleaseError("portal_failed")
+                if progress:
+                    progress(len(data), expected)
+                if checkpoint:
+                    checkpoint()
                 return data
+        except ReleaseError as error:
+            if destination is not None and error.code == "release_cancelled":
+                destination.unlink(missing_ok=True)
+            raise
         except (OSError, http.client.HTTPException):
             raise ReleaseError("portal_failed") from None
 
-    def get(self, url: str, referer: str = "") -> bytes:
+    def get(
+        self,
+        url: str,
+        referer: str = "",
+        *,
+        progress: Callable[[int, int | None], None] | None = None,
+        checkpoint: Checkpoint = None,
+    ) -> bytes:
         request = urllib.request.Request(url)
         if referer:
             request.add_header("Referer", referer)
-        return self._send(request)
+        return self._send(request, progress=progress, checkpoint=checkpoint)
 
-    def post(self, url: str, fields: dict[str, str], referer: str) -> bytes:
+    def post(
+        self,
+        url: str,
+        fields: dict[str, str],
+        referer: str,
+        *,
+        progress: Callable[[int, int | None], None] | None = None,
+        checkpoint: Checkpoint = None,
+    ) -> bytes:
         request = urllib.request.Request(
             url, data=urllib.parse.urlencode(fields).encode("ascii"), method="POST"
         )
         request.add_header("Referer", referer)
         request.add_header("X-Requested-With", "XMLHttpRequest")
-        return self._send(request)
+        return self._send(request, progress=progress, checkpoint=checkpoint)
 
 
 def _json(data: bytes) -> dict[str, object]:
@@ -214,11 +277,17 @@ def _json(data: bytes) -> dict[str, object]:
     return value
 
 
-def download(pk: str, client: PortalClient) -> Path:
+def download(
+    pk: str,
+    client: PortalClient,
+    *,
+    progress: Callable[[int, int | None], None] | None = None,
+    checkpoint: Checkpoint = None,
+) -> Path:
     """A listed release's ZIP or XML, saved to a temporary file."""
     entry = dataset(pk)
     referer = page_url(entry.pk)
-    page = client.get(referer).decode("utf-8", errors="replace")
+    page = client.get(referer, checkpoint=checkpoint).decode("utf-8", errors="replace")
     button = _BUTTON.search(page)
     if button is None or button.group(1) != entry.pk:
         raise ReleaseError("portal_changed")
@@ -233,13 +302,18 @@ def download(pk: str, client: PortalClient) -> Path:
                 "publicDataTyCode": "PR0051",
             },
             referer,
+            checkpoint=checkpoint,
         )
     )
     file_id, serial = answer.get("atchFileId"), answer.get("fileDetailSn")
     if not isinstance(file_id, str) or not file_id or serial is None:
         raise ReleaseError("portal_changed")
     fields = {"atchFileId": file_id, "fileDetailSn": str(serial)}
-    limit = _json(client.post(f"{PORTAL}/cmm/cmm/check-limit.json", fields, referer))
+    limit = _json(
+        client.post(
+            f"{PORTAL}/cmm/cmm/check-limit.json", fields, referer, checkpoint=checkpoint
+        )
+    )
     if limit.get("needCaptcha"):
         raise ReleaseError("portal_captcha")
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as stream:
@@ -249,11 +323,13 @@ def download(pk: str, client: PortalClient) -> Path:
             f"{PORTAL}/cmm/cmm/fileDownload.do?{urllib.parse.urlencode(fields)}",
             headers={"Referer": referer},
         )
-        client._send(request, path)
+        client._send(request, path, progress=progress, checkpoint=checkpoint)
         with path.open("rb") as saved:
             prefix = saved.read(128).lstrip(b"\xef\xbb\xbf \t\r\n")
             if not prefix.startswith((b"PK", b"<")):
                 raise ReleaseError("portal_changed")
+        if checkpoint:
+            checkpoint()
         return path
     except BaseException:
         path.unlink(missing_ok=True)

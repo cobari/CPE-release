@@ -1,4 +1,4 @@
-"""Structured MCP equivalents of the 3.2 workspace, import and export actions."""
+"""Structured MCP equivalents of the 3.3 workspace, import and export actions."""
 
 from __future__ import annotations
 
@@ -145,7 +145,7 @@ def register(
 
     @server.tool(annotations=read)
     async def get_workspace() -> CallToolResult:
-        """Read libraries, selection, sort, normalization and host capabilities.
+        """Read the build commit, libraries, search settings and host capabilities.
 
         Source-text characters never follow interface language. Host read/write
         roots and enabled imports are capabilities, not new permissions requested
@@ -179,7 +179,8 @@ def register(
     ) -> CallToolResult:
         """Set up to four sources, provider filters, sorting or core normalization.
 
-        source_options uses historydb_site/historydb_item/nahf_item. Normalization
+        source_options uses historydb_site/historydb_item/nahf_item and
+        ships_database. Normalization
         uses existing variation_selectors/whitespace/line_breaks keep/delete,
         notes barrier/join, paired note/annotation markers and researcher-supplied
         variants {id,version,map}. Apply only researcher-selected rules; never
@@ -205,10 +206,11 @@ def register(
         catalog_id: str = "",
         refresh: bool = False,
     ) -> CallToolResult:
-        """Read the GUI's DocuSky profiles, HistoryDB items or static NAHF items.
+        """Read DocuSky databases, HistoryDB items, or static NAHF and SHIPS choices.
 
         Network catalogs require host source opt-in and use the persistent source
         client cap. start pages this returned catalog, not source search results.
+        Pass a SHIPS item ID as options.ships_database when searching that source.
         """
         return present(
             page(
@@ -241,7 +243,7 @@ def register(
         Omitting source_ids uses workspace selection. Each successful panel has
         its own search_id and source limits. If the combined response cannot fit,
         panel metadata remains and cursor="" retrieves its first page separately.
-        A navigation-only SHIPS panel has no claimed hit count.
+        Navigation-only SHIPS and Digital Engishiki panels have no claimed hit count.
         """
         sources = (
             source_ids
@@ -355,7 +357,7 @@ def register(
         sort: Sort = "source",
         page_size: PageSize = 20,
     ) -> CallToolResult:
-        """Use 3.2's staged ITKC search: one collection batch per explicit advance.
+        """Use 3.3's staged ITKC search: one collection batch per explicit advance.
 
         start reads the first collection. advance reads exactly the next of the
         three bounded first-page collections; it never claims an exhaustive
@@ -413,27 +415,45 @@ def register(
         )
 
     @server.tool(annotations=mutate)
-    async def import_local_release(path: str, batch: bool = False) -> CallToolResult:
+    async def import_local_release(
+        path: str, batch: bool = False, background: bool = False
+    ) -> CallToolResult:
         """Import an approved release ZIP/XML or directory into the active folder.
 
         Requires a host write root. batch uses the existing per-file validation,
         source IDs, collision/idempotency rules, locks, reports and recovery paths.
         It does not delete source files or replace a library on conversion failure.
+        With background=True, returns a job ID and releases the workspace lock while
+        importing; poll or cancel via manage_import(progress/cancel, job_id=...).
         """
-        return present(bounded(await call(workspace.import_local, path, batch=batch)))
+        return present(
+            bounded(
+                await call(
+                    workspace.import_local, path, batch=batch, background=background
+                )
+            )
+        )
 
     @server.tool(annotations=download)
     async def import_remote_release(
-        provider: Literal["portal", "ctp"], identifier: str
+        provider: Literal["portal", "ctp"],
+        identifier: str,
+        background: bool = False,
     ) -> CallToolResult:
         """Download/import a listed portal release ID or a validated CTP work address.
 
         Requires provider import opt-in and an active host-writable folder. CTP
         credentials come only from host environment, never tool arguments. The
         existing importer keeps source/edition/evidence and provider safeguards.
+        With background=True (portal only), returns a job ID for non-blocking
+        manage_import(progress/cancel, job_id=...).
         """
         return present(
-            bounded(await call(workspace.import_remote, provider, identifier))
+            bounded(
+                await call(
+                    workspace.import_remote, provider, identifier, background=background
+                )
+            )
         )
 
     @server.tool(annotations=download)
@@ -461,6 +481,7 @@ def register(
         token: str = "",
         unit_id: str = "",
         job_id: str = "",
+        kind: Literal["auto", "external", "release"] = "auto",
         selected: list[str] | None = None,
         edition: str = "",
         researcher_confirmed: bool = False,
@@ -478,6 +499,8 @@ def register(
         unit returns a raw-text chunk with explicit code-point chunk offsets;
         it does not infer source sentence boundaries or reconstruct missing text.
         start/page_size page preview/history metadata without new downloads.
+        progress/cancel support both external preview jobs and background release
+        jobs (kind="auto" resolves tracked release job IDs automatically).
         """
         answer = await call(
             workspace.import_action,
@@ -485,6 +508,7 @@ def register(
             token=token,
             unit_id=unit_id,
             job_id=job_id,
+            kind=kind,
             selected=selected,
             edition=edition,
             researcher_confirmed=researcher_confirmed,

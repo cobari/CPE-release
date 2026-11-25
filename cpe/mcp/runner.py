@@ -10,6 +10,8 @@ from collections.abc import Sequence
 from contextlib import ExitStack
 from pathlib import Path
 
+from cpe.mcp.onboarding import DEFAULT_CTP_KEY_ENV
+
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -22,7 +24,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         "--enable-online",
         action="append",
         default=[],
-        help="allow a 3.2 online source, docusky:PROFILE, or all; repeat as needed",
+        help=(
+            "allow a 3.3 online source, docusky:DATABASE with the catalogue's "
+            "exact source value, or all; repeat as needed"
+        ),
     )
     parser.add_argument(
         "--itkc-log", type=Path, help="required request log path when ITKC is enabled"
@@ -85,7 +90,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--ctp-key-env",
-        default="CPE_CTP_API_KEY",
+        default=DEFAULT_CTP_KEY_ENV,
         help="host environment variable containing the optional CTP key",
     )
     parser.add_argument(
@@ -98,164 +103,129 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     for option in ("variation-selectors", "whitespace", "line-breaks"):
         parser.add_argument("--" + option, choices=("keep", "delete"))
     parser.add_argument("--notes", choices=("barrier", "join"))
+    parser.add_argument(
+        "--doctor",
+        action="store_true",
+        help=(
+            "check this configuration locally and exit; starts no stdio "
+            "transport and makes no network request"
+        ),
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="print the --doctor report as JSON"
+    )
+    parser.add_argument(
+        "--print-config",
+        action="store_true",
+        help="validate this configuration and print an mcpServers JSON entry",
+    )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="print the CPE version and optional MCP package status and exit",
+    )
 
 
 def run(args: argparse.Namespace) -> int:
-    if (
-        any(value in args.enable_online for value in ("itkc", "all"))
-        and args.itkc_log is None
-    ):
-        print("error: --enable-online itkc requires --itkc-log PATH", file=sys.stderr)
-        return 2
-    try:
-        from cpe.mcp.server import create_server
-    except ModuleNotFoundError as error:
-        if error.name not in {"mcp", "anyio", "mcp_types"}:
-            raise
-        print(
-            "error: MCP support needs the optional extra: uv sync --extra mcp",
-            file=sys.stderr,
-        )
-        return 2
-    from cpe.gui.service import Library
-    from cpe.local.file_lock import exclusive
-    from cpe.local.txt import InputError
-    from cpe.match.engine import Settings
-    from cpe.mcp.disclosure import DisclosurePolicy
-    from cpe.mcp.policy import PathPolicy, PolicyError, host_path
-    from cpe.mcp.service import SearchService
-    from cpe.mcp.sources import LOCAL_SOURCE_IDS, SOURCE_IDS, SourceRegistry
-    from cpe.mcp.workspace import IMPORT_PROVIDERS, Workspace
-    from cpe.normalize.options import NormalizationError, Options, load_variant_table
+    if getattr(args, "version", False):
+        from cpe.mcp.onboarding import emit, version_text
 
-    notes = args.note_markers or (None, None)
-    annotations = args.annotation_markers or (None, None)
+        emit(version_text())
+        return 0
+    if args.doctor and args.print_config:
+        print("error: --doctor and --print-config cannot be combined", file=sys.stderr)
+        return 2
+    if args.json and not (args.doctor or args.print_config):
+        print("error: --json needs --doctor", file=sys.stderr)
+        return 2
+    if args.doctor:
+        return _doctor(args)
+    if args.print_config:
+        return _print_config(args)
+    return _serve(args)
+
+
+def _doctor(args: argparse.Namespace) -> int:
+    from cpe.mcp.onboarding import diagnose, emit, to_json
+
+    try:
+        report = diagnose(args)
+    except KeyboardInterrupt:
+        return 130
+    emit(to_json(report.as_dict()) if args.json else report.as_text())
+    return 0 if report.ok else 2
+
+
+def _print_config(args: argparse.Namespace) -> int:
+    from cpe.mcp.onboarding import diagnose, emit, server_config, to_json
+
+    try:
+        report = diagnose(args)
+    except KeyboardInterrupt:
+        return 130
+    if not report.ok:
+        # Print nothing on stdout: a host must not paste a half-valid entry.
+        print("error: configuration is invalid; see --doctor", file=sys.stderr)
+        for check in report.checks:
+            if check.status == "fail":
+                print(f"error: {check.id}: {check.message}", file=sys.stderr)
+        return 2
+    emit(to_json(server_config(args, report.config)))
+    return 0
+
+
+def _serve(args: argparse.Namespace) -> int:
+    from cpe.local.txt import InputError
+    from cpe.mcp.onboarding import StartupError, prepare
+    from cpe.normalize.options import NormalizationError
+
     workspace = None
     try:
-        disclosure = DisclosurePolicy(args.allow_source_text)
-        inputs = [host_path(path) for path in args.inputs]
-        slots: dict[str, Path] = {}
-        for code, path in args.library:
-            if code not in LOCAL_SOURCE_IDS or code in slots:
-                raise ValueError(
-                    "--library needs a unique local/local2/local3/local4 slot"
-                )
-            slots[code] = host_path(path)
-        variants = host_path(args.variants) if args.variants else None
-        if args.itkc_log is not None:
-            args.itkc_log = host_path(args.itkc_log)
-        startup_policy = PathPolicy(
-            (
-                *inputs,
-                *args.read_root,
-                *slots.values(),
-                *((variants,) if variants else ()),
-            ),
-            args.write_root,
-        )
-        try:
-            for path in inputs:
-                startup_policy.check_library(path)
-            if variants is not None:
-                startup_policy.check(variants)
-        except PolicyError as error:
-            raise ValueError(error.code) from error
-        settings = Settings(
-            normalization=Options(
-                note_open=notes[0],
-                note_close=notes[1],
-                annotation_open=annotations[0],
-                annotation_close=annotations[1],
-                variation_selectors=args.variation_selectors or "keep",
-                whitespace=args.whitespace or "keep",
-                line_breaks=args.line_breaks or "delete",
-                notes=args.notes or "barrier",
-                variants=load_variant_table(variants) if variants else None,
-            )
-        )
-        library = Library.load(inputs, settings)
-        online = tuple(
-            dict.fromkeys(
-                code
-                for value in args.enable_online
-                for code in (SOURCE_IDS if value == "all" else (value,))
-            )
-        )
-        imports = tuple(
-            dict.fromkeys(
-                code
-                for value in args.enable_import
-                for code in (IMPORT_PROVIDERS if value == "all" else (value,))
-            )
-        )
         with ExitStack() as stack:
-            state = None
-            if args.workspace_state is not None:
-                state = host_path(args.workspace_state)
-                if state.suffix.lower() in {".txt", ".md", ".toml", ".jsonl"}:
-                    raise ValueError("MCP state must not use a source-text file suffix")
-                from cpe.gui.preferences import config_dir
+            try:
+                config = prepare(args, stack)
+            except StartupError as error:
+                print(f"error: {error.check.message}", file=sys.stderr)
+                return error.exit_code
+            # prepare() has imported the server module, so the optional
+            # extra is present; import here so tests can replace the factory.
+            from cpe.mcp.server import create_server
+            from cpe.mcp.service import SearchService
+            from cpe.mcp.sources import SourceRegistry
+            from cpe.mcp.workspace import Workspace
 
-                if (
-                    state == (config_dir() / "gui.json").resolve()
-                    or any(state == path for path in inputs if path.is_file())
-                    or any(
-                        state.is_relative_to(path)
-                        for path in (*inputs, *slots.values())
-                        if path.is_dir()
-                    )
-                ):
-                    raise ValueError(
-                        "MCP state must not overlap GUI preferences or source libraries"
-                    )
-                state.parent.mkdir(parents=True, exist_ok=True)
-                stack.enter_context(
-                    exclusive(state.with_name(state.name + ".mcp.lock"))
-                )
-            explicit_normalization = any(
-                getattr(args, key) is not None
-                for key in (
-                    "note_markers",
-                    "annotation_markers",
-                    "variants",
-                    "variation_selectors",
-                    "whitespace",
-                    "line_breaks",
-                    "notes",
-                )
-            )
+            assert config.library is not None
+            variants = (config.variants,) if config.variants else ()
             workspace = Workspace(
-                library,
-                input_paths=inputs,
-                read_roots=(
-                    *args.read_root,
-                    *slots.values(),
-                    *((variants,) if variants else ()),
-                ),
-                write_roots=args.write_root,
-                protected_paths=(variants,) if variants else (),
-                enabled_imports=imports,
-                state_path=state,
+                config.library,
+                input_paths=config.inputs,
+                read_roots=(*config.read_roots, *config.slots.values(), *variants),
+                write_roots=config.write_roots,
+                protected_paths=variants,
+                enabled_imports=config.imports,
+                state_path=config.state,
                 ctp_key=os.environ.get(args.ctp_key_env, ""),
-                restore_normalization=not explicit_normalization,
-                disclosure=disclosure,
+                restore_normalization=not config.explicit_normalization,
+                disclosure=config.disclosure,
             )
             registry = SourceRegistry(
-                workspace.settings, enabled_online=online, itkc_log=args.itkc_log
+                workspace.settings,
+                enabled_online=config.online,
+                itkc_log=config.itkc_log,
             )
             workspace.attach_registry(registry)
             service = SearchService(
                 workspace.api._library,
                 registry=registry,
-                enabled_online=online,
-                itkc_log=args.itkc_log,
+                enabled_online=config.online,
+                itkc_log=config.itkc_log,
                 library_provider=workspace.library,
                 local_status=workspace.library_status,
                 external_retained=lambda: workspace._itkc_bytes,
-                disclosure=disclosure,
+                disclosure=config.disclosure,
             )
             workspace.attach_service(service)
-            for code, path in slots.items():
+            for code, path in config.slots.items():
                 result = workspace.manage_library("open", code, str(path))
                 if "error" in result:
                     raise ValueError(f"cannot open library {code}: {result['error']}")

@@ -16,19 +16,24 @@ import threading
 import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from cpe.docusky.adapter import valid_database_name
 from cpe.gui.search_session import sorted_rows
 from cpe.gui.service import Library
 from cpe.gui.service import search_pair as _gui_search_pair
 from cpe.gui.service import search_words as _gui_search_words
+from cpe.itkc.adapter import COLLECTIONS
 from cpe.mcp.disclosure import DisclosurePolicy
 from cpe.mcp.evidence import annotate_row
 from cpe.mcp.response import wire_size
-from cpe.mcp.sources import LOCAL_SOURCE_IDS, SOURCE_IDS, SourceRegistry
+from cpe.mcp.sources import (
+    LOCAL_SOURCE_IDS,
+    SOURCE_IDS,
+    SourceRegistry,
+    english_catalog,
+)
 
 ADVERTISED_SOURCES = (*LOCAL_SOURCE_IDS, *SOURCE_IDS)
 _MAX_PAGE_SIZE = 100
@@ -68,7 +73,9 @@ class _Session:
     query: dict[str, Any]
     source: dict[str, Any]
     rows: tuple[dict[str, Any], ...]
+    source_rows: tuple[dict[str, Any], ...]
     row_sizes: tuple[int, ...]
+    wire_sizes: list[int | None]
     counts: dict[str, int] | None
     page_size: int
     bytes: int
@@ -78,17 +85,22 @@ class _Session:
     cursor_at: dict[int, str] = field(default_factory=dict)
 
 
-@lru_cache(maxsize=1)
-def _catalog() -> dict[str, str]:
-    """The English source catalog values, without importing the GUI app."""
-    path = Path(__file__).resolve().parents[1] / "gui" / "i18n" / "en.json"
-    return cast(dict[str, str], json.loads(path.read_text(encoding="utf-8")))
-
-
 def _json_size(value: Any) -> int:
     return len(
         json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     )
+
+
+def _wire_fragment_size(value: Any) -> int:
+    """Bytes one JSON fragment adds to both result copies.
+
+    The structured copy carries the fragment once; the compatibility text copy
+    carries its JSON-escaped form once. Separators and the ``returned`` digit
+    change are accounted for by the caller.
+    """
+    text = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    escaped = json.dumps(text, ensure_ascii=False, separators=(",", ":"))[1:-1]
+    return len(text.encode("utf-8")) + len(escaped.encode("utf-8"))
 
 
 def _positive_int(value: Any, name: str) -> int:
@@ -163,7 +175,7 @@ class SearchService:
 
     # ------------------------------------------------------------------ source
     def list_sources(self) -> dict[str, Any]:
-        """The four local slots, eighteen online sources and enabled profiles."""
+        """The four local slots, registered online sources and enabled profiles."""
         with self._lock:
             return {
                 "sources": [
@@ -186,7 +198,7 @@ class SearchService:
     def _source_summary(self, source_id: str) -> dict[str, Any]:
         enabled = source_id in LOCAL_SOURCE_IDS or self.registry.enabled(source_id)
         configured = self._configured(source_id)
-        catalog = _catalog()
+        catalog = english_catalog()
         status = (
             self._local_status(source_id)
             if (self._local_status is not None and source_id in LOCAL_SOURCE_IDS)
@@ -221,11 +233,11 @@ class SearchService:
             return {"error": "unknown_source"}
         if not self._known_source(source_id):
             return {"error": "unimplemented_source"}
-        catalog = _catalog()
+        catalog = english_catalog()
         details: dict[str, Any] = {
             **self._source_summary(source_id),
             "search_modes": ["words"]
-            if source_id in {"ships", "thdl", "csid", "cand", "kyudb"}
+            if source_id in {"ships", "engishiki", "thdl", "csid", "cand", "kyudb"}
             else ["pair", "words"],
         }
         if source_id in LOCAL_SOURCE_IDS:
@@ -249,6 +261,11 @@ class SearchService:
         usage = catalog.get(f"{prefix}.guide.usage")
         if usage is not None:
             details["usage"] = usage
+        if source_id == "itkc":
+            details["collections"] = [
+                {"id": code, "label": catalog[f"source.itkc.{code}"]}
+                for code in COLLECTIONS
+            ]
         return details
 
     # ------------------------------------------------------------------ search
@@ -289,7 +306,15 @@ class SearchService:
             not isinstance(options, dict)
             or any(
                 key
-                not in {"historydb_site", "historydb_item", "nahf_item", "site", "item"}
+                not in {
+                    "historydb_site",
+                    "historydb_item",
+                    "nahf_item",
+                    "ships_database",
+                    "site",
+                    "item",
+                    "database",
+                }
                 or not isinstance(value, str)
                 or len(value) > 256
                 for key, value in options.items()
@@ -356,14 +381,6 @@ class SearchService:
                 )
             else:
                 answer = self._run(source_id, mode, first, second, query, check)
-            if isinstance(answer, dict) and all(
-                isinstance(answer.get(group), list) for group in ("likely", "less")
-            ):
-                answer = {
-                    **answer,
-                    "likely": sorted_rows(answer.get("likely", []), sort),
-                    "less": sorted_rows(answer.get("less", []), sort),
-                }
             request_query.update(
                 source_id=source_id, options=copy.deepcopy(options or {}), sort=sort
             )
@@ -477,26 +494,26 @@ class SearchService:
         checkpoint: Callable[[], None],
         *,
         annotated: bool = False,
+        rows_owned: bool = False,
     ) -> dict[str, Any]:
-        """Build and store the snapshot while the active-search guard is held."""
+        """Build and store the snapshot while the active-search guard is held.
+
+        ``annotated`` keeps already-projected evidence labels. ``rows_owned``
+        means the caller passed private row copies that this method may tag in
+        place; the default copies them before annotation and disclosure.
+        """
         if not isinstance(answer, dict):
             return {"error": "source_failed"}
         if "error" in answer:
             return {"error": str(answer["error"])}
-        counts: dict[str, int] | None
-        rows, counts = self._partition(answer)
-        if rows is None:
+        likely, less = self._validated_groups(answer)
+        if likely is None or less is None:
             return {"error": "source_failed"}
-        # Reordered snapshots already carry server-derived evidence labels even
-        # when their canonical record was withheld. Reclassifying them from the
-        # projected row would turn structural candidates into provider references.
-        if not annotated:
-            rows = [annotate_row(row) for row in rows]
-        if self.disclosure is not None:
-            rows = [self.disclosure.row(row, source_id) for row in rows]
-        session_rows = tuple(rows)
-        sizes = tuple(_json_size(row) for row in session_rows)
-        retained = sum(sizes)
+        counts: dict[str, int] | None = {
+            "likely": len(likely),
+            "less": len(less),
+            "total": len(likely) + len(less),
+        }
         source = self._source_metadata(source_id, answer)
         extra = {
             key: copy.deepcopy(answer[key])
@@ -516,38 +533,73 @@ class SearchService:
         warnings = copy.deepcopy(raw_warnings) if isinstance(raw_warnings, list) else []
         # Bound the snapshot metadata too: the submitted query/mode/counts, the
         # source block, warnings, a fixed session overhead, and one reserved
-        # cursor slot per page. This is serialized-retention accounting, not a
+        # cursor slot per row. This is serialized-retention accounting, not a
         # row-only cap.
-        retained += _json_size(source) + _json_size(warnings)
-        retained += _json_size({"mode": mode, "query": request_query, "counts": counts})
-        retained += _json_size(extra)
-        # A byte-limited page may hold fewer rows than page_size, so the actual
-        # page count can exceed the arithmetic page count. Reserving one cursor
-        # slot per row is the safe upper bound.
-        retained += _SESSION_OVERHEAD + len(session_rows) * _CURSOR_RETENTION
+        retained = (
+            _json_size(source)
+            + _json_size(warnings)
+            + _json_size({"mode": mode, "query": request_query, "counts": counts})
+            + _json_size(extra)
+            + _SESSION_OVERHEAD
+        )
         external_bytes = self._external_retained()
         if retained + external_bytes > self._max_retained:
+            checkpoint()
             return {
                 "error": "storage_limit",
                 "bytes": retained + external_bytes,
                 "limit": self._max_retained,
             }
+        # Reordered snapshots already carry server-derived evidence labels even
+        # when their canonical record was withheld. Reclassifying them from the
+        # projected row would turn structural candidates into provider references.
+        # A byte-limited page may hold fewer rows than page_size, so the actual
+        # page count can exceed the arithmetic page count. Reserving one cursor
+        # slot per row is the safe upper bound.
+        rows: list[dict[str, Any]] = []
+        size_list: list[int] = []
+        for group, group_rows in (("likely", likely), ("less", less)):
+            for row in group_rows:
+                # annotate_row already returns a deep copy; annotate the source
+                # row directly instead of copying it twice before disclosure.
+                if annotated:
+                    tagged = row if rows_owned else copy.deepcopy(row)
+                else:
+                    tagged = annotate_row(row, group)
+                tagged["group"] = group
+                if self.disclosure is not None:
+                    tagged = self.disclosure.row(tagged, source_id)
+                row_size = _json_size(tagged)
+                retained += row_size + _CURSOR_RETENTION
+                if retained + external_bytes > self._max_retained:
+                    checkpoint()
+                    return {
+                        "error": "storage_limit",
+                        "bytes": retained + external_bytes,
+                        "limit": self._max_retained,
+                    }
+                rows.append(tagged)
+                size_list.append(row_size)
+        source_rows = tuple(rows)
+        size_by_identity = {
+            id(row): size for row, size in zip(rows, size_list, strict=True)
+        }
+        session_rows = tuple(
+            row
+            for group in ("likely", "less")
+            for row in sorted_rows(
+                [row for row in source_rows if row["group"] == group],
+                request_query.get("sort", "source"),
+            )
+        )
+        sizes = tuple(size_by_identity[id(row)] for row in session_rows)
+        wire_sizes: list[int | None] = [None] * len(session_rows)
         # This is the last cancellation window: after it, publication is a short
         # in-memory commit and cannot be interrupted by the transport thread.
         checkpoint()
         with self._lock:
             checkpoint()
             self._expire_locked()
-            while self._sessions and (
-                len(self._sessions) >= self._max_sessions
-                or self._retained_locked() + retained + external_bytes
-                > self._max_retained
-            ):
-                oldest = min(
-                    self._sessions, key=lambda key: self._sessions[key].last_access
-                )
-                del self._sessions[oldest]
-                self._retire_locked(oldest)
             search_id = "search_" + secrets.token_urlsafe(18)
             now = self._clock()
             session = _Session(
@@ -558,20 +610,31 @@ class SearchService:
                 query=dict(request_query),
                 source=source,
                 rows=session_rows,
+                source_rows=source_rows,
                 row_sizes=sizes,
+                wire_sizes=wire_sizes,
                 counts=counts,
                 page_size=page_size,
                 bytes=retained,
                 extra=extra,
                 warnings=warnings,
             )
-            self._sessions[search_id] = session
+            # Validate page 0 before evicting older sessions: a response_limit
+            # failure must leave all active cursors and snapshots intact.
             page = self._page_locked(session, 0)
             if "error" in page:
-                # Metadata alone could not fit the advertised response budget;
-                # do not leave a search ID that can never return a page.
-                del self._sessions[search_id]
                 return page
+            while self._sessions and (
+                len(self._sessions) >= self._max_sessions
+                or self._retained_locked() + retained + external_bytes
+                > self._max_retained
+            ):
+                oldest = min(
+                    self._sessions, key=lambda key: self._sessions[key].last_access
+                )
+                del self._sessions[oldest]
+                self._retire_locked(oldest)
+            self._sessions[search_id] = session
             return page
 
     def get_search_results(self, search_id: str, cursor: str) -> dict[str, Any]:
@@ -608,8 +671,12 @@ class SearchService:
             session.last_access = self._clock()
             return self._page_locked(session, offset)
 
-    def snapshot(self, search_id: str) -> dict[str, Any]:
-        """A complete retained snapshot for host-authorized export, not a wire page."""
+    def snapshot(self, search_id: str, *, source_order: bool = False) -> dict[str, Any]:
+        """A complete retained snapshot for export, not a wire page.
+
+        ``source_order`` returns the rows in the order the source supplied them;
+        the default returns the active display sort.
+        """
         with self._lock:
             self._expire_locked()
             session = self._sessions.get(search_id)
@@ -622,7 +689,9 @@ class SearchService:
                 "query": copy.deepcopy(session.query),
                 "source": copy.deepcopy(session.source),
                 "counts": copy.deepcopy(session.counts),
-                "rows": copy.deepcopy(session.rows),
+                "rows": copy.deepcopy(
+                    session.source_rows if source_order else session.rows
+                ),
                 "warnings": copy.deepcopy(session.warnings),
                 **copy.deepcopy(session.extra),
             }
@@ -638,19 +707,16 @@ class SearchService:
             or not 1 <= page_size <= 100
         ):
             return {"error": "bad_page_size"}
-        snapshot = self.snapshot(search_id)
+        snapshot = self.snapshot(search_id, source_order=True)
         if "error" in snapshot:
             return snapshot
         answer = {**snapshot, "likely": [], "less": []}
         for group in ("likely", "less"):
-            answer[group] = sorted_rows(
-                [
-                    {key: value for key, value in row.items() if key != "group"}
-                    for row in snapshot["rows"]
-                    if row["group"] == group
-                ],
-                sort,
-            )
+            answer[group] = [
+                {key: value for key, value in row.items() if key != "group"}
+                for row in snapshot["rows"]
+                if row["group"] == group
+            ]
         query = {**snapshot["query"], "sort": sort}
         return self._publish(
             snapshot["query"].get("source_id", snapshot["source"]["name"]),
@@ -660,6 +726,7 @@ class SearchService:
             answer,
             _noop,
             annotated=True,
+            rows_owned=True,
         )
 
     # --------------------------------------------------------------- internals
@@ -720,6 +787,8 @@ class SearchService:
             request.setdefault("item", options.get("historydb_item", ""))
         elif source_id == "nahf":
             request.setdefault("item", options.get("nahf_item", ""))
+        elif source_id == "ships":
+            request.setdefault("database", options.get("ships_database", "diaries"))
         if mode == "pair":
             request.update(first=first, second=second)
         else:
@@ -740,28 +809,21 @@ class SearchService:
             source_id.startswith("docusky:") and valid_database_name(source_id[8:])
         )
 
-    def _partition(
-        self, answer: dict[str, Any]
-    ) -> tuple[list[dict[str, Any]] | None, dict[str, int]]:
+    @staticmethod
+    def _validated_groups(
+        answer: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]] | tuple[None, None]:
         if "likely" not in answer or "less" not in answer:
-            return None, {}
+            return None, None
         likely = answer["likely"]
         less = answer["less"]
         if not isinstance(likely, list) or not isinstance(less, list):
-            return None, {}
-        rows: list[dict[str, Any]] = []
-        for group, group_rows in (("likely", likely), ("less", less)):
-            for row in group_rows:
-                if not isinstance(row, dict):
-                    return None, {}
-                tagged = copy.deepcopy(row)
-                tagged["group"] = group
-                rows.append(tagged)
-        return rows, {
-            "likely": len(likely),
-            "less": len(less),
-            "total": len(rows),
-        }
+            return None, None
+        if any(not isinstance(row, dict) for row in likely) or any(
+            not isinstance(row, dict) for row in less
+        ):
+            return None, None
+        return likely, less
 
     def _source_metadata(
         self, source_id: str, answer: dict[str, Any]
@@ -847,7 +909,8 @@ class SearchService:
         omitted: list[dict[str, Any]] = []
         index = offset
         base = self._page_payload(session, [], [], offset)
-        if wire_size(base) > self._response_budget:
+        current_wire = wire_size(base)
+        if current_wire > self._response_budget:
             return self._response_limit(base)
         while index < len(session.rows) and (
             len(rows) + len(omitted) < session.page_size
@@ -855,29 +918,48 @@ class SearchService:
             row = session.rows[index]
             row_size = session.row_sizes[index]
             if row_size > self._response_budget:
-                candidate_omitted = [
-                    *omitted,
-                    {
-                        "result_index": index,
-                        "reason": "row_too_large",
-                        "bytes": row_size,
-                    },
-                ]
+                entry = {
+                    "result_index": index,
+                    "reason": "row_too_large",
+                    "bytes": row_size,
+                }
+                # The entry contributes its structured copy, its escaped text
+                # copy, and a list separator when `omitted` is already non-empty.
+                delta = _wire_fragment_size(entry) + (2 if omitted else 0)
+                if current_wire + delta <= self._response_budget:
+                    current_wire += delta
+                    omitted.append(entry)
+                    index += 1
+                    continue
+                candidate_omitted = [*omitted, entry]
                 payload = self._page_payload(
-                    session, copy.deepcopy(rows), candidate_omitted, index + 1
+                    session, rows, candidate_omitted, index + 1
                 )
-                if wire_size(payload) <= self._response_budget:
+                exact_wire = wire_size(payload)
+                if exact_wire <= self._response_budget:
+                    current_wire = exact_wire
                     omitted = candidate_omitted
                     index += 1
                     continue
                 if rows or omitted:
                     break
                 return self._response_limit(payload)
-            candidate_rows = [*rows, copy.deepcopy(row)]
-            payload = self._page_payload(
-                session, candidate_rows, copy.deepcopy(omitted), index + 1
-            )
-            if wire_size(payload) <= self._response_budget:
+            row_wire = session.wire_sizes[index]
+            if row_wire is None:
+                row_wire = _wire_fragment_size(row)
+                session.wire_sizes[index] = row_wire
+            digit_delta = len(str(len(rows) + 1)) - len(str(len(rows)))
+            delta = row_wire + (2 if rows else 0) + 2 * digit_delta
+            if current_wire + delta <= self._response_budget:
+                current_wire += delta
+                rows.append(row)
+                index += 1
+                continue
+            candidate_rows = [*rows, row]
+            payload = self._page_payload(session, candidate_rows, omitted, index + 1)
+            exact_wire = wire_size(payload)
+            if exact_wire <= self._response_budget:
+                current_wire = exact_wire
                 rows = candidate_rows
                 index += 1
                 continue
@@ -894,10 +976,10 @@ class SearchService:
                     "bytes": row_size,
                 },
             ]
-            payload = self._page_payload(
-                session, copy.deepcopy(rows), candidate_omitted, index + 1
-            )
-            if wire_size(payload) <= self._response_budget:
+            payload = self._page_payload(session, rows, candidate_omitted, index + 1)
+            exact_wire = wire_size(payload)
+            if exact_wire <= self._response_budget:
+                current_wire = exact_wire
                 omitted = candidate_omitted
                 index += 1
                 continue
@@ -905,8 +987,12 @@ class SearchService:
         next_cursor = (
             self._cursor(session, index) if index < len(session.rows) else None
         )
-        answer = self._page_payload(session, rows, omitted, index)
+        answer = self._page_payload(
+            session, [copy.deepcopy(row) for row in rows], omitted, index
+        )
         answer["next_cursor"] = next_cursor
+        if wire_size(answer) > self._response_budget:
+            return self._response_limit(answer)
         return answer
 
 

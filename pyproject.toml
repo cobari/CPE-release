@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "classic-pattern-explorer"
-version = "3.2"
+version = "3.3"
 description = "Pattern search and verification for Literary Sinitic source text."
 readme = "README.md"
 license = "MIT"
@@ -44,10 +44,12 @@ include = [
     "/README*.md",
     "/release.json",
     "/discoverability.md",
+    "/CITATION.cff",
     "/docs/mcp.md",
     "/docs/mcp-parity.md",
     "/docs/mcp-dsl-classification.md",
     "/docs/mcp-data-policy.md",
+    "/docs/variant-comparison-workflow.md",
 ]
 
 [tool.hatch.build.targets.sdist.hooks.custom]

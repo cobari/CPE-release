@@ -202,7 +202,7 @@ def context(
         if after_closing < len(sentences)
         else len(norm.text)
     )
-    finish = max(norm.src_span(closing.start, stop).end, src_end)
+    finish = max(norm.src_end(stop), src_end)
     before = escape(shown(view.reference, begin, src_start, view.hidden))
     after = escape(shown(view.reference, src_end, finish, view.hidden))
     if before and (

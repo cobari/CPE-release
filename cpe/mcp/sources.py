@@ -1,8 +1,8 @@
 """SDK-free access to the online search sources used by the desktop window.
 
 The registry is a host-side dispatcher, not another matcher.  It keeps the clients
-for the eighteen online sources and delegates every search to the same function the
-GUI calls, so source-specific restrictions, error codes and provenance stay in one
+for the registered online sources and delegates every search to the same function
+the GUI calls, so source-specific restrictions, error codes and provenance stay in one
 place.  MCP transport code is deliberately absent: callers may use this module from
 a CLI, a test or an MCP application service without importing the SDK.
 
@@ -13,10 +13,12 @@ combine a local service with this online registry; local searches remain the job
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Iterable, Mapping
+from functools import lru_cache
 from pathlib import Path
 from threading import RLock
-from typing import Any
+from typing import Any, cast
 
 from cpe.gui import cand as gui_cand
 from cpe.gui import csid as gui_csid
@@ -45,6 +47,7 @@ SOURCE_IDS = (
     "sat",
     "aksarchive",
     "ships",
+    "engishiki",
     "thdl",
     "csid",
     "cand",
@@ -96,12 +99,19 @@ _ROUTES: dict[str, tuple[Any, str]] = {
 }
 
 
+@lru_cache(maxsize=1)
+def english_catalog() -> dict[str, str]:
+    """Read the UI source labels without importing the window bridge."""
+    path = Path(__file__).resolve().parents[1] / "gui" / "i18n" / "en.json"
+    return cast(dict[str, str], json.loads(path.read_text(encoding="utf-8")))
+
+
 def _base_source(source: str) -> str:
     return "docusky" if source.startswith(_DOCUSKY_PREFIX) else source
 
 
 def _source_code(value: Any) -> str | None:
-    """Normalize one GUI source code, including the dynamic DocuSky profiles."""
+    """Normalize one GUI source code, including DocuSky catalogue databases."""
     if not isinstance(value, str):
         return None
     if value in SOURCE_IDS:
@@ -116,7 +126,7 @@ def _source_code(value: Any) -> str | None:
 
 
 def valid_source(source_id: Any) -> bool:
-    """Whether a host value names one of the eighteen sources or a valid profile."""
+    """Whether a host value names a registered online source or DocuSky database."""
     return _source_code(source_id) is not None
 
 
@@ -139,11 +149,11 @@ class SourceRegistry:
     """Persistent clients and GUI-equivalent dispatch for the online sources.
 
     ``enabled_online`` is an explicit allowlist.  The base name ``docusky`` opens
-    every DocuSky profile; an entry such as ``docusky:宋會要輯稿`` opens only that
-    profile.  No client is constructed and no provider request is made by the
-    constructor.  An injected ``clients`` mapping wins over the lazy default
+    every catalogue database; an entry such as ``docusky:宋會要輯稿`` opens only
+    that database.  No client is constructed and no provider request is made by
+    the constructor.  An injected ``clients`` mapping wins over the lazy default
     factory; for DocuSky, ``clients['docusky']`` is the shared client and an exact
-    ``clients['docusky:<database>']`` entry, when present, is used for that profile.
+    ``clients['docusky:<database>']`` entry, when present, is used for that database.
     """
 
     source_ids = SOURCE_IDS
@@ -186,11 +196,11 @@ class SourceRegistry:
         self._settings = value
 
     def valid_source(self, source_id: Any) -> bool:
-        """Whether this value names an online source or a valid DocuSky profile."""
+        """Whether this value names an online source or a DocuSky database."""
         return valid_source(source_id)
 
     def enabled(self, source_id: str) -> bool:
-        """Whether the host allowlist opens this source or DocuSky profile."""
+        """Whether the host allowlist opens this source or DocuSky database."""
         source = _source_code(source_id)
         if source is None:
             return False
@@ -201,9 +211,10 @@ class SourceRegistry:
     def client(self, source_id: str) -> Any:
         """Return the persistent client for one source, creating it once.
 
-        ``ships`` is external-only and returns ``None``.  A disabled source, an
-        unknown source and an ITKC request without a log or injected client raise
-        ``ValueError``; this method never starts a provider request.
+        ``ships`` and ``engishiki`` are external-only and return ``None``. A
+        disabled source, an unknown source and an ITKC request without a log or
+        injected client raise ``ValueError``; this method never starts a provider
+        request.
         """
         source = _source_code(source_id)
         if source is None:
@@ -212,7 +223,7 @@ class SourceRegistry:
             raise ValueError("unknown_source")
         if not self.enabled(source):
             raise ValueError("source_disabled")
-        if source == "ships":
+        if source in ("ships", "engishiki"):
             return None
         if source == "itkc" and not self._has_itkc():
             raise ValueError("itkc_log_required")
@@ -339,8 +350,12 @@ class SourceRegistry:
         try:
             if checkpoint is not None:
                 checkpoint()
-            if source == "ships":
-                answer = gui_external.search_ships(request)
+            if source in ("ships", "engishiki"):
+                answer = (
+                    gui_external.search_ships(request)
+                    if source == "ships"
+                    else gui_external.search_engishiki(request)
+                )
             else:
                 base = _base_source(source)
                 owner, name = _ROUTES[base]
@@ -374,8 +389,8 @@ class SourceRegistry:
         """Return the source's selector catalog with the GUI's existing mapping.
 
         DocuSky and HistoryDB catalogs use the same client methods (and therefore
-        the same network caps) as the window.  NAHF is a static tuple and makes no
-        request.  An unenabled network catalog is refused before client creation.
+        the same network caps) as the window. NAHF and SHIPS use static choices.
+        An unenabled network catalog is refused before client creation.
         """
         source = _source_code(source_id)
         if source is None:
@@ -388,6 +403,19 @@ class SourceRegistry:
 
             return {
                 "items": [{"id": item_id, "label": label} for item_id, label in ITEMS]
+            }
+        if base == "ships":
+            labels = english_catalog()
+            return {
+                "navigation_only": True,
+                "option": "ships_database",
+                "items": [
+                    {
+                        "id": database,
+                        "label": labels[f"source.ships.database.{database}"],
+                    }
+                    for database in gui_external.SHIPS_DATABASES
+                ],
             }
         if base not in ("docusky", "historydb"):
             return {"error": "unimplemented_source"}

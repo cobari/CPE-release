@@ -1,9 +1,8 @@
-"""Headless access to the existing 3.2 library and import application services."""
+"""Headless access to the existing 3.3 library and import application services."""
 
 from __future__ import annotations
 
 import copy
-import csv
 import hashlib
 import json
 import os
@@ -11,6 +10,7 @@ import secrets
 import tempfile
 import threading
 import time
+from collections import deque
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, replace
@@ -213,6 +213,9 @@ class Workspace:
         self._clear_worker: threading.Thread | None = None
         self._clear_worker_lock = threading.Lock()
         self._closed = threading.Event()
+        self._release_jobs_lock = threading.Lock()
+        self._release_job_ids: deque[str] = deque(maxlen=64)
+        self._sync_release_active = False
         self._catalogs: dict[str, dict[str, Any]] = {}
         self._search_service: Any = None
 
@@ -252,16 +255,23 @@ class Workspace:
                     if item["key"] == key:
                         item["accessed"] = now
                         return {**copy.deepcopy(item["data"]), "catalog_id": id_}
-            data = (
-                self.registry.catalog(source, site)
-                if kind == "source"
-                else self.import_catalog(source, provider_page, resource_id)
-            )
-            if "error" in data:
-                return data
-            size = _json_size(data)
-            if size > 8 * 1024 * 1024:
-                return {"error": "catalog_storage_limit"}
+        data = (
+            self.registry.catalog(source, site)
+            if kind == "source"
+            else self.import_catalog(source, provider_page, resource_id)
+        )
+        if "error" in data:
+            return data
+        size = _json_size(data)
+        if size > 8 * 1024 * 1024:
+            return {"error": "catalog_storage_limit"}
+        now = time.monotonic()
+        with self._lock:
+            self._catalogs = {
+                id_: item
+                for id_, item in self._catalogs.items()
+                if now - item["accessed"] <= 900
+            }
             while self._catalogs and (
                 len(self._catalogs) >= 8
                 or sum(item["bytes"] for item in self._catalogs.values()) + size
@@ -285,7 +295,7 @@ class Workspace:
 
         self.registry = registry
         for source in SOURCE_IDS:
-            if source != "ships" and registry.enabled(source):
+            if source not in ("ships", "engishiki") and registry.enabled(source):
                 name = "sillok" if source == "sillok" else source
                 if hasattr(self.api, name + "_client"):
                     setattr(
@@ -336,8 +346,11 @@ class Workspace:
             return library
 
     def describe(self) -> dict[str, Any]:
+        from cpe.mcp.build_info import embedded_build_info
+
         return {
             **self.api.local_libraries(),
+            "build": embedded_build_info(),
             "language": self.api.saved_language(),
             "sort": self.api.saved_sort(),
             "source_options": self.api.source_options(),
@@ -395,12 +408,14 @@ class Workspace:
         normalization: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         with self._lock:
-            if normalization is not None and self._search_service is not None:
-                if (
+            if normalization is not None:
+                if self._search_service is not None and (
                     self._search_service.manage_searches("list")["active_operation"]
                     is not None
                 ):
                     return {"error": "search_busy"}
+                if self._any_release_active():
+                    return {"error": "release_busy"}
             if language is not None and language not in LANGUAGES:
                 return {"error": "bad_language"}
             if sort is not None and sort not in {"source", "era", "era-desc"}:
@@ -429,7 +444,8 @@ class Workspace:
                 return {"error": "bad_normalization"}
             prior_sources = self.api._selected_sources.copy()
             try:
-                with self.preferences.transaction():
+                # Acquire _local_lock before preferences._state_lock, matching Api.
+                with self.api._local_lock, self.preferences.transaction():
                     if sources is not None or source_options is not None:
                         answer = self.api.set_sources(
                             sources if sources is not None else prior_sources,
@@ -549,40 +565,140 @@ class Workspace:
             ):
                 self._schedule_clear_worker()
 
-    def import_local(self, path: str, *, batch: bool = False) -> dict[str, Any]:
-        with self._lock:
-            try:
-                target = self.policy.check(path)
-                self._destination()
-            except PolicyError as error:
-                return {"error": error.code}
-            answer = (
-                self.api.import_release_directory(str(target))
-                if batch
-                else self.api.import_release_file(str(target))
-            )
-            if "error" not in answer:
+    def _on_release_done(
+        self, answer: dict[str, Any], *, sync_on_cancel: bool = False
+    ) -> None:
+        if isinstance(answer, dict) and (
+            "error" not in answer
+            or (sync_on_cancel and answer.get("error") == "release_cancelled")
+        ):
+            with self._lock:
                 self._changed()
+
+    def _release_busy(self) -> bool:
+        with self.api._release_job_lock:
+            job = self.api._release_job
+            return bool(job and job["result"] is None)
+
+    def _any_release_active(self) -> bool:
+        with self._release_jobs_lock:
+            return self._sync_release_active or self._release_busy()
+
+    def _start_release_job(
+        self, run: Any, *, sync_on_cancel: bool = False
+    ) -> dict[str, Any]:
+        with self._release_jobs_lock:
+            if self._sync_release_active:
+                return {"error": "release_busy"}
+            answer = self.api._start_release_job(
+                run,
+                on_done=lambda ans: self._on_release_done(
+                    ans, sync_on_cancel=sync_on_cancel
+                ),
+            )
+            job_id = answer.get("job")
+            if isinstance(job_id, str) and job_id:
+                self._release_job_ids.append(job_id)
             return answer
 
-    def import_remote(self, provider: str, identifier: str) -> dict[str, Any]:
+    def _begin_sync_release(self) -> bool:
+        with self._release_jobs_lock:
+            if self._sync_release_active or self._release_busy():
+                return False
+            self._sync_release_active = True
+            return True
+
+    def _end_sync_release(self) -> None:
+        with self._release_jobs_lock:
+            self._sync_release_active = False
+
+    def _is_release_job(self, job_id: str) -> bool:
+        if not job_id:
+            return False
+        if job_id.startswith("rel_"):
+            return True
+        with self._release_jobs_lock:
+            return job_id in self._release_job_ids
+
+    def import_local(
+        self, path: str, *, batch: bool = False, background: bool = False
+    ) -> dict[str, Any]:
+        with self._lock:
+            if self._closed.is_set():
+                return {"error": "release_cancelled"}
+            try:
+                target = self.policy.check(path)
+                dest = self._destination()
+            except PolicyError as error:
+                return {"error": error.code}
+            if background:
+                run = (
+                    (
+                        lambda control: self.api._import_release_directory(
+                            str(target), str(dest), control=control
+                        )
+                    )
+                    if batch
+                    else (
+                        lambda control: self.api._import_release_file(
+                            str(target), str(dest), control=control
+                        )
+                    )
+                )
+                return self._start_release_job(run, sync_on_cancel=batch)
+            if not self._begin_sync_release():
+                return {"error": "release_busy"}
+        try:
+            answer = (
+                self.api.import_release_directory(str(target), str(dest))
+                if batch
+                else self.api.import_release_file(str(target), str(dest))
+            )
+        finally:
+            self._end_sync_release()
+        if "error" not in answer or (
+            batch and answer.get("error") == "release_cancelled"
+        ):
+            with self._lock:
+                self._changed()
+        return answer
+
+    def import_remote(
+        self, provider: str, identifier: str, *, background: bool = False
+    ) -> dict[str, Any]:
         if provider not in {"portal", "ctp"}:
             return {"error": "bad_request"}
         if provider not in self._enabled_imports:
             return {"error": "import_disabled"}
+        if provider == "ctp" and background:
+            return {"error": "bad_request"}
         with self._lock:
+            if self._closed.is_set():
+                return {"error": "release_cancelled"}
             try:
-                target = self._destination()
+                dest = self._destination()
             except PolicyError as error:
                 return {"error": error.code}
-            answer = (
-                self.api.import_dataset(identifier, str(target))
-                if provider == "portal"
-                else self.api.import_ctp(identifier)
-            )
-            if "error" not in answer:
+            if provider == "portal" and background:
+                return self._start_release_job(
+                    lambda control: self.api._import_dataset(
+                        identifier, str(dest), control=control
+                    )
+                )
+            if provider == "portal":
+                if not self._begin_sync_release():
+                    return {"error": "release_busy"}
+        if provider == "portal":
+            try:
+                answer = self.api.import_dataset(identifier, str(dest))
+            finally:
+                self._end_sync_release()
+        else:
+            answer = self.api.import_ctp(identifier)
+        if "error" not in answer:
+            with self._lock:
                 self._changed()
-            return answer
+        return answer
 
     def preview_import(
         self, provider: str, address: str, revision: str = ""
@@ -605,16 +721,26 @@ class Workspace:
         token: str = "",
         unit_id: str = "",
         job_id: str = "",
+        kind: str = "auto",
         selected: list[str] | None = None,
         edition: str = "",
         researcher_confirmed: bool = False,
     ) -> dict[str, Any]:
+        if kind not in {"auto", "external", "release"}:
+            return {"error": "bad_request"}
+        use_release = kind == "release" or (
+            kind == "auto" and self._is_release_job(job_id)
+        )
         if action == "progress":
+            if use_release:
+                return self.api.release_progress(job_id)
             answer = self.api.external_progress(job_id)
             return (
                 self.disclosure.import_metadata(answer) if self.disclosure else answer
             )
         if action == "cancel":
+            if use_release:
+                return {"cancelled": self.api.cancel_release_import(job_id)}
             return {"cancelled": self.api.cancel_external(job_id)}
         if action == "unit":
             with self.api._external_lock:
@@ -781,8 +907,7 @@ class Workspace:
     def export_snapshot(
         self, service: Any, search_id: str, output_prefix: str, *, force: bool = False
     ) -> dict[str, Any]:
-        from cpe.export.csv_out import excel_safe
-        from cpe.export.safe import check_input_collisions, staged
+        from cpe.export.snapshot import write
         from cpe.match.run import outputs_for
 
         snapshot: dict[str, Any] = service.snapshot(search_id)
@@ -791,94 +916,21 @@ class Workspace:
         if self.disclosure is not None:
             snapshot = self.disclosure.search(snapshot)
         try:
-            outputs = outputs_for(self.policy.check(output_prefix, write=True))
-            paths = (outputs.csv, outputs.jsonl, outputs.run)
-            for path in paths:
+            prefix = self.policy.check(output_prefix, write=True)
+            outputs = outputs_for(prefix)
+            for path in (outputs.csv, outputs.jsonl, outputs.run):
                 self.policy.check(path, write=True)
             protected = self._protected_inputs()
             pattern_file = snapshot["query"].get("pattern_file")
             if pattern_file:
                 protected.append(Path(pattern_file))
-            check_input_collisions(paths, protected)
-            columns = [
-                "id",
-                "text_id",
-                "title",
-                "link",
-                "group",
-                "kind",
-                "before",
-                "segment",
-                "after",
-                "a",
-                "b",
-                "reasons",
-                "record",
-                "core_result_id",
-                "matched_field",
-                "positions",
-                "citation",
-                "evidence_scope",
-                "group_semantics",
-                "text_views",
-                "text_withheld",
-                "record_withheld",
-            ]
-            with staged(paths, force=force) as temporary:
-                with temporary[0].open("w", encoding="utf-8-sig", newline="") as stream:
-                    writer = csv.DictWriter(
-                        stream,
-                        fieldnames=columns,
-                        quoting=csv.QUOTE_ALL,
-                        lineterminator="\n",
-                    )
-                    writer.writeheader()
-                    for row in snapshot["rows"]:
-                        values = {key: row.get(key, "") for key in columns}
-                        writer.writerow(
-                            {
-                                key: excel_safe(
-                                    value
-                                    if isinstance(value, str)
-                                    else json.dumps(
-                                        value, ensure_ascii=False, separators=(",", ":")
-                                    )
-                                )
-                                for key, value in values.items()
-                            }
-                        )
-                with temporary[1].open("w", encoding="utf-8", newline="") as stream:
-                    for row in snapshot["rows"]:
-                        stream.write(
-                            json.dumps(
-                                {
-                                    "schema": "cpe.mcp.snapshot-row/1",
-                                    "source": snapshot["source"],
-                                    "result": row,
-                                },
-                                ensure_ascii=False,
-                                separators=(",", ":"),
-                            )
-                            + "\n"
-                        )
-                metadata = {
-                    key: value for key, value in snapshot.items() if key != "rows"
-                }
-                metadata.update(
-                    schema="cpe.mcp.snapshot/1", row_count=len(snapshot["rows"])
-                )
-                with temporary[2].open("w", encoding="utf-8", newline="") as stream:
-                    json.dump(metadata, stream, ensure_ascii=False, indent=2)
-                    stream.write("\n")
+            return write(
+                snapshot, prefix, profile="mcp", force=force, protected=protected
+            )
         except PolicyError as error:
             return {"error": error.code}
         except OSError:
             return {"error": "export_failed"}
-        return {
-            "files": [str(path) for path in paths],
-            "rows": len(snapshot["rows"]),
-            "schema": "cpe.mcp.snapshot/1",
-        }
 
     def search_dsl(
         self,
@@ -891,7 +943,7 @@ class Workspace:
         page_size: int = 20,
         checkpoint: Any = None,
     ) -> dict[str, Any]:
-        from cpe.gui.search_session import sorted_rows
+        from cpe.export.run_file import normalization_section
         from cpe.mcp.patterns import search
 
         if source_id not in LOCAL_SOURCES or bool(expression) == bool(pattern_file):
@@ -923,31 +975,30 @@ class Workspace:
                     if pattern_file
                     else None
                 )
-                answer = search(
-                    library,
-                    expression=expression,
-                    pattern_content=content,
-                    checkpoint=check,
-                )
-                if "error" in answer:
-                    return answer
-                for group in ("likely", "less"):
-                    answer[group] = sorted_rows(answer[group], sort)
-                query = {
-                    "source_id": source_id,
-                    "normalization": self.normalization(),
-                    "expression": expression,
-                    "pattern_file": pattern_file,
-                    "pattern_sha256": hashlib.sha256(content).hexdigest()
-                    if content
-                    else None,
-                    "sort": sort,
-                }
-                check()
-                result: dict[str, Any] = service._publish(
-                    source_id, "dsl", query, page_size, answer, check
-                )
-                return result
+                norm = normalization_section(library.settings.normalization)
+            answer = search(
+                library,
+                expression=expression,
+                pattern_content=content,
+                checkpoint=check,
+            )
+            if "error" in answer:
+                return answer
+            query = {
+                "source_id": source_id,
+                "normalization": norm,
+                "expression": expression,
+                "pattern_file": pattern_file,
+                "pattern_sha256": hashlib.sha256(content).hexdigest()
+                if content
+                else None,
+                "sort": sort,
+            }
+            check()
+            result: dict[str, Any] = service._publish(
+                source_id, "dsl", query, page_size, answer, check
+            )
+            return result
         except PolicyError as error:
             return {"error": error.code}
         except InterruptedError:
@@ -1009,7 +1060,7 @@ class Workspace:
                 or not 1 <= page_size <= 100
             ):
                 return {"error": "bad_page_size"}
-            answer = session.page(revision, group, start, sort)
+            answer = session.page(revision, group, start, sort, include_records=True)
             if "rows" in answer:
                 from cpe.mcp.evidence import annotate_row
 
@@ -1066,8 +1117,9 @@ class Workspace:
                     client = self.registry.client("itkc")
                 except ValueError as error:
                     return {"error": str(error)}
-                if self._itkc is not None:
-                    self._itkc.cancel()
+                prior_session = self._itkc
+                prior_bytes = self._itkc_bytes
+                prior_generation = self._itkc_generation
                 self._itkc_generation += 1
                 generation, epoch = self._itkc_generation, self._epoch
 
@@ -1113,6 +1165,9 @@ class Workspace:
                     return {"error": "bad_request"}
                 # The analyzer uses this action's cancellation checkpoint,
                 # rather than the completed start request's event.
+                prior_session = None
+                prior_bytes = 0
+                prior_generation = self._itkc_generation
                 session = self._itkc
                 with session._snapshot_lock:
                     prior_revision = session.revision
@@ -1146,6 +1201,8 @@ class Workspace:
             assert self._itkc is not None
             if self._clear_itkc_requested == self._itkc.id:
                 id_ = self._itkc.id
+                if prior_session is not None:
+                    prior_session.cancel()
                 self._itkc = None
                 self._itkc_bytes = 0
                 self._itkc_generation += 1
@@ -1177,9 +1234,18 @@ class Workspace:
                     self._itkc.rollback_to(prior_revision)
                 else:
                     self._itkc.cancel()
-                    self._itkc = None
-                    self._itkc_bytes = 0
+                    if prior_session is not None and not self._closed.is_set():
+                        self._itkc = prior_session
+                        self._itkc_bytes = prior_bytes
+                        self._itkc_generation = prior_generation
+                    else:
+                        if prior_session is not None:
+                            prior_session.cancel()
+                        self._itkc = None
+                        self._itkc_bytes = 0
                 return {"error": "storage_limit"}
+            if prior_session is not None:
+                prior_session.cancel()
             self._itkc_bytes = retained
             if service is not None:
                 with service._lock:
@@ -1205,8 +1271,14 @@ class Workspace:
         if self._itkc is not None:
             self._itkc.cancel()
         with self.api._external_job_lock:
-            job = self.api._external_job
-            if job and job["result"] is None:
-                job["control"].cancel.set()
-        if job and job.get("thread"):
-            job["thread"].join(timeout=1)
+            ext_job = self.api._external_job
+            if ext_job and ext_job["result"] is None:
+                ext_job["control"].cancel.set()
+        if ext_job and ext_job.get("thread"):
+            ext_job["thread"].join(timeout=1)
+        with self.api._release_job_lock:
+            rel_job = self.api._release_job
+            if rel_job and rel_job["result"] is None:
+                rel_job["control"].cancel.set()
+        if rel_job and rel_job.get("thread"):
+            rel_job["thread"].join(timeout=1)

@@ -11,15 +11,16 @@ import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import Any
 
+from cpe.cancellation import Checkpoint
 from cpe.local.file_lock import FileBusyError, exclusive
 from cpe.local.paths import is_directory_link, is_within
 from cpe.local.releases import ReleaseError, import_release
-from cpe.local.txt import BUNDLE_SUFFIX, InputError, read_bundle
+from cpe.local.txt import BUNDLE_SUFFIX, InputError, iter_bundle_ids
 
 _RELEASE_SUFFIXES = {".zip", ".xml"}
 _REPORT_NAME = "import-report.json"
@@ -109,14 +110,15 @@ def _validate_bundles(target: Path) -> tuple[int, set[str], str | None]:
 
     try:
         for bundle in bundles:
-            texts = read_bundle(bundle)
-            if not texts:
-                return 0, set(), "release_empty"
-            for text in texts:
-                if text.text_id in seen_ids:
+            count = 0
+            for text_id in iter_bundle_ids(bundle):
+                if text_id in seen_ids:
                     return 0, set(), "duplicate_text_id"
-                seen_ids.add(text.text_id)
-            total_articles += len(texts)
+                seen_ids.add(text_id)
+                count += 1
+            if not count:
+                return 0, set(), "release_empty"
+            total_articles += count
     except (InputError, OSError):
         return 0, set(), "invalid_bundle"
 
@@ -283,7 +285,11 @@ def _multi_work_item(
 
 
 def _process_multi_work_release(
-    file_path: Path, folder: Path, stage_dir: Path, info: dict[str, Any]
+    file_path: Path,
+    folder: Path,
+    stage_dir: Path,
+    info: dict[str, Any],
+    checkpoint: Checkpoint = None,
 ) -> dict[str, Any]:
     """Lock, validate and commit every work folder from one multi-work release.
 
@@ -298,7 +304,9 @@ def _process_multi_work_release(
     destinations = [folder / staged.name for staged in folders]
     try:
         with _destination_locks(destinations):
-            return _process_multi_work_locked(file_path, folder, info, folders)
+            return _process_multi_work_locked(
+                file_path, folder, info, folders, checkpoint
+            )
     except FileBusyError:
         return {
             "path": str(file_path),
@@ -312,12 +320,15 @@ def _process_multi_work_locked(
     folder: Path,
     info: dict[str, Any],
     folders: list[Path],
+    checkpoint: Checkpoint = None,
 ) -> dict[str, Any]:
     """The multi-work preflight and commit, with destination locks held."""
     plans: list[tuple[Path, Path, bool]] = []
     seen_ids: set[str] = set()
     total_articles = 0
     for staged in folders:
+        if checkpoint:
+            checkpoint()
         count, ids, validation_error = _validate_bundles(staged)
         if validation_error is not None:
             return {
@@ -357,6 +368,8 @@ def _process_multi_work_locked(
         else:
             plans.append((staged, destination, False))
 
+    if checkpoint:
+        checkpoint()
     moved: list[tuple[Path, Path]] = []
     try:
         for staged, destination, identical in plans:
@@ -439,15 +452,24 @@ def _publish_single_work(
 
 
 def _process_staged_release(
-    file_path: Path, folder: Path, stage_dir: Path
+    file_path: Path,
+    folder: Path,
+    stage_dir: Path,
+    checkpoint: Checkpoint = None,
 ) -> dict[str, Any]:
     """Import release in stage_dir and atomically rename into folder.
 
     Catches expected release, parser, and OS errors per file without masking bugs.
     """
     try:
-        info = import_release(file_path, stage_dir)
+        info = (
+            import_release(file_path, stage_dir, checkpoint=checkpoint)
+            if checkpoint
+            else import_release(file_path, stage_dir)
+        )
     except ReleaseError as error:
+        if error.code == "release_cancelled":
+            raise
         return {"path": str(file_path), "status": "failed", "code": error.code}
     except (
         OSError,
@@ -483,7 +505,9 @@ def _process_staged_release(
         # Multi-work releases (for example the NAHF 15163258 collections) install
         # several sibling work folders. They are validated and committed as one
         # item; renaming the staging root would publish a hidden staging name.
-        return _process_multi_work_release(file_path, folder, stage_dir, info)
+        return _process_multi_work_release(
+            file_path, folder, stage_dir, info, checkpoint
+        )
 
     total_articles, _, validation_error = _validate_bundles(staged_target)
     if validation_error is not None:
@@ -496,6 +520,8 @@ def _process_staged_release(
     dest_target = folder / staged_target.name
     try:
         with _destination_locks([dest_target]):
+            if checkpoint:
+                checkpoint()
             return _publish_single_work(
                 file_path, staged_target, dest_target, info, total_articles
             )
@@ -507,7 +533,13 @@ def _process_staged_release(
         }
 
 
-def import_directory(source: Path, folder: Path) -> dict[str, Any]:
+def import_directory(
+    source: Path,
+    folder: Path,
+    *,
+    checkpoint: Checkpoint = None,
+    progress: Callable[[int, int, str], None] | None = None,
+) -> dict[str, Any]:
     """Import official XML release files in batches from source into folder.
 
     Parameters:
@@ -523,6 +555,8 @@ def import_directory(source: Path, folder: Path) -> dict[str, Any]:
         ReleaseError("batch_source_conflict"): When source and folder are
             identical or nested.
     """
+    if checkpoint:
+        checkpoint()
     if not source.exists() or not source.is_dir():
         raise ReleaseError("batch_source_missing")
 
@@ -558,11 +592,17 @@ def import_directory(source: Path, folder: Path) -> dict[str, Any]:
     failed_count = 0
     total_excluded = 0
 
-    for file_path in candidates:
+    if progress:
+        progress(0, len(candidates), "")
+    for number, file_path in enumerate(candidates, 1):
+        if checkpoint:
+            checkpoint()
         temp_dir: str | None = None
         try:
             temp_dir = tempfile.mkdtemp(prefix=".stage-", dir=folder)
-            result = _process_staged_release(file_path, folder, Path(temp_dir))
+            result = _process_staged_release(
+                file_path, folder, Path(temp_dir), checkpoint
+            )
         except OSError:
             result = {
                 "path": str(file_path),
@@ -577,6 +617,8 @@ def import_directory(source: Path, folder: Path) -> dict[str, Any]:
                     pass
 
         items.append(result)
+        if progress:
+            progress(number, len(candidates), file_path.name)
         status = result.get("status")
         # Articles a release leaves out stay left out whether its files were written
         # now or by an earlier identical import, so both count toward the total.
