@@ -2232,6 +2232,50 @@ class Api:
         except (OSError, sqlite3.Error, ValueError):
             return {"error": "review_storage"}
 
+    def review_page(
+        self, offset: Any = 0, limit: Any = review.DEFAULT_PAGE_SIZE
+    ) -> dict[str, Any]:
+        if (
+            type(offset) is not int
+            or offset < 0
+            or type(limit) is not int
+            or not 1 <= limit <= review.MAX_PAGE_SIZE
+        ):
+            return {"error": "bad_request"}
+        try:
+            candidates, total = self._review.page(
+                "candidate", offset=offset, limit=limit
+            )
+            if total > 0 and offset >= total:
+                offset = ((total - 1) // limit) * limit
+                candidates, total = self._review.page(
+                    "candidate", offset=offset, limit=limit
+                )
+            searches = self._review.items("search")
+        except (OSError, sqlite3.Error, ValueError):
+            return {"error": "review_storage"}
+        return {
+            "candidates": candidates,
+            "total_candidates": total,
+            "offset": offset,
+            "limit": limit,
+            "searches": searches,
+        }
+
+    def review_candidate_details(self, ids: Any) -> dict[str, Any]:
+        if (
+            not isinstance(ids, list)
+            or not 1 <= len(ids) <= review.MAX_PAGE_SIZE
+            or not all(isinstance(id_, str) and id_ for id_ in ids)
+        ):
+            return {"error": "bad_request"}
+        try:
+            entries = self._review.items("candidate", ids)
+        except (OSError, sqlite3.Error, ValueError):
+            return {"error": "review_storage"}
+        by_id = {entry["id"]: entry for entry in entries}
+        return {"candidates": [by_id[id_] for id_ in ids if id_ in by_id]}
+
     def save_review_candidate(self, panel: Any, row_id: Any) -> dict[str, Any]:
         if not isinstance(panel, dict) or not isinstance(row_id, str) or not row_id:
             return {"error": "bad_request"}
@@ -2334,14 +2378,23 @@ class Api:
                 for code in sources
             ):
                 return {"error": "review_unavailable"}
-            bindings = {
-                code: {
-                    "folder": self._local_paths.get(code, ""),
+            bindings: dict[str, dict[str, Any]] = {}
+            for code in sources:
+                if code not in LOCAL_SOURCES:
+                    continue
+                folder = self._local_paths.get(code, "")
+                binding: dict[str, Any] = {
+                    "folder": folder,
                     "sha256": review.library_fingerprint(self._local_libraries[code]),
                 }
-                for code in sources
-                if code in LOCAL_SOURCES
-            }
+                if not folder:
+                    binding["files"] = list(
+                        dict.fromkeys(
+                            str(text.local.path.resolve())
+                            for text in self._local_libraries[code].texts
+                        )
+                    )
+                bindings[code] = binding
             settings = review.capture_settings(self._library.settings)
         payload = {
             "sources": sources,
@@ -2361,9 +2414,13 @@ class Api:
         return {"id": id_}
 
     def restore_review_search(
-        self, id_: Any, accept_changes: bool = False
+        self, id_: Any, accept_changes: bool = False, mode: Any = "auto"
     ) -> dict[str, Any]:
-        if not isinstance(id_, str) or type(accept_changes) is not bool:
+        if (
+            not isinstance(id_, str)
+            or type(accept_changes) is not bool
+            or mode not in ("auto", "reopen", "current")
+        ):
             return {"error": "bad_request"}
         try:
             entries = self._review.items("search", [id_])
@@ -2374,7 +2431,7 @@ class Api:
         saved = entries[0]
         try:
             settings = review.restore_settings(saved["settings"])
-            return self._restore_review_search(saved, settings, accept_changes)
+            return self._restore_review_search(saved, settings, accept_changes, mode)
         except (
             OSError,
             InputError,
@@ -2385,32 +2442,244 @@ class Api:
         ):
             return {"error": "review_unavailable"}
 
+    @staticmethod
+    def _same_file_list(first: Sequence[Path], second: Sequence[str]) -> bool:
+        try:
+            first_resolved = list(dict.fromkeys(p.resolve() for p in first))
+            second_resolved = list(dict.fromkeys(Path(p).resolve() for p in second))
+        except (OSError, RuntimeError):
+            return False
+        return first_resolved == second_resolved
+
+    @staticmethod
+    def _saved_folder_conflicts(
+        code: str,
+        folder: str,
+        folders: Mapping[str, str],
+        saved_libraries: Mapping[str, Mapping[str, Any]],
+    ) -> bool:
+        target = Path(folder)
+        if any(
+            other_code != code
+            and other_code not in saved_libraries
+            and other_path
+            and _same_folder(Path(other_path), target)
+            for other_code, other_path in folders.items()
+        ):
+            return True
+        return any(
+            other_code != code
+            and isinstance(other_binding.get("folder"), str)
+            and other_binding["folder"]
+            and _same_folder(Path(other_binding["folder"]), target)
+            for other_code, other_binding in saved_libraries.items()
+        )
+
+    @staticmethod
+    def _validate_saved_binding(
+        binding: Any,
+    ) -> tuple[str, list[str] | None, str]:
+        if not isinstance(binding, Mapping):
+            raise TypeError("invalid binding")
+        saved_folder = binding.get("folder")
+        sha256 = binding.get("sha256")
+        if not isinstance(saved_folder, str) or not isinstance(sha256, str):
+            raise TypeError("invalid binding fields")
+        raw_files = binding.get("files")
+        saved_files: list[str] | None = None
+        if raw_files is not None:
+            if not isinstance(raw_files, list) or not all(
+                isinstance(item, str) and item for item in raw_files
+            ):
+                raise TypeError("invalid binding files")
+            saved_files = raw_files
+        return saved_folder, saved_files, sha256
+
+    def _load_saved_binding(
+        self,
+        code: str,
+        saved_folder: str,
+        saved_files: list[str] | None,
+        folders: Mapping[str, str],
+        loaded: Mapping[str, Library],
+        saved_libraries: Mapping[str, Mapping[str, Any]],
+        settings: Settings,
+    ) -> tuple[Library, str] | dict[str, Any]:
+        cur_folder = folders.get(code, "")
+        cur_lib = loaded.get(code)
+        if saved_folder:
+            if self._saved_folder_conflicts(
+                code, saved_folder, folders, saved_libraries
+            ):
+                return {"error": "local_duplicate", "path": saved_folder}
+            if not Path(saved_folder).is_dir():
+                return {"error": "review_unavailable"}
+            previous = (
+                cur_lib
+                if cur_folder
+                and (
+                    cur_folder == saved_folder
+                    or _same_folder(Path(cur_folder), Path(saved_folder))
+                )
+                else None
+            )
+            return _load_folder(saved_folder, settings, previous=previous), saved_folder
+        if saved_files:
+            paths = dict.fromkeys(Path(item) for item in saved_files)
+            if not paths or any(not path.exists() for path in paths):
+                return {"error": "review_unavailable"}
+            previous = cur_lib if not cur_folder else None
+            return Library.load_incremental(paths, settings, previous=previous), ""
+        return {"error": "review_unavailable"}
+
     def _restore_review_search(
-        self, saved: dict[str, Any], settings: Settings, accept_changes: bool
+        self,
+        saved: dict[str, Any],
+        settings: Settings,
+        accept_changes: bool,
+        mode: str = "auto",
     ) -> dict[str, Any]:
+        saved_libraries = saved.get("libraries")
+        if not isinstance(saved_libraries, Mapping) or any(
+            code not in LOCAL_SOURCES for code in saved_libraries
+        ):
+            raise TypeError("invalid saved libraries")
         with self._local_lock:
             if self._local_busy:
                 return {"error": "local_busy"}
             loaded = self._local_libraries.copy()
             folders = self._local_paths.copy()
         fresh: dict[str, Library] = {}
-        changed = []
-        for code, binding in saved["libraries"].items():
+        new_paths: dict[str, str] = {}
+        changed: list[str] = []
+        different_input = False
+        all_can_reopen = True
+        all_have_current = True
+
+        for code, raw_binding in saved_libraries.items():
+            saved_folder, saved_files, expected_sha = self._validate_saved_binding(
+                raw_binding
+            )
             previous = loaded.get(code)
-            folder = folders.get(code, "")
-            if folder:
-                library = _load_folder(folder, settings, previous=previous)
-            elif previous is not None:
-                paths = dict.fromkeys(text.local.path for text in previous.texts)
-                library = Library.load_incremental(paths, settings, previous=previous)
+            cur_folder = folders.get(code, "")
+            cur_has_input = bool(cur_folder) or (
+                previous is not None and bool(previous.texts)
+            )
+            if saved_folder:
+                matches_current = bool(cur_folder) and (
+                    cur_folder == saved_folder
+                    or _same_folder(Path(cur_folder), Path(saved_folder))
+                )
+            elif saved_files is not None:
+                matches_current = (
+                    not cur_folder
+                    and previous is not None
+                    and self._same_file_list(
+                        [text.local.path for text in previous.texts], saved_files
+                    )
+                )
             else:
-                return {"error": "review_unavailable"}
-            fresh[code] = library
-            if (
-                folder != binding["folder"]
-                or review.library_fingerprint(library) != binding["sha256"]
-            ):
-                changed.append(code)
+                matches_current = (
+                    not cur_folder and previous is not None and bool(previous.texts)
+                )
+
+            if mode == "reopen":
+                outcome = self._load_saved_binding(
+                    code,
+                    saved_folder,
+                    saved_files,
+                    folders,
+                    loaded,
+                    saved_libraries,
+                    settings,
+                )
+                if isinstance(outcome, dict):
+                    return outcome
+                library, target_folder = outcome
+                fresh[code] = library
+                new_paths[code] = target_folder
+                if (
+                    not accept_changes
+                    and review.library_fingerprint(library) != expected_sha
+                ):
+                    changed.append(code)
+            elif mode == "current" or (mode == "auto" and accept_changes):
+                if cur_folder:
+                    fresh[code] = _load_folder(cur_folder, settings, previous=previous)
+                    new_paths[code] = cur_folder
+                elif previous is not None and previous.texts:
+                    paths = dict.fromkeys(text.local.path for text in previous.texts)
+                    fresh[code] = Library.load_incremental(
+                        paths, settings, previous=previous
+                    )
+                    new_paths[code] = ""
+                else:
+                    outcome = self._load_saved_binding(
+                        code,
+                        saved_folder,
+                        saved_files,
+                        folders,
+                        loaded,
+                        saved_libraries,
+                        settings,
+                    )
+                    if isinstance(outcome, dict):
+                        return outcome
+                    library, target_folder = outcome
+                    fresh[code] = library
+                    new_paths[code] = target_folder
+            else:
+                # mode == "auto" and not accept_changes
+                if not cur_has_input:
+                    all_have_current = False
+                    outcome = self._load_saved_binding(
+                        code,
+                        saved_folder,
+                        saved_files,
+                        folders,
+                        loaded,
+                        saved_libraries,
+                        settings,
+                    )
+                    if isinstance(outcome, dict):
+                        return outcome
+                    library, target_folder = outcome
+                    fresh[code] = library
+                    new_paths[code] = target_folder
+                    if review.library_fingerprint(library) != expected_sha:
+                        changed.append(code)
+                elif matches_current:
+                    if cur_folder:
+                        library = _load_folder(cur_folder, settings, previous=previous)
+                        new_paths[code] = cur_folder
+                    else:
+                        assert previous is not None
+                        paths = dict.fromkeys(
+                            text.local.path for text in previous.texts
+                        )
+                        library = Library.load_incremental(
+                            paths, settings, previous=previous
+                        )
+                        new_paths[code] = ""
+                    fresh[code] = library
+                    if review.library_fingerprint(library) != expected_sha:
+                        changed.append(code)
+                else:
+                    different_input = True
+                    changed.append(code)
+                    if saved_folder:
+                        saved_ok = Path(
+                            saved_folder
+                        ).is_dir() and not self._saved_folder_conflicts(
+                            code, saved_folder, folders, saved_libraries
+                        )
+                    elif saved_files:
+                        saved_ok = all(Path(item).exists() for item in saved_files)
+                    else:
+                        saved_ok = False
+                    if not saved_ok:
+                        all_can_reopen = False
+
         pattern = saved["pattern"]
         pattern_file = None
         if pattern is not None:
@@ -2425,7 +2694,18 @@ class Api:
         if changed and not accept_changes:
             if pattern_file is not None:
                 self.clear_pattern_file(pattern_file["token"])
-            return {"error": "review_changed", "changed": changed}
+            can_reopen = (
+                bool(saved_libraries)
+                and all_can_reopen
+                and (different_input or not all_have_current)
+            )
+            return {
+                "error": "review_changed",
+                "changed": changed,
+                "different_input": different_input,
+                "can_reopen": can_reopen,
+                "has_current": all_have_current,
+            }
         for code, library in loaded.items():
             if code not in fresh and library.settings != settings:
                 fresh[code] = Library(
@@ -2442,20 +2722,90 @@ class Api:
                 or loaded != self._local_libraries
                 or folders != self._local_paths
             ):
-                result = {"error": "local_busy"}
+                result: dict[str, Any] = {"error": "local_busy"}
             else:
-                result = self.set_sources(saved["sources"], saved["options"])
-                if "error" not in result:
+                prev_libs = self._local_libraries.copy()
+                prev_paths = self._local_paths.copy()
+                prev_errors = self._local_errors.copy()
+                prev_active = self._active_local
+                prev_library = self._library
+                prev_folder = self._folder
+
+                target_paths = self._local_paths.copy()
+                for code, path in new_paths.items():
+                    if path:
+                        target_paths[code] = path
+                    else:
+                        target_paths.pop(code, None)
+
+                seen_folders: list[Path] = []
+                dup_folder = ""
+                for path in target_paths.values():
+                    if not path:
+                        continue
+                    candidate_path = Path(path)
+                    if any(
+                        _same_folder(candidate_path, existing)
+                        for existing in seen_folders
+                    ):
+                        dup_folder = path
+                        break
+                    seen_folders.append(candidate_path)
+                if dup_folder:
+                    result = {"error": "local_duplicate", "path": dup_folder}
+                else:
                     self._local_libraries.update(fresh)
-                    for code in fresh:
-                        self._local_revisions[code] = (
-                            self._local_revisions.get(code, 0) + 1
-                        )
-                    for code in saved["libraries"]:
+                    self._local_paths = target_paths
+                    for code in saved_libraries:
                         self._local_errors.pop(code, None)
-                    self._library = self._local_libraries.get(
-                        self._active_local
-                    ) or Library([], settings)
+                    result = self.set_sources(saved["sources"], saved["options"])
+                    if "error" not in result:
+                        folders_changed = any(
+                            new_paths.get(code, "") != prev_paths.get(code, "")
+                            for code in new_paths
+                        )
+                        next_active = self._active_local
+                        if next_active not in self._local_libraries:
+                            next_active = next(
+                                (
+                                    code
+                                    for code in saved["sources"]
+                                    if code in self._local_libraries
+                                ),
+                                next(iter(self._local_libraries), ""),
+                            )
+                        if folders_changed and any(
+                            bool(new_paths.get(code, "")) for code in new_paths
+                        ):
+                            persisted = {
+                                code: path
+                                for code, path in target_paths.items()
+                                if path
+                            }
+                            persisted_active = (
+                                next_active
+                                if next_active in persisted
+                                else next(iter(persisted), "")
+                            )
+                            if not self._remember_local(persisted, persisted_active):
+                                result = {"error": "preferences_write_failed"}
+                        if "error" not in result:
+                            self._active_local = next_active
+                            self._folder = target_paths.get(next_active, "")
+                            for code in fresh:
+                                self._local_revisions[code] = (
+                                    self._local_revisions.get(code, 0) + 1
+                                )
+                            self._library = self._local_libraries.get(
+                                self._active_local
+                            ) or Library([], settings)
+                    if "error" in result:
+                        self._local_libraries = prev_libs
+                        self._local_paths = prev_paths
+                        self._local_errors = prev_errors
+                        self._active_local = prev_active
+                        self._library = prev_library
+                        self._folder = prev_folder
         if "error" in result:
             if pattern_file is not None:
                 self.clear_pattern_file(pattern_file["token"])

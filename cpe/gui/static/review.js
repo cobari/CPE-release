@@ -8,19 +8,42 @@ const reviewUI = (() => {
   const exportButton = byId("review-export");
   const compareButton = byId("review-compare");
   const compareDialog = byId("review-compare-dialog");
+  const reopenSaved = byId("review-reopen-saved");
   const accept = byId("review-accept-change");
+  const pager = byId("review-pager");
+  const prevPage = byId("review-prev-page");
+  const nextPage = byId("review-next-page");
+  const pageInfo = byId("review-page-info");
+  const PAGE_SIZE = 50;
   const choices = new Set();
   const answers = new WeakMap();
   const evidenceScopes = new Set(["structural_candidate", "literal_occurrence", "provider_reference"]);
   let candidates = [];
+  let pageOffset = 0;
+  let totalCandidates = 0;
   let draft = null;
   let changedSearch = "";
   let busy = false;
+
+  function syncPager() {
+    if (!pager) return;
+    const showPager = totalCandidates > PAGE_SIZE;
+    pager.classList.toggle("is-hidden", !showPager);
+    if (!showPager) return;
+    if (pageInfo) {
+      const start = totalCandidates ? pageOffset + 1 : 0;
+      const end = Math.min(pageOffset + candidates.length, totalCandidates);
+      pageInfo.textContent = t("review.page_range", { start, end, total: totalCandidates });
+    }
+    if (prevPage) prevPage.disabled = pageOffset <= 0 || busy;
+    if (nextPage) nextPage.disabled = pageOffset + candidates.length >= totalCandidates || busy;
+  }
 
   function sync() {
     saveSearch.disabled = !draft || searchBusy || busy;
     exportButton.disabled = !choices.size || busy || searchBusy || exportBusy;
     compareButton.disabled = choices.size !== 2 || busy || exportBusy;
+    syncPager();
   }
 
   function message(target, value, isError = false) {
@@ -121,21 +144,31 @@ const reviewUI = (() => {
     return query.query || query.expression || query.pattern_file_name || query.pattern_file || "";
   }
 
-  function setChangedSearch(id = "") {
+  function setChangedSearch(id = "", options = null) {
     changedSearch = id;
-    accept.classList.toggle("is-hidden", !id);
+    const showReopen = Boolean(id && options?.can_reopen);
+    const showCurrent = Boolean(id && options?.has_current !== false);
+    if (reopenSaved) reopenSaved.classList.toggle("is-hidden", !showReopen);
+    accept.classList.toggle("is-hidden", !showCurrent);
   }
 
-  async function restore(id, confirmed = false) {
+  async function restore(id, confirmed = false, mode = "auto") {
     if (searchBusy || isLocalBusy() || savingSources) {
       message(status, errorText("local_busy"), true);
       return;
     }
     setChangedSearch();
     message(status, t("sources.loading"));
-    const result = await run(() => api().restore_review_search(id, confirmed));
+    const result = await run(() => (
+      confirmed || mode !== "auto"
+        ? api().restore_review_search(id, Boolean(confirmed), mode)
+        : api().restore_review_search(id, false)
+    ));
     if (result?.error === "review_changed") {
-      setChangedSearch(id);
+      setChangedSearch(id, result);
+      if (result.different_input) {
+        message(status, errorText("review_different_input", result), true);
+      }
       return;
     }
     if (!result || result.error) return;
@@ -323,12 +356,24 @@ const reviewUI = (() => {
     return article;
   }
 
-  async function render() {
-    const answer = await run(() => api().review_items());
+  async function render(offset = pageOffset) {
+    const bridge = api();
+    const usePager = typeof bridge.review_page === "function";
+    const answer = await run(() => (
+      usePager ? bridge.review_page(offset, PAGE_SIZE) : bridge.review_items()
+    ));
     if (!answer || answer.error || !dialog.open) return;
-    candidates = answer.candidates;
-    const ids = new Set(candidates.map(item => item.id));
-    for (const id of choices) if (!ids.has(id)) choices.delete(id);
+    candidates = answer.candidates || [];
+    pageOffset = typeof answer.offset === "number" ? answer.offset : 0;
+    totalCandidates = typeof answer.total_candidates === "number"
+      ? answer.total_candidates
+      : candidates.length;
+    if (!totalCandidates) {
+      choices.clear();
+    } else if (!usePager) {
+      const ids = new Set(candidates.map(item => item.id));
+      for (const id of choices) if (!ids.has(id)) choices.delete(id);
+    }
     byId("review-candidates").replaceChildren(
       ...(candidates.length ? candidates.map(candidateItem) : [element("p", t("review.empty_candidates"))])
     );
@@ -340,14 +385,18 @@ const reviewUI = (() => {
 
   async function remove(id) {
     const answer = await run(() => api().remove_review_item(id));
-    if (answer?.id) await render();
+    if (answer?.id) {
+      choices.delete(id);
+      await render(pageOffset);
+    }
   }
 
   byId("review-open").addEventListener("click", async () => {
     dialog.showModal();
     message(status, t("sources.loading"));
     setChangedSearch();
-    await render();
+    pageOffset = 0;
+    await render(0);
     if (status.textContent === t("sources.loading")) message(status, "");
   });
   dialog.addEventListener("cancel", event => { if (busy || exportBusy) event.preventDefault(); });
@@ -359,10 +408,46 @@ const reviewUI = (() => {
     const answer = await run(() => api().save_review_search(draft), feedback);
     if (answer?.id) message(feedback, t("review.saved"));
   });
-  accept.addEventListener("click", () => { if (changedSearch) void restore(changedSearch, true); });
-  compareButton.addEventListener("click", () => {
-    const selected = candidates.filter(item => choices.has(item.id));
-    if (selected.length !== 2) return;
+  if (reopenSaved) {
+    reopenSaved.addEventListener("click", async () => {
+      if (changedSearch) await restore(changedSearch, true, "reopen");
+    });
+  }
+  accept.addEventListener("click", async () => {
+    if (changedSearch) await restore(changedSearch, true, "current");
+  });
+  if (prevPage) {
+    prevPage.addEventListener("click", async () => {
+      if (!busy && pageOffset > 0) await render(Math.max(0, pageOffset - PAGE_SIZE));
+    });
+  }
+  if (nextPage) {
+    nextPage.addEventListener("click", async () => {
+      if (!busy && pageOffset + candidates.length < totalCandidates) {
+        await render(pageOffset + PAGE_SIZE);
+      }
+    });
+  }
+  compareButton.addEventListener("click", async () => {
+    const ids = [...choices];
+    if (ids.length !== 2) return;
+    const bridge = api();
+    let selected;
+    if (typeof bridge.review_candidate_details === "function") {
+      const answer = await run(() => bridge.review_candidate_details(ids));
+      if (!answer || answer.error) return;
+      selected = answer.candidates || [];
+      if (selected.length !== 2) {
+        const present = new Set(selected.map(item => item.id));
+        for (const id of ids) if (!present.has(id)) choices.delete(id);
+        message(status, errorText("review_unavailable"), true);
+        await render(pageOffset);
+        return;
+      }
+    } else {
+      selected = candidates.filter(item => choices.has(item.id));
+      if (selected.length !== 2) return;
+    }
     byId("review-comparison").replaceChildren(...selected.map(comparisonCard));
     compareDialog.showModal();
   });

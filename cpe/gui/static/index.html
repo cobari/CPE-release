@@ -527,11 +527,19 @@
   </div>
   <div class="dialog-body">
     <p id="review-status" role="status"></p>
-    <button type="button" class="link-button is-hidden" id="review-accept-change" data-i18n="review.accept_change"></button>
+    <div class="review-restore-actions">
+      <button type="button" class="link-button is-hidden" id="review-reopen-saved" data-i18n="review.reopen_saved"></button>
+      <button type="button" class="link-button is-hidden" id="review-accept-change" data-i18n="review.accept_change"></button>
+    </div>
     <section aria-labelledby="review-candidates-heading">
       <h3 id="review-candidates-heading" data-i18n="review.candidates"></h3>
       <p><button type="button" class="open" id="review-compare" data-i18n="review.compare" disabled></button></p>
       <div class="review-list" id="review-candidates"></div>
+      <div class="review-pager is-hidden" id="review-pager">
+        <button type="button" class="open" id="review-prev-page" data-i18n="review.prev_page"></button>
+        <span class="review-page-info" id="review-page-info"></span>
+        <button type="button" class="open" id="review-next-page" data-i18n="review.next_page"></button>
+      </div>
       <p><button type="button" class="open" id="review-export" data-i18n="review.export" disabled></button></p>
     </section>
     <section aria-labelledby="review-searches-heading">

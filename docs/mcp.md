@@ -372,7 +372,8 @@ is requested.
 ## 5. Verification & Development
 
 To run the automated test suite covering MCP protocols, tool contracts, workspace
-sandboxing, and DSL adapters:
+sandboxing, and DSL adapters from a full development repository checkout (`tests/`
+is not included in the distributed `.tar.gz` source archive or wheel):
 
 ```sh
 uv sync --extra mcp

@@ -158,6 +158,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--source-sha256", help="expected source hash from gold sentences"
     )
     build.add_argument("--force", action="store_true", help="replace existing output")
+    from cpe.gui.__main__ import add_gui_arguments, run_gui
+    from cpe.mcp.runner import add_arguments
+
     gui = subcommands.add_parser(
         "gui",
         help="Open the search window.",
@@ -168,21 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "used last time, and another folder can be opened from the window."
         ),
     )
-    gui.add_argument(
-        "inputs",
-        type=Path,
-        nargs="*",
-        help="UTF-8 text files (.txt, .md), text bundles (.texts.jsonl), or folders",
-    )
-    for flag, what in (
-        ("--note-markers", "interlinear notes"),
-        ("--annotation-markers", "attached annotations"),
-    ):
-        gui.add_argument(
-            flag, nargs=2, metavar=("OPEN", "CLOSE"), help=f"markers of {what}"
-        )
-    from cpe.mcp.runner import add_arguments
-
+    add_gui_arguments(gui)
     mcp = subcommands.add_parser(
         "mcp", help="Serve host-selected texts through local MCP (optional extra)."
     )
@@ -193,7 +182,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         return run(args)
     if args.command == "gui":
-        return _gui(args)
+        return run_gui(args)
     if args.command == "match":
         return _run(args, _match)
     if args.command == "pair":
@@ -209,33 +198,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _build_gold(args)
         return _validate_gold(args)
     return _evaluate(args)
-
-
-def _gui(args: argparse.Namespace) -> int:
-    from cpe.gui.app import open_window, start_library
-    from cpe.gui.preferences import Preferences
-    from cpe.local.txt import InputError
-    from cpe.match.engine import Settings
-    from cpe.normalize.options import NormalizationError, Options
-
-    notes = args.note_markers or (None, None)
-    annotations = args.annotation_markers or (None, None)
-    try:
-        options = Options(
-            note_open=notes[0],
-            note_close=notes[1],
-            annotation_open=annotations[0],
-            annotation_close=annotations[1],
-        )
-        library, folder = start_library(
-            args.inputs, Settings(normalization=options), Preferences()
-        )
-    except (InputError, NormalizationError, OSError) as error:
-        print(f"error: {error}", file=sys.stderr)
-        return 1
-    print(f"{len(library.texts)} texts loaded; opening the window", file=sys.stderr)
-    open_window(library, folder)
-    return 0
 
 
 def _add_inputs(command: argparse.ArgumentParser) -> None:

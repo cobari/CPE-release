@@ -17,6 +17,16 @@ from cpe.match.engine import Settings
 from cpe.normalize.options import options_from_mapping
 
 STATUSES = ("unreviewed", "keep", "exclude")
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 100
+SUMMARY_RESULT_FIELDS = (
+    "title",
+    "text_id",
+    "link",
+    "segment",
+    "citation",
+    "evidence_scope",
+)
 REFERENCE_FIELDS = (
     "id",
     "result_id",
@@ -126,6 +136,25 @@ def candidate(
     }
 
 
+def candidate_summary(item: dict[str, Any]) -> dict[str, Any]:
+    """Strip heavy record/provenance payloads for paginated list rendering."""
+    raw_result = item.get("result")
+    result = (
+        {key: raw_result[key] for key in SUMMARY_RESULT_FIELDS if key in raw_result}
+        if isinstance(raw_result, Mapping)
+        else {}
+    )
+    return {
+        "id": item["id"],
+        "source_id": item.get("source_id", ""),
+        "query": item.get("query", {}),
+        "reference_only": bool(item.get("reference_only", False)),
+        "status": item.get("status", "unreviewed"),
+        "note": item.get("note", ""),
+        "result": result,
+    }
+
+
 class ReviewStore:
     """Atomic per-item writes shared by desktop windows using the same profile."""
 
@@ -172,6 +201,37 @@ class ReviewStore:
                 {**json.loads(payload), "id": id_, "status": status, "note": note}
                 for id_, payload, status, note in records
             ]
+
+    def page(
+        self, kind: str, *, offset: int = 0, limit: int = DEFAULT_PAGE_SIZE
+    ) -> tuple[list[dict[str, Any]], int]:
+        if (
+            kind not in ("candidate", "search")
+            or offset < 0
+            or not 1 <= limit <= MAX_PAGE_SIZE
+        ):
+            raise ValueError("invalid review page request")
+        with self._connect() as connection:
+            if connection is None:
+                return [], 0
+            row = connection.execute(
+                "SELECT COUNT(*) FROM review WHERE kind = ?", (kind,)
+            ).fetchone()
+            total = int(row[0]) if row is not None else 0
+            if total == 0 or offset >= total:
+                return [], total
+            records = connection.execute(
+                "SELECT id, payload, status, note FROM review WHERE kind = ?"
+                " ORDER BY rowid DESC LIMIT ? OFFSET ?",
+                (kind, limit, offset),
+            )
+            entries = [
+                {**json.loads(payload), "id": id_, "status": status, "note": note}
+                for id_, payload, status, note in records
+            ]
+            if kind == "candidate":
+                entries = [candidate_summary(entry) for entry in entries]
+            return entries, total
 
     def update(self, id_: str, status: str, note: str) -> bool:
         with self._connect() as connection:

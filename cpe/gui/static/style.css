@@ -1178,3 +1178,7 @@ button:hover:focus-visible, a:hover:focus-visible { outline: 3px solid var(--foc
 .group, .card { scroll-margin-top: var(--top-space, 82px); }
 
 .status:empty { display: none; }
+.review-restore-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+.review-restore-actions:empty { display: none; }
+.review-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.review-page-info { color: var(--muted); font-size: 14px; }
