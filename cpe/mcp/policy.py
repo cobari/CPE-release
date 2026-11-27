@@ -53,13 +53,15 @@ def _is_windows_device_prefix(raw: str) -> bool:
 
 
 def _is_unc_prefix(raw: str) -> bool:
-    return raw.startswith(("\\\\", "//")) and not _is_windows_device_prefix(raw)
+    normalized = raw.replace("/", "\\")
+    return normalized.startswith("\\\\") and not _is_windows_device_prefix(raw)
 
 
 def _parse_unc_anchor(anchor: str) -> tuple[str, str] | None:
-    if not anchor.startswith(("\\\\", "//")) or _is_windows_device_prefix(anchor):
+    normalized = anchor.replace("/", "\\")
+    if not normalized.startswith("\\\\") or _is_windows_device_prefix(anchor):
         return None
-    parts = anchor.replace("/", "\\").strip("\\").split("\\")
+    parts = normalized.strip("\\").split("\\")
     if len(parts) != 2:
         return None
     server, share = parts
@@ -157,7 +159,7 @@ def _check_platform_path(path: Path, *, allow_unc: bool = False) -> None:
     if _is_windows_device_prefix(str(path)) or _is_windows_device_prefix(path.anchor):
         raise PolicyError("path_not_allowed")
     parts = path.parts
-    if path.anchor.startswith(("\\\\", "//")):
+    if path.anchor.replace("/", "\\").startswith("\\\\"):
         if not allow_unc or _parse_unc_anchor(path.anchor) is None:
             raise PolicyError("path_not_allowed")
         parts = parts[1:]

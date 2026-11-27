@@ -2,7 +2,7 @@
   "version": "3.3",
   "tag": "v3.3",
   "source_repository": "https://github.com/cobari/CPE",
-  "source_commit": "0e053067128b68b86dbfc168c7d91be5d143f454",
+  "source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8",
   "interface_languages": [
     "ko",
     "ja",
@@ -129,7 +129,7 @@
     "cpe/mcp/identity.py": "c7e7d7040b0ef37651e8677046116fbbaa9a0353fd21ee6af7fe0fc4b97a1267",
     "cpe/mcp/onboarding.py": "5a3eff52e48fd0b9b7e7b8868cbb24b03807eebb46fdc6722b0bd79a709ea2b3",
     "cpe/mcp/patterns.py": "5d85e5d45e3a01934f3c8bff0f4979097c3094c4acffa1b2cadac5f93831950e",
-    "cpe/mcp/policy.py": "e60f959f4f45bbe4fb670754909a9036c0425f18130904f9b9b821b8fe9a2a62",
+    "cpe/mcp/policy.py": "9df486ca40a040a4dde0884aceed26ad74e557cc424aa8a1a3c52ecdd1ae68f6",
     "cpe/mcp/response.py": "e797b5316c96f5efc09e6adc0abd13e4d5e764c98a2688349a5ca14a9608a8d6",
     "cpe/mcp/runner.py": "2c73ea26bf4fd31afc4e2ee7838f5b345665f9c1adcdfe567c38b4a88e7a432d",
     "cpe/mcp/server.py": "19301da19789400dc18bc8351533c090fc80d1ba01540884de97c13dcf4f9077",
@@ -170,7 +170,7 @@
     "docs/variant-comparison-workflow.md": "216fa0a240869874f055fef957275436218926939c76de6f61bf6200c42aff8c"
   },
   "native_launch_tested": true,
-  "native_test_scope": "Rebuilt cpe-gui.exe (standalone cpe.gui.__main__ entrypoint; excluding cpe.mcp.{runner,onboarding,build_info,disclosure} while keeping cpe.mcp.evidence) and cpe-mcp.exe from clean commit 0e053067128b68b86dbfc168c7d91be5d143f454; verified cpe-gui.exe --help (exit 0) and live desktop WebView2 launch on a temporary local .txt input (1 texts loaded; visible 'Classic Pattern Explorer' window observed), plus local search matching, clean cpe-mcp.exe --version/--doctor (exit 0), scripts/check.py --require-node --require-mcp (Ruff check/format 265 files, mypy 125 files, pytest 3,467 passed / 4 skipped, 9 MCP stdio protocol passed, 246 Node GUI tests passed), and check_site_bundle across 24 URLs.",
+  "native_test_scope": "Rebuilt cpe-gui.exe (standalone cpe.gui.__main__ entrypoint; excluding cpe.mcp.{runner,onboarding,build_info,disclosure} while keeping cpe.mcp.evidence) and cpe-mcp.exe from clean commit c3c185805714d2afcf41efaf8c9a2bfb9372f4f8; verified cpe-gui.exe --help (exit 0) and live desktop WebView2 launch on a temporary local .txt input (1 texts loaded; visible 'Classic Pattern Explorer' window observed), plus local search matching, clean cpe-mcp.exe --version/--doctor (exit 0), scripts/check.py --require-node --require-mcp (Ruff check/format 265 files, mypy 125 files, pytest 3,469 passed / 4 skipped, 9 MCP stdio protocol passed, 246 Node GUI tests passed), and check_site_bundle across 24 URLs.",
   "development_config_snapshot": {
     "pyproject.toml": "1152834517b74eaf11514016819310eec04dead268eb59c13ab40982d992e48a",
     "uv.lock": "b196bae157223c10d41e621b7a1c118588e563aa38857c6b3db2c85efa82d0c0"
@@ -215,19 +215,19 @@
     "data_policy": "docs/mcp-data-policy.md",
     "client_scope": "Official Python SDK subprocess tests; not Claude application certification."
   },
-  "binary_source_commit": "0e053067128b68b86dbfc168c7d91be5d143f454",
+  "binary_source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8",
   "release_url": "https://github.com/cobari/CPE-release/releases/tag/v3.3",
   "released_on": null,
   "executables": {
     "cpe-gui.exe": {
-      "sha256": "fd264c632d156c7f623512b7cba399085aed17d2b7ac8e94e78a5a1212e79df6",
-      "bytes": 18538040,
-      "source_commit": "0e053067128b68b86dbfc168c7d91be5d143f454"
+      "sha256": "c572907a0d2fa9af8f9d1baa1877bf444a6a03d61adc718e974d1a037da424dd",
+      "bytes": 18538620,
+      "source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8"
     },
     "cpe-mcp.exe": {
-      "sha256": "52024e642bd5546e3fc8ecdb9d9dfd293f343a3357957c18529e053afa50409d",
-      "bytes": 35879086,
-      "source_commit": "0e053067128b68b86dbfc168c7d91be5d143f454"
+      "sha256": "965e72e6c8226ef6d4bf697711f9f5da65652a42e26d49b987fd5a65d00fa3df",
+      "bytes": 35880296,
+      "source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8"
     }
   }
 }
