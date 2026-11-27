@@ -996,12 +996,15 @@ class Api:
                     next((code for code in LOCAL_SOURCES if code in paths), ""),
                 )
             settings = self._library.settings
+            active_folder = (
+                "" if active in self._local_errors else paths.get(active, "")
+            )
             try:
                 self._preferences.update(
                     {
                         "local_folders": paths,
                         "active_local": active,
-                        "folder": paths.get(active, ""),
+                        "folder": active_folder,
                         "sources": selected,
                     }
                 )
@@ -1016,7 +1019,7 @@ class Api:
             self._local_revisions[source] = self._local_revisions.get(source, 0) + 1
             self._selected_sources = selected
             self._active_local = active
-            self._folder = paths.get(active, "")
+            self._folder = active_folder
             self._library = self._local_libraries.get(active) or Library([], settings)
             return self.local_libraries()
 

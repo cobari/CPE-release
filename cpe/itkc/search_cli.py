@@ -33,7 +33,6 @@ import csv
 import html
 import math
 import re
-import sys
 from collections.abc import Callable, Sequence
 from datetime import date
 from pathlib import Path
@@ -118,7 +117,9 @@ def _client(args: argparse.Namespace, log_path: Path) -> ITKCClient:
 
 
 def _log(message: str) -> None:
-    print(message, file=sys.stderr, flush=True)
+    from cpe.cli import _emit
+
+    _emit(message, error=True)
 
 
 def main(

@@ -483,11 +483,12 @@ class Workspace:
         if not folder:
             raise PolicyError("release_no_folder")
         path = Path(folder).expanduser()
-        # Check the lexical folder before policy resolution hides a junction.
-        # The resolved path must also remain within the host's current roots.
+        resolved = self.policy.check(path, write=write)
+        # Check the lexical folder too so a junction inside a granted root
+        # cannot hide behind policy resolution.
         if is_directory_link(path):
             raise PolicyError("external_history_conflict")
-        return self.policy.check(path, write=write)
+        return resolved
 
     def _protected_inputs(self) -> list[Path]:
         with self.api._local_lock:

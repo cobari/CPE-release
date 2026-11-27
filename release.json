@@ -2,7 +2,7 @@
   "version": "3.3",
   "tag": "v3.3",
   "source_repository": "https://github.com/cobari/CPE",
-  "source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8",
+  "source_commit": "446714993b3da244b14411fa7a54094273b15a1d",
   "interface_languages": [
     "ko",
     "ja",
@@ -53,8 +53,8 @@
     "cpe/export/safe.py": "e18d77533da581a0c27e61862d53aabd120db08b8cd479b8555b03fa2eebc194",
     "cpe/export/snapshot.py": "969361e98e7ca1441f98201cdf658b063c7f4589c39803fb44b82f7dab94463f",
     "cpe/gui/__init__.py": "116fafb98c1b44a055d13243e53e18ef998f0d89450803b7d17b83e35051fead",
-    "cpe/gui/__main__.py": "cb1480cb2b440f2c3d731588bf4685b95713e34e024a425d8f2ebb9a9d75c2aa",
-    "cpe/gui/app.py": "41e071b66270388911b4708ce4be404db9d98935ef1563a7a4e7081cf288b70b",
+    "cpe/gui/__main__.py": "bdf839d31ddc9cced362aeaa14d50376ff77c1a1bb157531bcf5e11f6877ab6e",
+    "cpe/gui/app.py": "c61a7ab7ac2208102cc26e967548cb2f9195c486e8f773af22c4c7856a226013",
     "cpe/gui/assets/font-license.txt": "cc2582fa6dbd72ddfd229e709c0bae635f75a151ed1787adab9729a531b48a1f",
     "cpe/gui/assets/home-icon.png": "d6249bae07d66ea00eb7790103a3db1038f7daddcd4d0752f5526f3823be5ee6",
     "cpe/gui/assets/icon.png": "9bfb68faf30df1622ca1cf1cb1e4ab0a183e40c09c9c89099bea6a9e5c78c123",
@@ -96,7 +96,7 @@
     "cpe/itkc/query.py": "03486f28d03c91e69f5cb01885584b215498a8700254b49f34962d20dda2d985",
     "cpe/itkc/regex_worker.py": "6945a2cd776fe24e079f88481c4dbf61c945a4bf7c40a32504149fb559a33366",
     "cpe/itkc/release.py": "832eda1d8fc90aa2c34d04a06cc0e90b7cbff010aa4a42961aa2ec8f13ea81a1",
-    "cpe/itkc/search_cli.py": "84e4bf9956cbe535eb805b4e8719fb8c3ba8939ed85d5883ed0a71eece4033bc",
+    "cpe/itkc/search_cli.py": "2d92ec79e8c9ae23c379be5f0f66bf379e522ad19d1848d08b44a58404b1bfc0",
     "cpe/kyudb/__init__.py": "ece60ff710bffbd60ae9200b23a45bcc8708af79c7a72949f0531dde60870942",
     "cpe/kyudb/search.py": "08fde867c8b67375efc86fcbb581e7bc5fae061b1fe62a8a520e26f4ff1631a8",
     "cpe/local/__init__.py": "4bb23c38433df328c11c2dbf7a5dbe29bda2331dcc897356a03e06658f9f0513",
@@ -131,12 +131,12 @@
     "cpe/mcp/patterns.py": "5d85e5d45e3a01934f3c8bff0f4979097c3094c4acffa1b2cadac5f93831950e",
     "cpe/mcp/policy.py": "9df486ca40a040a4dde0884aceed26ad74e557cc424aa8a1a3c52ecdd1ae68f6",
     "cpe/mcp/response.py": "e797b5316c96f5efc09e6adc0abd13e4d5e764c98a2688349a5ca14a9608a8d6",
-    "cpe/mcp/runner.py": "2c73ea26bf4fd31afc4e2ee7838f5b345665f9c1adcdfe567c38b4a88e7a432d",
+    "cpe/mcp/runner.py": "1b2c53c7d69fe0f73ae55c5812615bd630b9e3e3a4ce97c4f93bbe3c8d861092",
     "cpe/mcp/server.py": "19301da19789400dc18bc8351533c090fc80d1ba01540884de97c13dcf4f9077",
     "cpe/mcp/service.py": "f156888e327a362afa62cfb4f48ca8cb69e067e9461bc5476681d3c1e4edfdde",
     "cpe/mcp/sources.py": "d8ac66872f61cd269f55b63effa05b4fdfb2ea86e781f7f630cda8f375236eb5",
     "cpe/mcp/tools.py": "911d7fa0e8591e2415417b8dcbf7a95aaafe7a520e8632f79425ab70142427a4",
-    "cpe/mcp/workspace.py": "d506d0cb398b1fff9b1711951df9ed6ab9aef70c7d6f6b961f95f932588d5416",
+    "cpe/mcp/workspace.py": "587f158b7b4f44f973d08d44b0e12ea86f28a862ba59cf4891faf2517c069412",
     "cpe/nahf/__init__.py": "2798460a31b534de571026cd2469d75a02b335a9a520115aebcab77c11bbdf4f",
     "cpe/nahf/search.py": "19db6b0b9c329d2c1f94a7621b1306bba0896325991dfc4e13b2358810cfd076",
     "cpe/ndl/__init__.py": "9ad2ed0fd61dff22689056cf1646ac77926f9f80c5701653488e12b5831ad5b2",
@@ -162,15 +162,15 @@
     "cpe-gui.sh": "06e4f07a8d2cf5dcb20114a9a84bf62938bbdfd16e882d7dab34b3a21ae7aa63",
     "itkc_search.py": "a0e2a4981039b02cf0e0695e3174e10a12e123b22d160abf39e1cf3197540b40",
     "LICENSE": "d8f4d85ec92bc8e93c3a883c9aaae65c5ab9a921c4de38fb52e83d1c172e27f4",
-    "CITATION.cff": "c15578c51ed119092ee9b769dc7da915bd4791854ffc24117735ea95753de340",
-    "docs/mcp.md": "be52732b36aea847b3d910d8567079a4d55fae5698b0d52fc0537fb85e39ee51",
-    "docs/mcp-parity.md": "ec4ed73b1b4033369d435deb3b8d4959722a09ce62d8ddcb52a191584b5f873d",
+    "CITATION.cff": "13a53579c1d693ff9317989980bcd54be348362e2fb0cc6d84cce19f6ad4112d",
+    "docs/mcp.md": "2f619a4ad94db4c9090c32c3ef926d657a1277b0f1922f69e6fae808f66cb225",
+    "docs/mcp-parity.md": "ff49f94f6de520be3ddf7804a72857e556561bf76389a05a5455cbf578ec0a0e",
     "docs/mcp-dsl-classification.md": "c4d2eeab62f14b49523b01007c4e83f536eedae243d1c0868f2bdade87e2b830",
     "docs/mcp-data-policy.md": "e5f1a73b7cca42c062fb6b789a311138c6a5c337a6b63a3033c2fd43a93cc225",
     "docs/variant-comparison-workflow.md": "216fa0a240869874f055fef957275436218926939c76de6f61bf6200c42aff8c"
   },
   "native_launch_tested": true,
-  "native_test_scope": "Rebuilt cpe-gui.exe (standalone cpe.gui.__main__ entrypoint; excluding cpe.mcp.{runner,onboarding,build_info,disclosure} while keeping cpe.mcp.evidence) and cpe-mcp.exe from clean commit c3c185805714d2afcf41efaf8c9a2bfb9372f4f8; verified cpe-gui.exe --help (exit 0) and live desktop WebView2 launch on a temporary local .txt input (1 texts loaded; visible 'Classic Pattern Explorer' window observed), plus local search matching, clean cpe-mcp.exe --version/--doctor (exit 0), scripts/check.py --require-node --require-mcp (Ruff check/format 265 files, mypy 125 files, pytest 3,469 passed / 4 skipped, 9 MCP stdio protocol passed, 246 Node GUI tests passed), and check_site_bundle across 24 URLs.",
+  "native_test_scope": "Rebuilt cpe-gui.exe (standalone cpe.gui.__main__ entrypoint; excluding cpe.mcp.{runner,onboarding,build_info,disclosure} while keeping cpe.mcp.evidence) and cpe-mcp.exe from clean commit 446714993b3da244b14411fa7a54094273b15a1d; verified cpe-gui.exe --help (exit 0) and live desktop WebView2 launch on a temporary local .txt input (1 texts loaded; visible 'Classic Pattern Explorer' window observed), plus local search matching, clean cpe-mcp.exe --version/--doctor (exit 0), scripts/check.py --require-node --require-mcp (Ruff check/format 265 files, mypy 125 files, pytest 3,471 passed / 4 skipped, 9 MCP stdio protocol passed, 246 Node GUI tests passed), and check_site_bundle across 24 URLs.",
   "development_config_snapshot": {
     "pyproject.toml": "1152834517b74eaf11514016819310eec04dead268eb59c13ab40982d992e48a",
     "uv.lock": "b196bae157223c10d41e621b7a1c118588e563aa38857c6b3db2c85efa82d0c0"
@@ -215,19 +215,19 @@
     "data_policy": "docs/mcp-data-policy.md",
     "client_scope": "Official Python SDK subprocess tests; not Claude application certification."
   },
-  "binary_source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8",
+  "binary_source_commit": "446714993b3da244b14411fa7a54094273b15a1d",
   "release_url": "https://github.com/cobari/CPE-release/releases/tag/v3.3",
   "released_on": null,
   "executables": {
     "cpe-gui.exe": {
-      "sha256": "c572907a0d2fa9af8f9d1baa1877bf444a6a03d61adc718e974d1a037da424dd",
-      "bytes": 18538620,
-      "source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8"
+      "sha256": "e702e1906858d85dffd68b4ff4cbde3f6240c3d76e365a00cb4390e716295e8b",
+      "bytes": 18678977,
+      "source_commit": "446714993b3da244b14411fa7a54094273b15a1d"
     },
     "cpe-mcp.exe": {
-      "sha256": "965e72e6c8226ef6d4bf697711f9f5da65652a42e26d49b987fd5a65d00fa3df",
-      "bytes": 35880296,
-      "source_commit": "c3c185805714d2afcf41efaf8c9a2bfb9372f4f8"
+      "sha256": "7294563d9d8df2b178c382eb45bcbe7888f50de434740bbfbf64d3556a025ac1",
+      "bytes": 36013202,
+      "source_commit": "446714993b3da244b14411fa7a54094273b15a1d"
     }
   }
 }

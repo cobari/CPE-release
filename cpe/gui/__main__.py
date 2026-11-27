@@ -26,6 +26,38 @@ def add_gui_arguments(parser: argparse.ArgumentParser) -> None:
         )
 
 
+def _emit_stderr(text: str) -> None:
+    """Write stderr lines as UTF-8 when redirected under legacy code pages."""
+    stream = sys.stderr
+    if stream is None:
+        return
+    buffer = getattr(stream, "buffer", None)
+    encoding = (getattr(stream, "encoding", None) or "").lower().replace("_", "-")
+    isatty_fn = getattr(stream, "isatty", None)
+    try:
+        is_tty = bool(isatty_fn()) if callable(isatty_fn) else False
+    except OSError:
+        is_tty = False
+    line = text + "\n"
+    if buffer is not None and not is_tty and encoding not in ("utf-8", "utf8"):
+        stream.flush()
+        buffer.write(line.encode("utf-8", errors="replace"))
+        buffer.flush()
+        return
+    try:
+        stream.write(line)
+        stream.flush()
+    except UnicodeEncodeError:
+        stream.flush()
+        if buffer is not None:
+            buffer.write(line.encode("utf-8", errors="replace"))
+            buffer.flush()
+        else:
+            fallback = getattr(stream, "encoding", None) or "utf-8"
+            stream.write(line.encode(fallback, errors="replace").decode(fallback))
+            stream.flush()
+
+
 def run_gui(args: argparse.Namespace) -> int:
     """Load initial texts or remembered folders and open the desktop GUI."""
     from cpe.gui.app import open_window, start_library
@@ -47,11 +79,9 @@ def run_gui(args: argparse.Namespace) -> int:
             args.inputs, Settings(normalization=options), Preferences()
         )
     except (InputError, NormalizationError, OSError) as error:
-        if sys.stderr is not None:
-            print(f"error: {error}", file=sys.stderr)
+        _emit_stderr(f"error: {error}")
         return 1
-    if sys.stderr is not None:
-        print(f"{len(library.texts)} texts loaded; opening the window", file=sys.stderr)
+    _emit_stderr(f"{len(library.texts)} texts loaded; opening the window")
     open_window(library, folder)
     return 0
 

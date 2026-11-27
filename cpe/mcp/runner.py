@@ -126,6 +126,21 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _emit_stderr(text: str) -> None:
+    if sys.stderr is None:
+        return
+    from cpe.mcp.onboarding import emit
+
+    try:
+        emit(text + "\n", sys.stderr)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stderr, "encoding", None) or "utf-8"
+        sys.stderr.write(
+            (text + "\n").encode(encoding, errors="replace").decode(encoding)
+        )
+        sys.stderr.flush()
+
+
 def run(args: argparse.Namespace) -> int:
     if getattr(args, "version", False):
         from cpe.mcp.onboarding import emit, version_text
@@ -133,10 +148,10 @@ def run(args: argparse.Namespace) -> int:
         emit(version_text())
         return 0
     if args.doctor and args.print_config:
-        print("error: --doctor and --print-config cannot be combined", file=sys.stderr)
+        _emit_stderr("error: --doctor and --print-config cannot be combined")
         return 2
     if args.json and not (args.doctor or args.print_config):
-        print("error: --json needs --doctor", file=sys.stderr)
+        _emit_stderr("error: --json needs --doctor")
         return 2
     if args.doctor:
         return _doctor(args)
@@ -165,10 +180,10 @@ def _print_config(args: argparse.Namespace) -> int:
         return 130
     if not report.ok:
         # Print nothing on stdout: a host must not paste a half-valid entry.
-        print("error: configuration is invalid; see --doctor", file=sys.stderr)
+        _emit_stderr("error: configuration is invalid; see --doctor")
         for check in report.checks:
             if check.status == "fail":
-                print(f"error: {check.id}: {check.message}", file=sys.stderr)
+                _emit_stderr(f"error: {check.id}: {check.message}")
         return 2
     emit(to_json(server_config(args, report.config)))
     return 0
@@ -185,7 +200,7 @@ def _serve(args: argparse.Namespace) -> int:
             try:
                 config = prepare(args, stack)
             except StartupError as error:
-                print(f"error: {error.check.message}", file=sys.stderr)
+                _emit_stderr(f"error: {error.check.message}")
                 return error.exit_code
             # prepare() has imported the server module, so the optional
             # extra is present; import here so tests can replace the factory.
@@ -238,7 +253,7 @@ def _serve(args: argparse.Namespace) -> int:
             finally:
                 workspace.close()
     except (InputError, NormalizationError, OSError, ValueError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit_stderr(f"error: {error}")
         return 1
     except KeyboardInterrupt:
         return 130

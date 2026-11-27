@@ -99,7 +99,7 @@ The MCP server adheres strictly to the project's core research invariants:
 ## 5. Limitations & Current Verification Boundary
 
 1. **Version Literal**: Version `3.3` sharing the same committed search core as the desktop GUI and CLI.
-2. **Distribution Scope**: The server packages are staged as pre-publication artifacts for the v3.3 GitHub Release (local stdio binary and Python package, alongside [workspace staging status](development-workspace.md)); it is not published on PyPI, packaged as an MCPB archive, or registered in the official Model Context Protocol Registry.
+2. **Distribution Scope**: The server packages are staged as pre-publication artifacts for the v3.3 GitHub Release (local stdio binary and Python package; staging notes live in the development repository); it is not published on PyPI, packaged as an MCPB archive, or registered in the official Model Context Protocol Registry.
 3. **Test Boundary**: Verified through automated protocol, unit, and regression test suites. Not certified on live proprietary AI clients (Claude Desktop, Claude Code) or non-Windows hosts.
 4. **Third-Party Providers**: Online searches and remote imports require Internet access and agreement with third-party institutional terms. Tests never call live provider endpoints.
 5. **Source-text Grant**: `--allow-source-text` is a host decision after rights review, not a provider licence, legal clearance, zero-retention guarantee or proof of a local model. The all-19 review is a route map, not 19 cloud approvals. Viet Dien records an explicit AI/MCP workflow plus data attribution; NDL Next Digital Library records Public Domain Mark data with separate API conditions; other routes retain per-work and unknown restrictions. See the [data policy](mcp-data-policy.md).
