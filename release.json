@@ -12,7 +12,7 @@
     "en"
   ],
   "online_source_connections": 19,
-  "published": false,
+  "published": true,
   "source_working_tree_modified": false,
   "source_snapshot": {
     "cpe/__init__.py": "ad4d40d70e17b5769090eb831e4d73056d41a9a94a8dc3ebc5562801ad610e94",
@@ -217,7 +217,7 @@
   },
   "binary_source_commit": "5cbe4f705430bf504ef47ec6a73986cb6c466ac6",
   "release_url": "https://github.com/cobari/CPE-release/releases/tag/v3.3",
-  "released_on": null,
+  "released_on": "2026-11-28",
   "executables": {
     "cpe-gui.exe": {
       "sha256": "f87ab1ac929ea942e23e6f678cb8e7e38fd33c75e6f22632e0616afb49382288",
