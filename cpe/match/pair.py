@@ -13,6 +13,10 @@ def _box(value: str, label: str) -> str:
     """One input box as a DSL fixed element: a literal or an alternative."""
     options = value.split("|")
     for option in options:
+        if any(0xD800 <= ord(c) <= 0xDFFF for c in option):
+            raise DslError(
+                "syntax", f"{label} box contains an invalid surrogate code point"
+            )
         if not option or any(c.isspace() or c in _FORBIDDEN for c in option):
             raise DslError(
                 "syntax",

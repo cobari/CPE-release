@@ -45,16 +45,23 @@ def _platform_component_problem(part: str) -> bool:
     return bool(_WINDOWS_RESERVED.fullmatch(stripped))
 
 
+def _check_raw_platform_string(value: str | os.PathLike[str]) -> None:
+    """Reject UNC and Windows device prefixes before Path.resolve() can touch SMB."""
+    if os.name != "nt":
+        return
+    raw = os.fspath(value)
+    if raw.startswith(("\\\\", "//")):
+        raise PolicyError("path_not_allowed")
+
+
 def _check_platform_path(path: Path) -> None:
     """Reject Windows device names, alternate streams and ambiguous leaves."""
     if os.name != "nt":
         return
-    if path.anchor.startswith("\\\\.\\") or path.anchor.upper().startswith(
-        "\\\\?\\GLOBALROOT"
-    ):
+    if path.anchor.startswith("\\\\") or path.anchor.startswith("//"):
         raise PolicyError("path_not_allowed")
     parts = path.parts
-    if parts and (parts[0].endswith(":\\") or parts[0].startswith("\\\\")):
+    if parts and parts[0].endswith(":\\"):
         parts = parts[1:]
     if any(_platform_component_problem(part) for part in parts):
         raise PolicyError("path_not_allowed")
@@ -63,6 +70,7 @@ def _check_platform_path(path: Path) -> None:
 def host_path(value: str | Path) -> Path:
     """Validate the supplied components before Windows can normalize them away."""
     try:
+        _check_raw_platform_string(value)
         raw = Path(value).expanduser()
         _check_platform_path(raw)
         resolved = raw.resolve()

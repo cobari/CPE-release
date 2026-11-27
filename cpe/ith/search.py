@@ -21,6 +21,8 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from html.parser import HTMLParser
 
+from cpe.http import build_safe_opener
+
 BASE = "https://taicool.ith.sinica.edu.tw/"
 QUERY_URL = BASE + "query-1.html"
 RESULT_POST_URL = BASE + "search-result.html"
@@ -271,9 +273,11 @@ def _context() -> ssl.SSLContext:
 
 def _opener() -> urllib.request.OpenerDirector:
     jar = http.cookiejar.CookieJar()
-    return urllib.request.build_opener(
-        urllib.request.HTTPCookieProcessor(jar),
-        urllib.request.HTTPSHandler(context=_context()),
+    return build_safe_opener(
+        allowed_hosts=("taicool.ith.sinica.edu.tw",),
+        require_https=True,
+        context=_context(),
+        extra_handlers=(urllib.request.HTTPCookieProcessor(jar),),
     )
 
 

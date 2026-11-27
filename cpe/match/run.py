@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,8 +20,10 @@ from cpe.match.engine import (
     TextInput,
     assign_ids,
     check_variants,
+    clause_delimiters,
     long_segment_warning,
     match_text,
+    normalized_pattern,
     prepare_pattern,
     sentence_delimiters,
 )
@@ -46,6 +48,49 @@ def outputs_for(prefix: Path) -> Outputs:
     )
 
 
+def delimiter_literal_warnings(
+    specs: Sequence[PatternSpec],
+    inputs: Sequence[TextInput],
+    settings: Settings,
+) -> list[str]:
+    """Return CLI warnings for literals containing active delimiters (spec 4.9)."""
+    warnings: list[str] = []
+    seen: set[tuple[str, str, str]] = set()
+    options = settings.normalization
+    if inputs:
+        sentence_sets = {
+            sentence_delimiters(settings, t.full_stop, t.halfwidth) for t in inputs
+        }
+        clause_sets = {
+            clause_delimiters(settings, t.punctuation, t.halfwidth) for t in inputs
+        }
+    else:
+        sentence_sets = {sentence_delimiters(settings, "sentence", False)}
+        clause_sets = {clause_delimiters(settings, "modern", False)}
+    for spec in specs:
+        mode = spec.pattern.scope.mode
+        if mode == "window":
+            continue
+        active = (
+            frozenset().union(*sentence_sets)
+            if mode == "sentence"
+            else frozenset().union(*clause_sets)
+        )
+        norm_pat = normalized_pattern(spec, options)
+        for element in norm_pat.fixed:
+            for literal in element.options:
+                if any(ch in active for ch in literal):
+                    key = (spec.id, literal, mode)
+                    if key not in seen:
+                        seen.add(key)
+                        warnings.append(
+                            f"warning: pattern {spec.id!r} literal {literal!r} "
+                            f"contains a {mode} delimiter and will never match "
+                            "(spec 4.9)"
+                        )
+    return warnings
+
+
 def match_files(
     pattern_file: Path,
     inputs: Sequence[Path],
@@ -54,6 +99,7 @@ def match_files(
     settings: Settings | None = None,
     *,
     force: bool = False,
+    on_warning: Callable[[str], None] | None = None,
 ) -> tuple[list[Result], Outputs]:
     outputs = outputs_for(prefix)
     check_input_collisions([outputs.csv, outputs.jsonl, outputs.run], [pattern_file])
@@ -68,6 +114,7 @@ def match_files(
         run_id,
         settings,
         force=force,
+        on_warning=on_warning,
     )
 
 
@@ -81,6 +128,7 @@ def match_specs(
     settings: Settings | None = None,
     *,
     force: bool = False,
+    on_warning: Callable[[str], None] | None = None,
 ) -> tuple[list[Result], Outputs]:
     """Match already built pattern specs; `pattern_bytes` is what the run records."""
     settings = settings or Settings()
@@ -120,6 +168,9 @@ def match_specs(
         for result in match_text(spec, text_input, settings, prepared=prepared_spec)
     ]
     results = assign_ids(found)
+    if on_warning is not None:
+        for message in delimiter_literal_warnings(specs, inputs_, settings):
+            on_warning(message)
     warnings = [
         (text_input.text_id, spec.id)
         for text_input in inputs_

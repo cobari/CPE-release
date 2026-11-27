@@ -694,7 +694,7 @@ class Workspace:
             finally:
                 self._end_sync_release()
         else:
-            answer = self.api.import_ctp(identifier)
+            answer = self.api.import_ctp(identifier, reset_cap=False)
         if "error" not in answer:
             with self._lock:
                 self._changed()
@@ -1108,11 +1108,21 @@ class Workspace:
                 limit = (
                     service._max_retained if service is not None else 64 * 1024 * 1024
                 )
-                if (
+                pre_bytes = (
                     _json_size({"request": query, "settings": settings_data}) + 512
-                    > limit
-                ):
-                    return {"error": "storage_limit"}
+                )
+                if pre_bytes > limit:
+                    return {
+                        "error": "storage_limit",
+                        "bytes": pre_bytes,
+                        "limit": limit,
+                        "hint": (
+                            "Staged ITKC search state exceeded the 64 MiB memory limit "
+                            "(large request or settings payload). "
+                            "Shorten the query, choose fewer collections, or clear "
+                            "the staged ITKC session."
+                        ),
+                    }
                 try:
                     client = self.registry.client("itkc")
                 except ValueError as error:
@@ -1212,6 +1222,9 @@ class Workspace:
                 settings_data = asdict(self._itkc._settings)
                 for key in ("sentence_delimiters", "clause_delimiters"):
                     settings_data[key] = sorted(settings_data[key])
+                # Snapshots in _snapshots are cumulative; sizing only the latest
+                # snapshot prevents counting earlier rows N times across advances.
+                latest_snap = self._itkc._snapshots.get(self._itkc.revision)
                 retained = (
                     _json_size(
                         {
@@ -1220,12 +1233,14 @@ class Workspace:
                             "id": self._itkc.id,
                             "generation": self._itkc.generation,
                             "error": self._itkc._error,
+                            "older_revisions": max(len(self._itkc._snapshots) - 1, 0),
                         }
                     )
                     + 512
-                    + sum(
-                        _json_size(asdict(snap))
-                        for snap in self._itkc._snapshots.values()
+                    + (
+                        _json_size(asdict(latest_snap))
+                        if latest_snap is not None
+                        else 0
                     )
                 )
             limit = service._max_retained if service is not None else 64 * 1024 * 1024
@@ -1243,7 +1258,17 @@ class Workspace:
                             prior_session.cancel()
                         self._itkc = None
                         self._itkc_bytes = 0
-                return {"error": "storage_limit"}
+                return {
+                    "error": "storage_limit",
+                    "bytes": retained,
+                    "limit": limit,
+                    "hint": (
+                        "Staged ITKC search rows exceeded the 64 MiB memory limit "
+                        "(usually a broad short query). Narrow the query, filter by "
+                        "specific collections, clear the staged ITKC session, or "
+                        "inspect saved local releases."
+                    ),
+                }
             if prior_session is not None:
                 prior_session.cancel()
             self._itkc_bytes = retained

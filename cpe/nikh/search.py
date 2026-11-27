@@ -23,6 +23,8 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from cpe.http import open_url
+
 SEARCH_URL = "https://sillok.history.go.kr/search/searchResultList.do"
 VIEW_URL = "https://sillok.history.go.kr/record/recordView.do?id="
 PAGE_SIZE = 50
@@ -136,8 +138,11 @@ class SillokClient:
                 if self.transport is not None:
                     data = self.transport(request, self.timeout)
                 else:
-                    with urllib.request.urlopen(
-                        request, timeout=self.timeout
+                    with open_url(
+                        request,
+                        timeout=self.timeout,
+                        allowed_hosts=("sillok.history.go.kr",),
+                        require_https=True,
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
             except (OSError, http.client.HTTPException, ValueError) as error:

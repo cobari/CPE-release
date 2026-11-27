@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.http import open_url
 from cpe.local.txt import LocalText
 
 API_URL = "https://docusky.org.tw/DocuSky/WebApi/getQueryResultDocumentsJson.php"
@@ -588,8 +589,12 @@ def urllib_transport(
     request = urllib.request.Request(
         f"{url}?{urllib.parse.urlencode(params)}", headers={"User-Agent": AGENT}
     )
-    with urllib.request.urlopen(
-        request, timeout=timeout, context=tls_context()
+    with open_url(
+        request,
+        timeout=timeout,
+        allowed_hosts=("docusky.org.tw",),
+        require_https=True,
+        context=tls_context(),
     ) as response:
         data: bytes = response.read(limit + 1)
     if len(data) > limit:

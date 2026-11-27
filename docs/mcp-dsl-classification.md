@@ -1,6 +1,6 @@
 # General DSL candidate classification
 
-**Current implementation safeguard; researcher decision pending.** The GUI's
+**Current agreement (researcher decision pending).** The GUI's
 two-element structural diagnostics have a defined scope. There is no approved
 generalization of `skips_nearer` or `crosses_clause` to arbitrary multi-fixed,
 multi-slot, gap or alternative patterns.

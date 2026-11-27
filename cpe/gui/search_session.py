@@ -300,6 +300,46 @@ class ItkcSearchSession:
             )
             return answer
 
+    def select_row(self, revision: int, row_id: str) -> dict[str, Any]:
+        """Copy only one displayed row and its shared provenance for saving a note."""
+        from cpe.export.run_file import normalization_section, settings_section
+
+        if (
+            type(revision) is not int
+            or revision < 0
+            or not isinstance(row_id, str)
+            or not row_id
+        ):
+            return {"error": "bad_request"}
+        with self._snapshot_lock:
+            snapshot = self._snapshots.get(revision)
+            if snapshot is None:
+                return {"error": "snapshot_not_found"}
+            matched: dict[str, Any] | None = None
+            for group, items in (
+                ("likely", snapshot.likely),
+                ("less", snapshot.less),
+            ):
+                for item in items:
+                    if item.get("result_id") == row_id:
+                        matched = {**copy.deepcopy(item), "group": group}
+                        break
+                if matched is not None:
+                    break
+            if matched is None:
+                return {"error": "snapshot_not_found"}
+            answer = self._metadata_for(snapshot, current=revision == self._revision)
+            answer.update(
+                mode=self._request.get("mode", ""),
+                query=copy.deepcopy(self._request),
+                source_id="itkc",
+                snapshot_id=f"{self.id}:{revision}",
+                normalization=normalization_section(self._settings.normalization),
+                settings=settings_section(self._settings),
+                rows=[matched],
+            )
+            return answer
+
     def page(
         self,
         revision: int,

@@ -120,6 +120,8 @@ MAX_DEPTH = 100
 
 
 def parse(text: str) -> Node:
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in text):
+        raise QueryError("query contains an invalid surrogate code point")
     return _Parser(text).parse()
 
 

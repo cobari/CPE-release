@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from collections.abc import Callable
 from functools import partial
 from threading import Event
@@ -26,6 +27,13 @@ BUDGET = RESPONSE_LIMIT
 
 def _size(value: Any) -> int:
     return wire_size(value)
+
+
+def _item_wire_bytes(item: Any) -> int:
+    """Return exact UTF-8 byte delta of one item in structuredContent and text JSON."""
+    raw = json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+    escaped = json.dumps(raw, ensure_ascii=False)
+    return len(raw.encode("utf-8")) + len(escaped.encode("utf-8")) - 2
 
 
 def bounded(payload: dict[str, Any]) -> dict[str, Any]:
@@ -66,21 +74,28 @@ def page(payload: dict[str, Any], start: int, limit: int) -> dict[str, Any]:
         {key: [], "collected_count": len(items), "start": start, "omitted": []}
     )
     index = start
+    running_size = _size({**answer, "next_start": None})
     while index < len(items) and index - start < limit:
         candidate_next = index + 1 if index + 1 < len(items) else None
-        candidate = {
-            **answer,
-            key: [*answer[key], items[index]],
-            "next_start": candidate_next,
-        }
-        if _size(candidate) > BUDGET:
+        next_delta = 0 if candidate_next is None else 2 * (len(str(candidate_next)) - 4)
+        sep_bytes = 2 if answer[key] else 0
+        item_bytes = _item_wire_bytes(items[index])
+        if running_size + sep_bytes + item_bytes + next_delta > BUDGET:
             if answer[key] or answer["omitted"]:
                 break
-            answer["omitted"].append({"index": index, "reason": "item_too_large"})
+            omitted_entry = {"index": index, "reason": "item_too_large"}
+            omitted_sep = 2 if answer["omitted"] else 0
+            running_size += omitted_sep + _item_wire_bytes(omitted_entry)
+            answer["omitted"].append(omitted_entry)
         else:
+            running_size += sep_bytes + item_bytes
             answer[key].append(copy.deepcopy(items[index]))
         index += 1
     answer["next_start"] = index if index < len(items) else None
+    while answer[key] and _size(answer) > BUDGET:
+        answer[key].pop()
+        index -= 1
+        answer["next_start"] = index if index < len(items) else None
     return bounded(answer)
 
 

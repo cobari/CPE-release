@@ -176,14 +176,14 @@ class Library:
         # the path that built this library.
         check_variants(
             settings,
-            [
+            (
                 (
                     text.local.punctuation,
                     text.local.full_stop,
                     text.local.halfwidth_punctuation,
                 )
                 for text in self.texts
-            ],
+            ),
         )
         # Files and subfolders of an opened folder that could not be read (not UTF-8,
         # bad manifest, permission).

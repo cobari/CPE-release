@@ -1,6 +1,6 @@
 # MCP data policy and source-text delivery
 
-**Current implementation boundary.** The local MCP server always exposes the
+**Current agreement.** The local MCP server always exposes the
 same 20 tools. The host's startup grant decides whether those tools may return
 display text, provider excerpts and canonical records. The default is
 **references and metadata only**.

@@ -468,62 +468,62 @@ def _events(
         for index, constraint in enumerate(expr.between)
     )
     window = expr.window is not None
-    initial = sum(
-        1
-        for position in range(segment.start, segment.end)
-        for literal in expr.fixed[0].options
-        if (not window or position == segment.start)
-        and position + len(literal) <= segment.end
-        and text[position : position + len(literal)] == literal
-    )
-    events = [Event((), initial, None)]
+    matches = [
+        [
+            (position, option)
+            for position in range(segment.start, segment.end)
+            for option, literal in enumerate(fixed.options)
+            if (element_index > 0 or not window or position == segment.start)
+            and position + len(literal) <= segment.end
+            and text[position : position + len(literal)] == literal
+        ]
+        for element_index, fixed in enumerate(expr.fixed)
+    ]
+    events = [Event((), len(matches[0]), None)]
     for length in range(1, len(expr.fixed) + 1):
-        for positions in product(range(segment.start, segment.end), repeat=length):
-            choices = (range(len(fixed.options)) for fixed in expr.fixed[:length])
-            for options in product(*choices):
-                literals = tuple(
-                    expr.fixed[index].options[option]
-                    for index, option in enumerate(options)
+        for combo in product(*matches[:length]):
+            positions = tuple(position for position, _ in combo)
+            options = tuple(option for _, option in combo)
+            literals = tuple(
+                expr.fixed[index].options[option]
+                for index, option in enumerate(options)
+            )
+            if not _accepts(
+                text,
+                segment,
+                positions,
+                literals,
+                constraints,
+                window,
+                normalized.barriers,
+            ):
+                continue
+            path = tuple(zip(positions, options, strict=True))
+            if length < len(expr.fixed):
+                low, high = _bounds(constraints[length - 1])
+                begin = positions[-1] + len(literals[-1])
+                count = sum(
+                    1
+                    for position, _ in matches[length]
+                    if low <= position - begin <= high
                 )
-                if not _accepts(
+                events.append(Event(path, count, None))
+            else:
+                record = _placement_record(
                     text,
+                    text_id,
+                    extent,
+                    pattern,
+                    cfg,
                     segment,
+                    long_warning,
                     positions,
                     literals,
-                    constraints,
-                    window,
-                    normalized.barriers,
-                ):
-                    continue
-                path = tuple(zip(positions, options, strict=True))
-                if length < len(expr.fixed):
-                    low, high = _bounds(constraints[length - 1])
-                    begin = positions[-1] + len(literals[-1])
-                    count = sum(
-                        1
-                        for position in range(segment.start, segment.end)
-                        for literal in expr.fixed[length].options
-                        if low <= position - begin <= high
-                        and position + len(literal) <= segment.end
-                        and text[position : position + len(literal)] == literal
-                    )
-                    events.append(Event(path, count, None))
-                else:
-                    record = _placement_record(
-                        text,
-                        text_id,
-                        extent,
-                        pattern,
-                        cfg,
-                        segment,
-                        long_warning,
-                        positions,
-                        literals,
-                        diagnostic,
-                        normalized,
-                    )
-                    if record is not None:
-                        events.append(Event(path, 0, record))
+                    diagnostic,
+                    normalized,
+                )
+                if record is not None:
+                    events.append(Event(path, 0, record))
     # Prefix paths sort before their descendants; replay then reproduces the
     # specified budget order without a recursive or pruned placement search.
     return sorted(events, key=lambda event: event.path)

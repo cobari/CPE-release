@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from cpe.cancellation import Checkpoint, pause
+from cpe.http import open_url
 from cpe.local.txt import LocalText
 
 API_URL = "https://cbdata.dila.edu.tw/stable/search/all_in_one"
@@ -69,7 +70,13 @@ def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
         # CBData asks callers to send a Referer so it can see who uses the API.
         headers={"User-Agent": AGENT, "Referer": PROJECT_URL},
     )
-    with urllib.request.urlopen(request, timeout=timeout, context=_context()) as reply:
+    with open_url(
+        request,
+        timeout=timeout,
+        allowed_hosts=("cbdata.dila.edu.tw",),
+        require_https=True,
+        context=_context(),
+    ) as reply:
         data: bytes = reply.read(MAX_RESPONSE_BYTES + 1)
     if len(data) > MAX_RESPONSE_BYTES:
         raise ValueError("response too large")

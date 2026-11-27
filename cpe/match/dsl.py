@@ -236,6 +236,8 @@ def _parse_int(text: str, token: str) -> int:
 
 
 def _check_literal(literal: str, token: str) -> str:
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in literal):
+        raise DslError("syntax", f"invalid surrogate code point in literal: {token}")
     if any(char in _SYNTAX_CHARS or char.isspace() for char in literal):
         raise DslError("syntax", f"invalid character in literal: {token}")
     return literal

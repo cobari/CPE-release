@@ -313,10 +313,19 @@ def check_variants(
     table = settings.normalization.variants
     if table is None:
         return
-    for punctuation, full_stop, halfwidth in texts:
+    seen_configs: set[tuple[seg.Punctuation, seg.FullStop, bool]] = set()
+    seen_delimiters: set[frozenset[str]] = set()
+    for config in texts:
+        if config in seen_configs:
+            continue
+        seen_configs.add(config)
+        punctuation, full_stop, halfwidth = config
         delimiters = clause_delimiters(settings, punctuation, halfwidth) | (
             sentence_delimiters(settings, full_stop, halfwidth)
         )
+        if delimiters in seen_delimiters:
+            continue
+        seen_delimiters.add(delimiters)
         for key, value in table.map.items():
             for char in key + value:
                 if char in delimiters:

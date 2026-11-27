@@ -13,6 +13,7 @@ import copy
 import hashlib
 import inspect
 import json
+import re
 import secrets
 import sqlite3
 import sys
@@ -27,6 +28,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from cpe.docusky.adapter import (
+    BY_DATABASE,
     MAX_MANUAL_PAGES,
     DocuskyError,
     profile_for_source,
@@ -85,6 +87,18 @@ from cpe.match.engine import Settings
 from cpe.match.pattern_file import PatternFileError
 from cpe.match.pattern_file import loads as load_pattern_file
 from cpe.normalize.options import NormalizationError
+
+
+def _safe_file_type_label(label: Any, fallback: str) -> str:
+    """Sanitize a dialog filter description so pywebview's parser accepts it.
+
+    pywebview accepts only ``[\\w ]+`` before ``(*.ext)`` and raises ``ValueError``
+    on characters such as ``-`` or ``(``.
+    """
+    cleaned = re.sub(r"[^\w ]+", " ", str(label or "")).strip()
+    collapsed = " ".join(cleaned.split())
+    return collapsed or fallback
+
 
 MAX_PATTERN_FILE_BYTES = 1024 * 1024
 MAX_PATTERN_TOKENS = 16
@@ -595,7 +609,8 @@ class Api:
         import webview
 
         chosen = self._window.create_file_dialog(
-            webview.FileDialog.OPEN, file_types=(f"{file_label} (*.xml)",)
+            webview.FileDialog.OPEN,
+            file_types=(f"{_safe_file_type_label(file_label, 'XML files')} (*.xml)",),
         )
         return {"path": str(chosen[0])} if chosen else {"cancelled": True}
 
@@ -1292,8 +1307,9 @@ class Api:
                 return {"cancelled": True}
             import webview
 
+            label = _safe_file_type_label(file_label, "Release files")
             chosen = self._window.create_file_dialog(
-                webview.FileDialog.OPEN, file_types=(f"{file_label} (*.zip;*.xml)",)
+                webview.FileDialog.OPEN, file_types=(f"{label} (*.zip;*.xml)",)
             )
             if not chosen:
                 return {"cancelled": True}
@@ -1407,8 +1423,9 @@ class Api:
                 return {"cancelled": True}
             import webview
 
+            label = _safe_file_type_label(file_label, "Release files")
             chosen = self._window.create_file_dialog(
-                webview.FileDialog.OPEN, file_types=(f"{file_label} (*.zip;*.xml)",)
+                webview.FileDialog.OPEN, file_types=(f"{label} (*.zip;*.xml)",)
             )
             if not chosen:
                 return {"cancelled": True}
@@ -1537,7 +1554,7 @@ class Api:
             return False
         return True
 
-    def import_ctp(self, address: str) -> dict[str, Any]:
+    def import_ctp(self, address: str, *, reset_cap: bool = True) -> dict[str, Any]:
         """Save a CTP work into the open text folder, then read the folder again."""
         with self._local_operation(), self._ctp_operation_lock:
             if not self._folder:
@@ -1550,8 +1567,9 @@ class Api:
                 self._ctp = CtpClient()
             client = self._ctp
             client.apikey = self._preferences.get("ctp_key")
-            # The cap belongs to an import; request spacing belongs to the session.
-            client.calls = 0
+            # The GUI resets per import; MCP keeps a persistent session cap.
+            if reset_cap:
+                client.calls = 0
             if self._ctp_transport is not None:
                 client.transport = self._ctp_transport
             try:
@@ -1781,6 +1799,10 @@ class Api:
             return docusky_database_list(self.docusky_client())
         except Exception:
             return {"error": "source_internal"}
+
+    def docusky_reviewed(self) -> list[str]:
+        """Database names for reviewed DocuSky profiles."""
+        return sorted(db for db, profile in BY_DATABASE.items() if profile.reviewed)
 
     def start_itkc_search(self, request: Any) -> dict[str, Any]:
         """Start one bounded ITKC session and return metadata only."""
@@ -2291,7 +2313,7 @@ class Api:
                 session = self._itkc_session
             if session is None or session.id != panel.get("session_id"):
                 return {"error": "snapshot_not_found"}
-            snapshot = session.snapshot_for_export(revision)
+            snapshot = session.select_row(revision, row_id)
             id_field = "result_id"
         if "error" in snapshot:
             return snapshot
@@ -2827,11 +2849,7 @@ class Api:
             return {"cancelled": True}
         import webview
 
-        label = (
-            str(file_label)
-            if isinstance(file_label, str) and file_label
-            else "Pattern file"
-        )
+        label = _safe_file_type_label(file_label, "Pattern file")
         chosen = self._window.create_file_dialog(
             webview.FileDialog.OPEN, file_types=(f"{label} (*.toml)",)
         )
@@ -3177,11 +3195,7 @@ class Api:
                 return {"cancelled": True}
             import webview
 
-            label = (
-                str(file_label)
-                if isinstance(file_label, str) and file_label
-                else fmt.upper()
-            )
+            label = _safe_file_type_label(file_label, fmt.upper())
             chosen = self._window.create_file_dialog(
                 webview.FileDialog.SAVE,
                 save_filename=f"cpe-results.{fmt}",

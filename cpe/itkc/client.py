@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from cpe.cancellation import Checkpoint, pause
+from cpe.http import open_url
 
 API_URL = "http://db.itkc.or.kr/openapi/search"
 
@@ -63,7 +64,12 @@ class Safeguards:
 
 def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
     query = urllib.parse.urlencode(params)
-    with urllib.request.urlopen(f"{url}?{query}", timeout=timeout) as response:
+    with open_url(
+        f"{url}?{query}",
+        timeout=timeout,
+        allowed_hosts=("db.itkc.or.kr",),
+        require_https=False,
+    ) as response:
         data: bytes = response.read(MAX_RESPONSE_BYTES + 1)
         if len(data) > MAX_RESPONSE_BYTES:
             raise ApiError("ITKC response exceeds the size limit")
@@ -71,6 +77,9 @@ def urllib_transport(url: str, params: dict[str, Any], timeout: float) -> bytes:
 
 
 def parse_response(content: bytes) -> tuple[int, list[dict[str, str]]]:
+    lowered = content.lower()
+    if b"\x00" in content or b"<!doctype" in lowered or b"<!entity" in lowered:
+        raise ApiError("disallowed XML declaration in ITKC response")
     root = ET.fromstring(content)
     headers = root.findall("header")
     if len(headers) != 1:
@@ -180,10 +189,12 @@ class ITKCClient:
                 total, docs = parse_response(content)
             except InterruptedError:
                 raise
-            except (OSError, http.client.HTTPException, ET.ParseError) as error:
-                # Only network and XML failures are retried. Local write failures
-                # raise LocalStorageError, which is not an OSError, so a response
-                # already received is never requested again because of the disk.
+            except ET.ParseError as error:
+                self._log({"event": "error", "params": params, "error": str(error)})
+                raise ApiError(f"API call failed ({params!r}): {error}") from None
+            except (OSError, http.client.HTTPException) as error:
+                # Only transient transport failures are retried. Malformed XML
+                # and local write errors raise immediately without burning calls.
                 last_error = error
                 self._log({"event": "error", "params": params, "error": str(error)})
                 continue

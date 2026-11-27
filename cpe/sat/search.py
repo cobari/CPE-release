@@ -23,6 +23,8 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from cpe.http import open_url
+
 BASE = "https://21dzk.l.u-tokyo.ac.jp/SAT/"
 SEARCH_URL = BASE + "ddb-sat2.php"
 PAGE_ITEMS = 30
@@ -226,8 +228,11 @@ class SatClient:
                 if self.transport is not None:
                     data = self.transport(request, self.timeout)
                 else:
-                    with urllib.request.urlopen(
-                        request, timeout=self.timeout
+                    with open_url(
+                        request,
+                        timeout=self.timeout,
+                        allowed_hosts=("21dzk.l.u-tokyo.ac.jp",),
+                        require_https=True,
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
             except (OSError, http.client.HTTPException, ValueError) as error:

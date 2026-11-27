@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from cpe.cancellation import Checkpoint, pause
-from cpe.http import content_length
+from cpe.http import build_safe_opener, content_length
 from cpe.local.releases import ReleaseError
 
 PORTAL = "https://www.data.go.kr"
@@ -167,8 +167,12 @@ class PortalClient:
             if self._opener is None:
                 # The portal ties the three download steps together by its session
                 # cookie, as in a browser.
-                self._opener = urllib.request.build_opener(
-                    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
+                self._opener = build_safe_opener(
+                    allowed_hosts=("www.data.go.kr",),
+                    require_https=True,
+                    extra_handlers=(
+                        urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),
+                    ),
                 )
             with self._opener.open(request, timeout=self.timeout) as response:
                 limit = (

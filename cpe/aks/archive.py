@@ -22,6 +22,8 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from cpe.http import open_url
+
 BASE = "https://archive.aks.ac.kr"
 SEARCH_URL = BASE + "/search/list.do"
 PAGE_ITEMS = 20
@@ -213,8 +215,11 @@ class AksArchiveClient:
                 if self.transport is not None:
                     data = self.transport(request, self.timeout)
                 else:
-                    with urllib.request.urlopen(
-                        request, timeout=self.timeout
+                    with open_url(
+                        request,
+                        timeout=self.timeout,
+                        allowed_hosts=("archive.aks.ac.kr",),
+                        require_https=True,
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
             except (OSError, http.client.HTTPException, ValueError) as error:

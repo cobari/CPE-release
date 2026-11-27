@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import re
 import tomllib
+from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from cpe.normalize.text import NormalizedText, identity
+from cpe.normalize.text import NormalizedText, _IdentitySpans, _UnitSpans, identity
 
 KeepOrDelete = Literal["keep", "delete"]
 NoteMode = Literal["barrier", "join"]
@@ -217,8 +218,19 @@ def note_spans(reference: str, options: Options) -> list[tuple[int, int, str]]:
     if not kinds:
         return []
     spans: list[tuple[int, int, str]] = []
+    markers = tuple(m for _, o, c in kinds for m in (o, c))
     index = 0
     while index < len(reference):
+        nearest = -1
+        for marker in markers:
+            pos = reference.find(marker, index)
+            if pos != -1 and (nearest == -1 or pos < nearest):
+                nearest = pos
+                if nearest == index:
+                    break
+        if nearest < 0:
+            break
+        index = nearest
         opened = next(
             ((k, o, c) for k, o, c in kinds if reference.startswith(o, index)), None
         )
@@ -239,63 +251,97 @@ def note_spans(reference: str, options: Options) -> list[tuple[int, int, str]]:
     return spans
 
 
-_NON_LB_RE = re.compile(r"[^\r\n]+")
-_NON_WS_RE = re.compile(r"[^ \t\u3000]+")
-_NON_LB_WS_RE = re.compile(r"[^\r\n \t\u3000]+")
+_SELECTOR_DELETE: dict[int, None] = {
+    code: None for low, high in _SELECTOR_RANGES for code in range(low, high + 1)
+}
+_KEPT_CHUNK_RES: dict[tuple[bool, bool, bool], re.Pattern[str]] = {}
 
 
-def _spans_without_deleted(
-    reference: str, pattern: re.Pattern[str]
-) -> tuple[tuple[int, int], ...]:
-    spans: list[tuple[int, int]] = []
-    extend = spans.extend
-    for match in pattern.finditer(reference):
-        start, end = match.span()
-        extend(zip(range(start, end), range(start + 1, end + 1), strict=True))
-    return tuple(spans)
+def _kept_chunk_regex(
+    delete_lb: bool, delete_ws: bool, delete_vs: bool
+) -> re.Pattern[str]:
+    key = (delete_lb, delete_ws, delete_vs)
+    cached = _KEPT_CHUNK_RES.get(key)
+    if cached is not None:
+        return cached
+    excluded = []
+    if delete_lb:
+        excluded.append("\r\n")
+    if delete_ws:
+        excluded.append(" \t\u3000")
+    if delete_vs:
+        excluded.append("\ufe00-\ufe0f\U000e0100-\U000e01ef")
+    compiled = re.compile(f"[^{''.join(excluded)}]+")
+    _KEPT_CHUNK_RES[key] = compiled
+    return compiled
 
 
-def _fast_normalize_no_notes(reference: str, options: Options) -> NormalizedText | None:
-    if options.variation_selectors == "delete":
-        return None
+def _append_unit_starts(
+    starts: array[int],
+    segment: str,
+    base_offset: int,
+    pattern: re.Pattern[str],
+) -> None:
+    for match in pattern.finditer(segment):
+        s, e = match.span()
+        starts.extend(range(base_offset + s, base_offset + e))
+
+
+def _fast_translation(
+    options: Options,
+) -> tuple[dict[int, int | None], re.Pattern[str] | None] | None:
     table = options.variants
     if table is not None and any(len(value) != 1 for value in table.map.values()):
         return None
     delete_lb = options.line_breaks == "delete"
     delete_ws = options.whitespace == "delete"
-    deleted = (LINE_BREAKS if delete_lb else frozenset()) | (
-        WHITESPACE if delete_ws else frozenset()
-    )
+    delete_vs = options.variation_selectors == "delete"
     trans: dict[int, int | None] = {}
     if table is not None:
-        trans.update(
-            {
-                ord(key): ord(value)
-                for key, value in table.map.items()
-                if key not in deleted
-            }
-        )
-    for char in deleted:
-        trans[ord(char)] = None
+        for key, value in table.map.items():
+            if (
+                (delete_lb and key in LINE_BREAKS)
+                or (delete_ws and key in WHITESPACE)
+                or (delete_vs and is_selector(key))
+            ):
+                continue
+            trans[ord(key)] = ord(value)
+    if delete_lb:
+        for char in LINE_BREAKS:
+            trans[ord(char)] = None
+    if delete_ws:
+        for char in WHITESPACE:
+            trans[ord(char)] = None
+    if delete_vs:
+        trans.update(_SELECTOR_DELETE)
+    kept_re = (
+        _kept_chunk_regex(delete_lb, delete_ws, delete_vs)
+        if (delete_lb or delete_ws or delete_vs)
+        else None
+    )
+    return trans, kept_re
+
+
+def _fast_normalize_no_notes(reference: str, options: Options) -> NormalizedText | None:
+    fast = _fast_translation(options)
+    if fast is None:
+        return None
+    trans, kept_re = fast
     text = reference.translate(trans) if trans else reference
     if len(text) == len(reference):
-        n = len(reference)
         return NormalizedText(
             reference=reference,
             text=text,
-            spans=tuple(zip(range(n), range(1, n + 1), strict=True)),
+            spans=_IdentitySpans(len(reference)),
             _contiguous=True,
         )
-    if delete_lb and delete_ws:
-        spans = _spans_without_deleted(reference, _NON_LB_WS_RE)
-    elif delete_lb:
-        spans = _spans_without_deleted(reference, _NON_LB_RE)
-    else:
-        spans = _spans_without_deleted(reference, _NON_WS_RE)
+    assert kept_re is not None
+    starts = array("I")
+    _append_unit_starts(starts, reference, 0, kept_re)
     return NormalizedText(
         reference=reference,
         text=text,
-        spans=spans,
+        spans=_UnitSpans(starts),
         _contiguous=False,
     )
 
@@ -319,24 +365,57 @@ def normalize(reference: str, options: Options) -> NormalizedText:
         fast = _fast_normalize_no_notes(reference, options)
         if fast is not None:
             return fast
-    text: list[str] = []
-    spans: list[tuple[int, int]] = []
+    spec_trans = _fast_translation(options)
     removed: list[tuple[int, int, int]] = []
     attached: list[tuple[int, int, int]] = []
-    note_index = 0
-    position = 0
-    while position < len(reference):
-        if note_index < len(notes) and notes[note_index][0] == position:
-            start, end, kind = notes[note_index]
-            (removed if kind == "note" else attached).append((len(text), start, end))
-            note_index += 1
+    starts = array("I")
+    if spec_trans is not None:
+        trans, kept_re = spec_trans
+        chunks: list[str] = []
+        text_len = 0
+        position = 0
+        for start, end, kind in notes:
+            if position < start:
+                segment = reference[position:start]
+                translated = segment.translate(trans) if trans else segment
+                chunks.append(translated)
+                if len(translated) == len(segment):
+                    starts.extend(range(position, start))
+                else:
+                    assert kept_re is not None
+                    _append_unit_starts(starts, segment, position, kept_re)
+                text_len += len(translated)
+            (removed if kind == "note" else attached).append((text_len, start, end))
             position = end
-            continue
-        output = options.code_point(reference[position])
-        for char in output:
-            text.append(char)
-            spans.append((position, position + 1))
-        position += 1
+        if position < len(reference):
+            segment = reference[position:]
+            translated = segment.translate(trans) if trans else segment
+            chunks.append(translated)
+            if len(translated) == len(segment):
+                starts.extend(range(position, len(reference)))
+            else:
+                assert kept_re is not None
+                _append_unit_starts(starts, segment, position, kept_re)
+        joined = "".join(chunks)
+    else:
+        text: list[str] = []
+        note_index = 0
+        position = 0
+        while position < len(reference):
+            if note_index < len(notes) and notes[note_index][0] == position:
+                start, end, kind = notes[note_index]
+                (removed if kind == "note" else attached).append(
+                    (len(text), start, end)
+                )
+                note_index += 1
+                position = end
+                continue
+            output = options.code_point(reference[position])
+            for char in output:
+                text.append(char)
+                starts.append(position)
+            position += 1
+        joined = "".join(text)
     barriers = (
         frozenset(q for q, _, _ in removed)
         if options.notes == "barrier"
@@ -344,8 +423,8 @@ def normalize(reference: str, options: Options) -> NormalizedText:
     )
     return NormalizedText(
         reference=reference,
-        text="".join(text),
-        spans=tuple(spans),
+        text=joined,
+        spans=_UnitSpans(starts),
         barriers=barriers,
         notes=tuple(removed),
         annotations=tuple(attached),

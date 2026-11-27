@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cpe.http import open_url
 from cpe.local.file_lock import FileBusyError, exclusive
 from cpe.local.txt import InputError, read
 
@@ -59,7 +60,12 @@ def urllib_transport(
     request = urllib.request.Request(
         f"{url}?{urllib.parse.urlencode(params)}", headers={"User-Agent": AGENT}
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    with open_url(
+        request,
+        timeout=timeout,
+        allowed_hosts=("api.ctext.org",),
+        require_https=True,
+    ) as response:
         data: bytes = response.read(max_bytes + 1)
         if len(data) > max_bytes:
             raise CtpError("ctp_response_large")

@@ -549,6 +549,11 @@ class SearchService:
                 "error": "storage_limit",
                 "bytes": retained + external_bytes,
                 "limit": self._max_retained,
+                "hint": (
+                    "Staged search snapshots exceeded the 64 MiB memory limit. "
+                    "Narrow the query, lower max_records, or run a narrower search "
+                    "to evict older snapshots."
+                ),
             }
         # Reordered snapshots already carry server-derived evidence labels even
         # when their canonical record was withheld. Reclassifying them from the
@@ -577,6 +582,11 @@ class SearchService:
                         "error": "storage_limit",
                         "bytes": retained + external_bytes,
                         "limit": self._max_retained,
+                        "hint": (
+                            "Staged search snapshots exceeded the 64 MiB memory "
+                            "limit. Narrow the query, lower max_records, or run a "
+                            "narrower search to evict older snapshots."
+                        ),
                     }
                 rows.append(tagged)
                 size_list.append(row_size)

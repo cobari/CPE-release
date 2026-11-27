@@ -138,7 +138,7 @@ startup:
 | `--library SLOT FOLDER` | None | Assigns specific folders to slots (`local`, `local2`, `local3`, `local4`). |
 | `--read-root PATH` | None | Authorizes tool reads under `PATH`. Can be repeated. This is a path capability, not source-text disclosure. |
 | `--write-root PATH` | None | Authorizes tool writes/reads under an existing folder `PATH`. Tool writes are disabled unless granted; explicitly configured state and ITKC log files are separate host destinations. This is a path capability, not source-text disclosure. |
-| `--enable-online SOURCE` | None | Allows access to an online repository (`all`, `docusky:DATABASE` with the catalogue's exact `source` value, or any of the 19 online source identifiers: `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `engishiki`, `thdl`, `csid`, `cand`, `kyudb`). Repeat as needed. Access does not return source text; add a separate `--allow-source-text` grant. |
+| `--enable-online SOURCE` | None | Allows access to an online repository (`all`, `docusky:DATABASE` with the catalogue's exact `source` value, or any of the 19 online source identifiers: `itkc`, `ndl`, `cbeta`, `cyberseodang`, `docusky`, `historydb`, `sillok`, `nrich`, `ith`, `nahf`, `vietdien`, `sat`, `aksarchive`, `ships`, `engishiki`, `thdl`, `csid`, `cand`, `kyudb`). Repeat as needed. Bare `docusky` enables all `docusky:DATABASE` targets; `docusky:DATABASE` enables only that database. Access does not return source text; add a separate `--allow-source-text` grant. |
 | `--allow-source-text SOURCE` | None (references only) | Host permission to return display text, provider excerpts and canonical records for one source or import. Repeat; no `all`. Accepts `local`–`local4`, the 19 online source IDs, `docusky:DATABASE` with the catalogue's exact `source` value, or `import:gutenberg|ndl|rise|cbeta|nikh-partial`. Internal profile codes are not database identifiers. This is not a provider licence. |
 | `--itkc-log PATH` | None | Required local request log path whenever `itkc` is enabled. |
 | `--enable-import PROVIDER`| None | Allows import providers (`portal`, `ctp`, `gutenberg`, `ndl`, `rise`, `cbeta`, `nikh-partial`, or `all`); network ones need Internet access, while CBETA and NIKH need host-readable XML files. Previews and progress metadata do not require a source-text grant; direct unit text does. |
@@ -198,7 +198,7 @@ capability is not a source-text disclosure grant; the two controls are separate.
 - **Source-text disclosure**: Default payloads withhold display excerpts, raw
   import-unit text, source positions and canonical records. A matching
   `--allow-source-text` grant is required even for local files and provider rows.
-- **Filesystem Isolation**: File-reading and file-writing tools (`run_cli_export`, `export_search_snapshot`, `manage_library`, `import_local_release`) reject any path outside `--read-root` or `--write-root`. Symlinks and Windows directory junctions pointing outside allowed roots are rejected.
+- **Filesystem Isolation**: File-reading and file-writing tools (`run_cli_export`, `export_search_snapshot`, `manage_library`, `import_local_release`, `search_dsl(pattern_file)`, and `preview_import` for local XML paths) reject any path outside `--read-root` or `--write-root` (`import_remote_release` and `manage_import` also check the active library destination). Symlinks and Windows directory junctions pointing outside allowed roots are rejected.
 - **Credential Protection**: Third-party API keys (such as CTP) are resolved strictly from host environment variables. Tools never accept API keys as parameters and never return stored keys in responses.
 - **Provider Safeguards**: The server reuses each existing adapter's request serialization, interval, query grammar and call caps. A persistent client is shared across searches and catalogs; MCP does not reset those budgets for each tool call. Automated tests use mock fixtures and never query live servers.
 
@@ -219,8 +219,8 @@ empty result.
 | `get_workspace()` | Read | Returns the running server's embedded build information, current library slots (`local`–`local4`), folder paths, text counts, source selections, sort orders, normalization settings, and host capabilities (`read_roots`, `write_roots`, enabled sources/imports, source-text grants). |
 | `list_sources()` | Read | Lists 23 source entries (4 local slots + 19 online), plus explicitly enabled DocuSky catalogue databases, with availability, authorization and disclosure status. Use get_source_details for scope and limits. |
 | `get_source_details(source_id)` | Read | Detailed English scope, query limitations and source-text policy. ITKC details also list the original-text collections queried by CPE. |
-| `get_source_catalog(source_id, ...)` | Read | Pages DocuSky databases, HistoryDB items, NAHF categories and SHIPS database choices. |
-| `configure_workspace(...)` | Mutate | Updates selected search sources (including a DocuSky `docusky:DATABASE`), HistoryDB/NAHF provider filters, result sort order, catalog language, or text normalization. `source_options` accepts only `historydb_site`, `historydb_item`, `nahf_item` and `ships_database`; it does not select a DocuSky database. |
+| `get_source_catalog(source_id, ...)` | Network / Read | Pages DocuSky databases, HistoryDB items, NAHF categories and SHIPS database choices (queries network endpoints for DocuSky and HistoryDB; local metadata for NAHF and SHIPS). |
+| `configure_workspace(...)` | Mutate | Updates selected search sources (at most one DocuSky `docusky:DATABASE`), HistoryDB/NAHF/SHIPS provider filters, result sort order, catalog language, or text normalization. `source_options` accepts only `historydb_site`, `historydb_item`, `nahf_item` and `ships_database`; it does not select a DocuSky database. |
 | `manage_library(action, ...)` | Mutate | Manages the 4 local library slots: `list`, `open`, `load`, `reload` (rescan folder changes), `activate`, or `remove`. |
 
 For SHIPS, call `get_source_catalog(source_id="ships")` to list all seven
@@ -235,7 +235,7 @@ or hit count.
 | Tool | Mode | Description |
 |---|---|---|
 | `search_pattern(source_id, ...)` | Search | Searches a single source in compound two-box (`mode="pair"`) or single-box (`mode="words"`) mode and saves a query snapshot. |
-| `search_sources(source_ids, ...)` | Search | Runs multi-panel search across up to 4 selected sources as separate, sequentially collected panels (local slots and enabled online repositories). |
+| `search_sources(source_ids, ...)` | Search | Runs multi-panel search across up to 4 selected sources (at most one DocuSky database) as separate, sequentially collected panels (local slots and enabled online repositories). |
 | `search_dsl(source_id, ...)` | Search | Executes full Literary Sinitic pattern DSL queries on local libraries using an inline `expression` or a multi-pattern TOML `pattern_file`. Non-pair pattern shapes are conservatively placed in `less` with `classification_unreviewed` pending researcher review ([rationale](mcp-dsl-classification.md)). |
 | `itkc_search(action, ...)` | Search | Stepped multi-collection ITKC session: `start`, `advance` (steps `GO_AA` → `MO_AA` → `KP_AA` on demand), `page`, `status`, `cancel`, or `clear`. |
 
@@ -251,7 +251,7 @@ or hit count.
 
 | Tool | Mode | Description |
 |---|---|---|
-| `get_import_catalog(provider, ...)` | Read | Lists available public datasets (e.g. `portal` releases, MPIWG RISE catalog and section trees). |
+| `get_import_catalog(provider, ...)` | Network / Read | Lists available public datasets (local curated metadata for `portal` releases; queries remote pages for MPIWG `rise` catalogs and section trees). |
 | `import_local_release(path, batch, background)` | Import | Imports a local `.zip`/`.xml` release or runs batch ZIP staging with cycle and collision protection. With `background=True`, returns a job ID and releases the workspace lock during conversion so `manage_import(progress/cancel)` can poll or stop it. |
 | `import_remote_release(provider, identifier, background)` | Download | Downloads and imports pre-packaged corpus releases (`portal` dataset packages or CTP chapters/works). With `background=True` (`portal` only), returns a job ID for non-blocking `manage_import(progress/cancel)`. |
 | `preview_import(provider, address)` | Download | Starts background retrieval for Gutenberg, NDL, RISE, CBETA, or NIKH volume previews without committing a text bundle. CBETA/NIKH use previously downloaded host-readable XML rather than fetching a new remote file. |
@@ -377,7 +377,7 @@ is not included in the distributed `.tar.gz` source archive or wheel):
 
 ```sh
 uv sync --extra mcp
-uv run pytest tests/test_mcp_protocol.py tests/test_mcp_service.py tests/test_mcp_sources.py tests/test_mcp_patterns.py tests/test_mcp_workspace.py tests/test_mcp_workspace_protocol.py tests/test_mcp_lifecycle.py tests/test_mcp_state_paths.py
+uv run pytest tests/test_mcp_*.py
 ```
 
 ### Publication & Ecosystem Boundary

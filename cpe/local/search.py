@@ -32,6 +32,7 @@ from cpe.export.safe import (
     check_prefix,
     staged,
 )
+from cpe.itkc import regex_worker
 from cpe.itkc.query import (
     And,
     Leaf,
@@ -141,6 +142,25 @@ def long_warning(segments: Sequence[seg.Segment], settings: Settings) -> bool:
     )
 
 
+def _collect_regex_leaves(node: Node) -> list[Regex]:
+    found: list[Regex] = []
+    seen: set[Regex] = set()
+    stack: list[Node] = [node]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, Regex):
+            if current not in seen:
+                seen.add(current)
+                found.append(current)
+        elif isinstance(current, Not):
+            stack.append(current.child)
+        elif isinstance(current, Near):
+            stack.extend((current.right, current.left))
+        elif isinstance(current, (And, Or)):
+            stack.extend(reversed(current.children))
+    return found
+
+
 def search_text(
     tree: Node,
     query: str,
@@ -165,8 +185,20 @@ def search_text(
     warned = long_warning(segments, settings) if warn_long is None else warn_long
     barriers = normalized.sorted_barriers
     leaves = positive_leaves(tree)
+    batched_regex: dict[Regex, list[list[tuple[int, int]]]] = {}
+    if len(segments) > 1 and regex_worker.spans is regex_worker._ORIG_SPANS:
+        regex_leaves = _collect_regex_leaves(tree)
+        if regex_leaves:
+            bodies = [normalized.text[s.start : s.end] for s in segments]
+            for leaf in regex_leaves:
+                try:
+                    batched_regex[leaf] = regex_worker.spans_batch(
+                        leaf.pattern, bodies, checkpoint=checkpoint
+                    )
+                except (OSError, EOFError, TimeoutError, ValueError) as error:
+                    raise QueryError(str(error)) from None
     records = []
-    for segment in segments:
+    for seg_index, segment in enumerate(segments):
         if checkpoint:
             checkpoint()
         body = normalized.text[segment.start : segment.end]
@@ -190,10 +222,19 @@ def search_text(
             _body: str = body,
             _allowed: Callable[[int, int], bool] | None = allowed_fn,
             _cache: dict[Leaf, list[tuple[int, int]]] = span_cache,
+            _seg_index: int = seg_index,
         ) -> list[tuple[int, int]]:
             cached = _cache.get(leaf)
             if cached is None:
-                cached = leaf_spans(leaf, _body, _allowed)
+                if isinstance(leaf, Regex) and leaf in batched_regex:
+                    raw = batched_regex[leaf][_seg_index]
+                    cached = (
+                        [span for span in raw if _allowed(span[0], span[1])]
+                        if _allowed is not None
+                        else raw
+                    )
+                else:
+                    cached = leaf_spans(leaf, _body, _allowed)
                 _cache[leaf] = cached
             return cached
 

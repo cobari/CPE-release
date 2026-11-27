@@ -24,6 +24,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from cpe.http import open_url
+
 BASE = "https://www.viet-dien.com"
 SEARCH_URL = BASE + "/api/v1/search"
 MAX_ITEMS = 20
@@ -201,8 +203,11 @@ class VietDienClient:
                 if self.transport is not None:
                     data = self.transport(request, self.timeout)
                 else:
-                    with urllib.request.urlopen(
-                        request, timeout=self.timeout
+                    with open_url(
+                        request,
+                        timeout=self.timeout,
+                        allowed_hosts=("www.viet-dien.com",),
+                        require_https=True,
                     ) as answer:
                         data = answer.read(MAX_RESPONSE_BYTES + 1)
             except (OSError, http.client.HTTPException, ValueError) as error:

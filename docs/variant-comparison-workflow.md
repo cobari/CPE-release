@@ -42,7 +42,7 @@ Use this workflow when checking overlapping Korean classical collections (such a
 
 ### Step-by-Step Tool Sequence
 1. **Inspect available DocuSky profiles**:
-   - Call `get_source_catalog(source_id="docusky")` to inspect exact `source` values and reviewed vs unreviewed status. Select a returned source with `configure_workspace(sources=["docusky:承政院日記"])`; `source_options` accepts only HistoryDB and NAHF filters, not a DocuSky profile.
+   - Call `get_source_catalog(source_id="docusky")` to inspect exact `source` values and reviewed vs unreviewed status. Select a returned source with `configure_workspace(sources=["docusky:承政院日記"])`; `source_options` accepts only HistoryDB, NAHF, and SHIPS filters (`historydb_site`, `historydb_item`, `nahf_item`, `ships_database`), not a DocuSky profile.
 2. **Run stepped ITKC retrieval**:
    - Call `itkc_search(action="start", mode="words", query="甲乙")` (or `mode="pair"`, `first="甲"`, `second="乙"`).
    - Advance one collection at a time (`itkc_search(action="advance", job_id=...)`) and page results (`itkc_search(action="page", job_id=..., start=0, page_size=20)`).

@@ -275,10 +275,13 @@ function localLabel(code) {
   const parent = folderParent(info.folder);
   return parent ? `${name} · ${parent}` : name;
 }
+const reviewedDocusky = new Set();
+
 function sourceName(code) {
   if (LOCAL_SOURCES.includes(code)) return localLabel(code);
   if (code.startsWith("docusky:")) {
-    return `${code.slice("docusky:".length)} (${t("source.docusky.unreviewed")})`;
+    const db = code.slice("docusky:".length);
+    return reviewedDocusky.has(db) ? db : `${db} (${t("source.docusky.unreviewed")})`;
   }
   return t(`source.${code}`);
 }
@@ -485,8 +488,9 @@ async function saveSources() {
 function restoreSources() {
   const saved = localState.selected.find(code => code.startsWith("docusky:"));
   if (saved) {
+    const db = saved.slice("docusky:".length);
     if (![...docuskySelect.options].some(option => option.value === saved)) {
-      docuskyOption(saved, saved.slice("docusky:".length));
+      docuskyOption(saved, db, reviewedDocusky.has(db));
     }
     docuskySelect.value = saved;
     docuskyBox.value = saved;
@@ -2289,6 +2293,7 @@ async function loadDocuskyDatabases() {
       if (!entry.source || !entry.database) continue;
       if (entry.database === answer.default) continue;
       const existing = [...docuskySelect.options].find(option => option.value === entry.source);
+      if (entry.reviewed) reviewedDocusky.add(entry.database);
       if (existing) {
         if (entry.reviewed) {
           docuskyUnreviewed.delete(existing);
@@ -3371,6 +3376,7 @@ function syncSearchButton() {
   button.disabled = searchBusy;
   document.querySelectorAll("#panels .source-retry").forEach(retry => { retry.disabled = searchBusy; });
   document.querySelectorAll("#panels .continuation-advance").forEach(btn => { btn.disabled = searchBusy; });
+  document.querySelectorAll("#panels .continuation-apply").forEach(btn => { btn.disabled = searchBusy; });
   document.querySelectorAll("#panels .continuation-retry").forEach(btn => { btn.disabled = searchBusy; });
   const stop = typeof document.getElementById === "function" ? document.getElementById("search-stop") : null;
   if (stop) {
@@ -4604,6 +4610,25 @@ function renderSessionContinuation(panel, entry) {
   const applyBtn = continuation.querySelector(".continuation-apply");
   const retryBtn = continuation.querySelector(".continuation-retry");
 
+  const isStopped = Boolean(panel.dataset.stopped) || session.state === "cancelled";
+  if (isStopped) {
+    if (applyBtn) {
+      applyBtn.classList.add("is-hidden");
+      applyBtn.disabled = true;
+      applyBtn.onclick = null;
+    }
+    if (advanceBtn) {
+      advanceBtn.classList.add("is-hidden");
+      advanceBtn.disabled = true;
+    }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) {
+      statusEl.textContent = t("results.stopped");
+      statusEl.classList.remove("is-error");
+    }
+    return;
+  }
+
   const displayedRev = session.displayedRevision ?? session.revision;
   const hasUnapplied = session.revision > displayedRev;
   if (hasUnapplied && applyBtn) {
@@ -4619,21 +4644,7 @@ function renderSessionContinuation(panel, entry) {
     applyBtn.onclick = null;
   }
 
-  const isStopped = Boolean(panel.dataset.stopped) || session.state === "cancelled";
   const isComplete = session.completed >= session.total || session.state === "complete";
-
-  if (isStopped) {
-    if (advanceBtn) {
-      advanceBtn.classList.add("is-hidden");
-      advanceBtn.disabled = true;
-    }
-    if (retryBtn) retryBtn.classList.add("is-hidden");
-    if (statusEl) {
-      statusEl.textContent = t("results.stopped");
-      statusEl.classList.remove("is-error");
-    }
-    return;
-  }
 
   if (session.advancing) {
     if (advanceBtn) {
@@ -4757,8 +4768,9 @@ async function advanceItkcSession(entry, panel) {
 }
 
 function applySessionResults(entry, panel) {
+  if (panel?.dataset.stopped) return;
   const session = entry.answer?.session;
-  if (!session) return;
+  if (!session || session.state === "cancelled") return;
   session.displayedRevision = session.revision;
   session.displayedCounts = { ...session.counts };
   if (session.source) {
@@ -4805,6 +4817,15 @@ function renderPageContinuation(panel, entry) {
   const applyBtn = continuation.querySelector(".continuation-apply");
   const retryBtn = continuation.querySelector(".continuation-retry");
 
+  const isStopped = Boolean(panel.dataset.stopped);
+  if (isStopped) {
+    if (applyBtn) { applyBtn.classList.add("is-hidden"); applyBtn.disabled = true; applyBtn.onclick = null; }
+    if (advanceBtn) { advanceBtn.classList.add("is-hidden"); advanceBtn.disabled = true; }
+    if (retryBtn) retryBtn.classList.add("is-hidden");
+    if (statusEl) { statusEl.textContent = t("results.stopped"); statusEl.classList.remove("is-error"); }
+    return;
+  }
+
   const pending = cont.pendingPage;
   if (pending && applyBtn) {
     const diff = (pending.likely?.length || 0) + (pending.less?.length || 0);
@@ -4819,17 +4840,9 @@ function renderPageContinuation(panel, entry) {
     applyBtn.onclick = null;
   }
 
-  const isStopped = Boolean(panel.dataset.stopped);
   const atLimit = (cont.page || 1) >= (cont.max_pages || 5);
   const atEnd = !cont.has_more && !atLimit;
   const nextNum = (cont.page || 1) + 1;
-
-  if (isStopped) {
-    if (advanceBtn) { advanceBtn.classList.add("is-hidden"); advanceBtn.disabled = true; }
-    if (retryBtn) retryBtn.classList.add("is-hidden");
-    if (statusEl) { statusEl.textContent = t("results.stopped"); statusEl.classList.remove("is-error"); }
-    return;
-  }
 
   if (cont.advancing) {
     if (advanceBtn) {
@@ -4964,6 +4977,7 @@ async function advanceDocuSkyPage(entry, panel) {
 }
 
 async function applyDocuSkyPage(entry, panel) {
+  if (panel?.dataset.stopped) return;
   const cont = entry.answer?.continuation;
   const pending = cont?.pendingPage;
   if (!cont || !pending) return;
@@ -4978,6 +4992,7 @@ async function applyDocuSkyPage(entry, panel) {
       renderPageContinuation(panel, entry);
       return;
     }
+    if (panel?.dataset.stopped) return;
     if (merged && merged.error) {
       cont.advanceError = merged.error;
       if (merged.error === "page_repeated") {
@@ -5394,6 +5409,9 @@ async function initialize() {
   library = loaded;
   localState = locals;
   applySourceOptions(options);
+  if (typeof api().docusky_reviewed === "function") {
+    for (const db of (await api().docusky_reviewed()) || []) reviewedDocusky.add(db);
+  }
   restoreSources();
   showLibrary();
   updateSource();

@@ -12,6 +12,26 @@ OUTPUT_HELP = "output prefix; writes PREFIX.csv, PREFIX.jsonl and PREFIX.run.jso
 DEFAULT_PATTERNS = Path("patterns") / "mvp.toml"
 
 
+def _emit(text: str, *, error: bool = False) -> None:
+    """Write a line to stdout or stderr without crashing on legacy code pages."""
+    stream = sys.stderr if error else sys.stdout
+    try:
+        stream.write(text + "\n")
+        stream.flush()
+    except UnicodeEncodeError:
+        stream.flush()
+        buffer = getattr(stream, "buffer", None)
+        if buffer is not None:
+            buffer.write((text + "\n").encode("utf-8", errors="replace"))
+            buffer.flush()
+        else:
+            encoding = getattr(stream, "encoding", None) or "utf-8"
+            stream.write(
+                (text + "\n").encode(encoding, errors="replace").decode(encoding)
+            )
+            stream.flush()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Parse a command and return its exit status."""
     multiprocessing.freeze_support()
@@ -246,9 +266,9 @@ def _evaluate(args: argparse.Namespace) -> int:
         data = build(args.gold, args.patterns, args.confirmed_only)
         json_path, md_path = write(args.out, data, force=args.force)
     except (OSError, KeyError, ValueError, json.JSONDecodeError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit(f"error: {error}", error=True)
         return 1
-    print(f"wrote {json_path}, {md_path}")
+    _emit(f"wrote {json_path}, {md_path}")
     return 0
 
 
@@ -259,7 +279,7 @@ def _gold_sentences(args: argparse.Namespace) -> int:
     try:
         emit(reading_list(args.passage, args.span))
     except (OSError, ValueError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit(f"error: {error}", error=True)
         return 1
     return 0
 
@@ -270,9 +290,9 @@ def _validate_gold(args: argparse.Namespace) -> int:
     try:
         entries, sources = validate(args.gold, args.patterns)
     except (OSError, ValueError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit(f"error: {error}", error=True)
         return 1
-    print(f"Validated {entries} gold entries against {sources} source files.")
+    _emit(f"Validated {entries} gold entries against {sources} source files.")
     return 0
 
 
@@ -293,9 +313,9 @@ def _build_gold(args: argparse.Namespace) -> int:
             force=args.force,
         )
     except (OSError, ValueError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit(f"error: {error}", error=True)
         return 1
-    print(f"wrote {args.out} ({entries} gold entries)")
+    _emit(f"wrote {args.out} ({entries} gold entries)")
     return 0
 
 
@@ -309,9 +329,9 @@ def _probe(args: argparse.Namespace) -> int:
             args.config, live=args.live, sample=args.sample, experiments=args.experiment
         )
     except (ProbeConfigError, OSError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit(f"error: {error}", error=True)
         return 1
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    _emit(json.dumps(summary, ensure_ascii=False, indent=2))
     return 1 if summary["stopped"] else 0
 
 
@@ -353,11 +373,12 @@ def _run(args: argparse.Namespace, command: Callable[..., tuple[int, Any]]) -> i
         PatternFileError,
         NormalizationError,
         QueryError,
+        UnicodeEncodeError,
         OSError,
     ) as error:
-        print(f"error: {error}", file=sys.stderr)
+        _emit(f"error: {error}", error=True)
         return 1
-    print(f"{count} results; wrote {outputs.csv}, {outputs.jsonl}, {outputs.run}")
+    _emit(f"{count} results; wrote {outputs.csv}, {outputs.jsonl}, {outputs.run}")
     return 0
 
 
@@ -365,7 +386,13 @@ def _match(args: argparse.Namespace, run_id: str, settings: Any) -> tuple[int, A
     from cpe.match.run import match_files
 
     results, outputs = match_files(
-        args.patterns, args.inputs, args.out, run_id, settings, force=args.force
+        args.patterns,
+        args.inputs,
+        args.out,
+        run_id,
+        settings,
+        force=args.force,
+        on_warning=lambda msg: _emit(msg, error=True),
     )
     return len(results), outputs
 
@@ -397,6 +424,7 @@ def _pair(args: argparse.Namespace, run_id: str, settings: Any) -> tuple[int, An
         run_id,
         settings,
         force=args.force,
+        on_warning=lambda msg: _emit(msg, error=True),
     )
     return len(results), outputs
 
