@@ -72,7 +72,7 @@ The Windows executable does not run on macOS or Linux. Please use the full distr
 
 ### Search Sources (Up to 4 Concurrently)
 
-You can select up to four sources at once from your local text folders and 19 online sources grouped into five browsing regions. In **Sources**, **Find where a work or collection is held** (Work finder) maps major classical works and collections to their connected online databases, bundled `data.go.kr` download presets, and external import tools, with direct actions to select a database, open its scope guide, or jump to the corresponding download/import workflow:
+You can select up to four sources at once from your local text folders and 19 online sources grouped into five browsing regions. In **Sources**, **Find where a work or collection is held** maps major classical works and collections to their connected online databases, bundled `data.go.kr` download presets, and external import tools, with direct actions to select a database, open its scope guide, or jump to the corresponding download/import workflow:
 
 - **Text folders**: Reads the .txt and .md files (UTF-8 text) and .texts.jsonl text bundles in the chosen folder and all its subfolders. A file NAME.txt.manifest.toml next to a text can give its title, punctuation conventions and date (era = "唐", year = 618, year_end = 907); otherwise the file name is the title. Other formats, such as Excel, are not read.
 - **Korea (8)**:

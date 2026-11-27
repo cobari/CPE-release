@@ -521,11 +521,7 @@ def _slots(
     usage: dict[str, Any],
 ) -> None:
     records = record if isinstance(record, list) else [record]
-    slot_name = (
-        "A"
-        if any(s["name"] == "A" for r in records for s in r["slots"])
-        else next((s["name"] for r in records for s in r["slots"]), "A")
-    )
+    slot_name = next((s["name"] for r in records for s in r["slots"]), "A")
     slots = [s["src"] for r in records for s in r["slots"] if s["name"] == slot_name]
     if usage["slot_A"] and slots:
         report.slot_a_exact.n += 1

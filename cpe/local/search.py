@@ -45,6 +45,7 @@ from cpe.itkc.query import (
     Term,
     evaluate,
     leaf_spans,
+    near_spans_match,
     parse,
     positive_leaves,
 )
@@ -161,6 +162,91 @@ def _collect_regex_leaves(node: Node) -> list[Regex]:
     return found
 
 
+def _segment_allowed(
+    barriers: Sequence[int], offset: int
+) -> Callable[[int, int], bool] | None:
+    if not barriers:
+        return None
+
+    def allowed(start: int, end: int, offset: int = offset) -> bool:
+        # No term, phrase, regex hit or NEAR stretch crosses a note barrier
+        # (spec 2.5); in segment coordinates, so shift by the segment start.
+        index = bisect.bisect_right(barriers, offset + start)
+        return index >= len(barriers) or barriers[index] >= offset + end
+
+    return allowed
+
+
+def _probe_next_regex(
+    node: Node,
+    body: str,
+    allowed_fn: Callable[[int, int], bool] | None,
+    cache: dict[Leaf, list[tuple[int, int]]],
+) -> bool | Regex:
+    """Evaluate fast Term leaves and yield the next needed Regex left-to-right."""
+    if isinstance(node, Term):
+        if node not in cache:
+            cache[node] = leaf_spans(node, body, allowed_fn)
+        return bool(cache[node])
+    if isinstance(node, Regex):
+        if node not in cache:
+            return node
+        return bool(cache[node])
+    if isinstance(node, Not):
+        result = _probe_next_regex(node.child, body, allowed_fn, cache)
+        return result if isinstance(result, Regex) else not result
+    if isinstance(node, And):
+        for child in node.children:
+            result = _probe_next_regex(child, body, allowed_fn, cache)
+            if isinstance(result, Regex):
+                return result
+            if not result:
+                return False
+        return True
+    if isinstance(node, Or):
+        for child in node.children:
+            result = _probe_next_regex(child, body, allowed_fn, cache)
+            if isinstance(result, Regex):
+                return result
+            if result:
+                return True
+        return False
+    left_res = _probe_next_regex(node.left, body, allowed_fn, cache)
+    if isinstance(left_res, Regex):
+        return left_res
+    if not left_res:
+        return False
+    right_res = _probe_next_regex(node.right, body, allowed_fn, cache)
+    if isinstance(right_res, Regex):
+        return right_res
+    if not right_res:
+        return False
+    return near_spans_match(cache[node.left], cache[node.right], node.dist, allowed_fn)
+
+
+def _batch_leaf_into_caches(
+    leaf: Regex,
+    indices: Sequence[int],
+    text: NormalizedText,
+    segments: Sequence[seg.Segment],
+    allowed_fns: Sequence[Callable[[int, int], bool] | None],
+    caches: Sequence[dict[Leaf, list[tuple[int, int]]]],
+    checkpoint: Checkpoint,
+) -> None:
+    bodies = [text.text[segments[i].start : segments[i].end] for i in indices]
+    try:
+        batch = regex_worker.spans_batch(leaf.pattern, bodies, checkpoint=checkpoint)
+    except (OSError, EOFError, TimeoutError, ValueError) as error:
+        raise QueryError(str(error)) from None
+    for idx, raw in zip(indices, batch, strict=True):
+        allowed_fn = allowed_fns[idx]
+        caches[idx][leaf] = (
+            [span for span in raw if allowed_fn(span[0], span[1])]
+            if allowed_fn is not None
+            else raw
+        )
+
+
 def search_text(
     tree: Node,
     query: str,
@@ -185,36 +271,65 @@ def search_text(
     warned = long_warning(segments, settings) if warn_long is None else warn_long
     barriers = normalized.sorted_barriers
     leaves = positive_leaves(tree)
-    batched_regex: dict[Regex, list[list[tuple[int, int]]]] = {}
-    if len(segments) > 1 and regex_worker.spans is regex_worker._ORIG_SPANS:
-        regex_leaves = _collect_regex_leaves(tree)
-        if regex_leaves:
-            bodies = [normalized.text[s.start : s.end] for s in segments]
-            for leaf in regex_leaves:
-                try:
-                    batched_regex[leaf] = regex_worker.spans_batch(
-                        leaf.pattern, bodies, checkpoint=checkpoint
+    regex_leaves = _collect_regex_leaves(tree)
+    use_batch = (
+        len(segments) > 1
+        and bool(regex_leaves)
+        and regex_worker.spans is regex_worker._ORIG_SPANS
+    )
+    allowed_fns = [_segment_allowed(barriers, segment.start) for segment in segments]
+    caches: list[dict[Leaf, list[tuple[int, int]]]] = [{} for _ in segments]
+    outcomes: list[bool | None] = [None] * len(segments)
+    if use_batch:
+        # Demand-driven waves preserve left-to-right boolean short-circuiting so
+        # regexes never run on segments already ruled out by cheaper leaves.
+        active = list(range(len(segments)))
+        while active:
+            pending: dict[Regex, list[int]] = {}
+            for seg_index in active:
+                if checkpoint:
+                    checkpoint()
+                segment = segments[seg_index]
+                body = normalized.text[segment.start : segment.end]
+                probed = _probe_next_regex(
+                    tree, body, allowed_fns[seg_index], caches[seg_index]
+                )
+                if isinstance(probed, Regex):
+                    pending.setdefault(probed, []).append(seg_index)
+                else:
+                    outcomes[seg_index] = probed
+            if not pending:
+                break
+            for leaf, indices in pending.items():
+                _batch_leaf_into_caches(
+                    leaf, indices, normalized, segments, allowed_fns, caches, checkpoint
+                )
+            active = sorted(idx for indices in pending.values() for idx in indices)
+        for highlight_leaf in leaves:
+            if isinstance(highlight_leaf, Regex):
+                missing = [
+                    idx
+                    for idx, matched in enumerate(outcomes)
+                    if matched and highlight_leaf not in caches[idx]
+                ]
+                if missing:
+                    _batch_leaf_into_caches(
+                        highlight_leaf,
+                        missing,
+                        normalized,
+                        segments,
+                        allowed_fns,
+                        caches,
+                        checkpoint,
                     )
-                except (OSError, EOFError, TimeoutError, ValueError) as error:
-                    raise QueryError(str(error)) from None
+
     records = []
     for seg_index, segment in enumerate(segments):
         if checkpoint:
             checkpoint()
         body = normalized.text[segment.start : segment.end]
-        allowed_fn: Callable[[int, int], bool] | None = None
-        if barriers:
-            offset = segment.start
-
-            def allowed(start: int, end: int, offset: int = offset) -> bool:
-                # No term, phrase, regex hit or NEAR stretch crosses a note barrier
-                # (spec 2.5); in segment coordinates, so shift by the segment start.
-                index = bisect.bisect_right(barriers, offset + start)
-                return index >= len(barriers) or barriers[index] >= offset + end
-
-            allowed_fn = allowed
-
-        span_cache: dict[Leaf, list[tuple[int, int]]] = {}
+        allowed_fn = allowed_fns[seg_index]
+        span_cache = caches[seg_index]
 
         def find_spans(
             leaf: Leaf,
@@ -222,23 +337,17 @@ def search_text(
             _body: str = body,
             _allowed: Callable[[int, int], bool] | None = allowed_fn,
             _cache: dict[Leaf, list[tuple[int, int]]] = span_cache,
-            _seg_index: int = seg_index,
         ) -> list[tuple[int, int]]:
             cached = _cache.get(leaf)
             if cached is None:
-                if isinstance(leaf, Regex) and leaf in batched_regex:
-                    raw = batched_regex[leaf][_seg_index]
-                    cached = (
-                        [span for span in raw if _allowed(span[0], span[1])]
-                        if _allowed is not None
-                        else raw
-                    )
-                else:
-                    cached = leaf_spans(leaf, _body, _allowed)
+                cached = leaf_spans(leaf, _body, _allowed)
                 _cache[leaf] = cached
             return cached
 
-        if not evaluate(tree, body, allowed_fn, find_spans=find_spans):
+        if use_batch:
+            if not outcomes[seg_index]:
+                continue
+        elif not evaluate(tree, body, allowed_fn, find_spans=find_spans):
             continue
         found = sorted(
             {

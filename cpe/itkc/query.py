@@ -15,7 +15,7 @@ API results; it is separate from the pattern DSL in cpe.match.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from cpe.itkc import regex_worker
@@ -244,6 +244,29 @@ def spans(leaf: Leaf, text: str) -> list[tuple[int, int]]:
         raise QueryError(str(error)) from None
 
 
+def near_spans_match(
+    left: Sequence[tuple[int, int]],
+    right: Sequence[tuple[int, int]],
+    dist: int,
+    allowed: Callable[[int, int], bool] | None = None,
+) -> bool:
+    """Whether any span in `left` occurs within `dist` code points of `right`."""
+    j_start = 0
+    n_right = len(right)
+    for s1, e1 in left:
+        while j_start < n_right and right[j_start][1] < s1 - dist:
+            j_start += 1
+        limit = e1 + dist
+        for j in range(j_start, n_right):
+            s2, e2 = right[j]
+            if s2 > limit:
+                break
+            if e2 >= s1 - dist:
+                if allowed is None or allowed(min(s1, s2), max(e1, e2)):
+                    return True
+    return False
+
+
 def evaluate(
     node: Node,
     text: str,
@@ -277,22 +300,9 @@ def evaluate(
             evaluate(child, text, allowed, find_spans=lookup) for child in node.children
         )
     left = lookup(node.left)
-    right = lookup(node.right)
-    dist = node.dist
-    j_start = 0
-    n_right = len(right)
-    for s1, e1 in left:
-        while j_start < n_right and right[j_start][1] < s1 - dist:
-            j_start += 1
-        limit = e1 + dist
-        for j in range(j_start, n_right):
-            s2, e2 = right[j]
-            if s2 > limit:
-                break
-            if e2 >= s1 - dist:
-                if allowed is None or allowed(min(s1, s2), max(e1, e2)):
-                    return True
-    return False
+    if not left:
+        return False
+    return near_spans_match(left, lookup(node.right), node.dist, allowed)
 
 
 def leaf_spans(

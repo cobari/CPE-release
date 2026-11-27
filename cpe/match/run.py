@@ -71,15 +71,14 @@ def delimiter_literal_warnings(
         mode = spec.pattern.scope.mode
         if mode == "window":
             continue
-        active = (
-            frozenset().union(*sentence_sets)
-            if mode == "sentence"
-            else frozenset().union(*clause_sets)
-        )
+        active_sets = sentence_sets if mode == "sentence" else clause_sets
         norm_pat = normalized_pattern(spec, options)
         for element in norm_pat.fixed:
             for literal in element.options:
-                if any(ch in active for ch in literal):
+                if all(
+                    any(ch in delimiters for ch in literal)
+                    for delimiters in active_sets
+                ):
                     key = (spec.id, literal, mode)
                     if key not in seen:
                         seen.add(key)

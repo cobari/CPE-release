@@ -34,13 +34,20 @@ def _serve(connection: Any) -> None:
                 request = connection.recv()
             except EOFError:
                 return
+            if len(request) == 3 and request[0] == "batch":
+                _, pattern, texts = request
+                for item in texts:
+                    try:
+                        item_result = _match_spans(pattern, item)
+                    except (re.error, RecursionError) as error:
+                        connection.send((False, str(error)))
+                        break
+                    else:
+                        connection.send((True, item_result))
+                continue
             try:
-                if len(request) == 3 and request[0] == "batch":
-                    _, pattern, texts = request
-                    result: Any = [_match_spans(pattern, item) for item in texts]
-                else:
-                    pattern, text = request
-                    result = _match_spans(pattern, text)
+                pattern, text = request
+                result: Any = _match_spans(pattern, text)
             except (re.error, RecursionError) as error:
                 connection.send((False, str(error)))
             else:
@@ -132,19 +139,24 @@ def spans_batch(
             try:
                 connection = _ensure_worker()
                 connection.send(("batch", pattern, chunk))
-                deadline = time.monotonic() + timeout
-                while True:
-                    remaining = deadline - time.monotonic()
-                    if remaining <= 0:
-                        raise TimeoutError("regular expression exceeded its time limit")
-                    if connection.poll(min(0.05, remaining)):
-                        break
+                for _ in range(len(chunk)):
                     if checkpoint:
                         checkpoint()
-                ok, batch_result = connection.recv()
-                if not ok:
-                    raise ValueError(str(batch_result))
-                results.extend(list(item) for item in batch_result)
+                    deadline = time.monotonic() + timeout
+                    while True:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise TimeoutError(
+                                "regular expression exceeded its time limit"
+                            )
+                        if connection.poll(min(0.05, remaining)):
+                            break
+                        if checkpoint:
+                            checkpoint()
+                    ok, item_result = connection.recv()
+                    if not ok:
+                        raise ValueError(str(item_result))
+                    results.append(list(item_result))
             except BaseException:
                 _stop()
                 raise

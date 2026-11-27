@@ -52,6 +52,10 @@ def fingerprint(value: Any) -> str:
 def library_fingerprint(library: Library) -> str:
     entries = inputs_section([text.local for text in library.texts])
     for entry, text in zip(entries, library.texts, strict=True):
+        try:
+            entry["path"] = text.local.path.resolve().as_posix()
+        except OSError:
+            entry["path"] = text.local.path.as_posix()
         entry["era"] = text.era
     return fingerprint({"texts": entries, "skipped": library.skipped})
 

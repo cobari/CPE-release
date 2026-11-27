@@ -143,7 +143,9 @@ class Workspace:
         paths = tuple(input_paths)
         self.disclosure = disclosure
         self.policy = PathPolicy((*paths, *read_roots), write_roots)
-        self._protected_paths = tuple(host_path(path) for path in protected_paths)
+        self._protected_paths = tuple(
+            host_path(path, allow_unc=True) for path in protected_paths
+        )
         for path in paths:
             self.policy.check_library(path)
         self.preferences = WorkspacePreferences(state_path)

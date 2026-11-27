@@ -14,6 +14,10 @@ from typing import Any
 _ORIG_URLOPEN = urllib.request.urlopen
 
 
+class UnsafeRedirectError(urllib.error.URLError):
+    """Raised when a URL or HTTP redirect violates host, scheme or syntax rules."""
+
+
 def content_length(value: object, maximum: int) -> int | None:
     """Return a bounded byte count, or None when no length was supplied."""
     if value is None:
@@ -66,7 +70,7 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
             parts = urllib.parse.urlsplit(newurl)
             port = parts.port
         except ValueError:
-            raise urllib.error.URLError(f"malformed redirect URL: {newurl}") from None
+            raise UnsafeRedirectError(f"malformed redirect URL: {newurl}") from None
         scheme = parts.scheme.lower()
         allowed_schemes = (
             ("https",)
@@ -82,7 +86,7 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
             or parts.password is not None
             or port not in allowed_port
         ):
-            raise urllib.error.URLError(f"disallowed redirect: {newurl}")
+            raise UnsafeRedirectError(f"disallowed redirect: {newurl}")
         redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
         if redirected is not None:
             self._hops[req] = hops + 1
@@ -130,7 +134,7 @@ def open_url(
         parts = urllib.parse.urlsplit(target)
         port = parts.port
     except ValueError:
-        raise urllib.error.URLError(f"malformed URL: {target}") from None
+        raise UnsafeRedirectError(f"malformed URL: {target}") from None
     scheme = parts.scheme.lower()
     allowed_schemes = ("https",) if require_https else ("http", "https")
     host = (parts.hostname or "").lower()
@@ -142,7 +146,7 @@ def open_url(
         or parts.password is not None
         or port not in allowed_port
     ):
-        raise urllib.error.URLError(f"disallowed URL: {target}")
+        raise UnsafeRedirectError(f"disallowed URL: {target}")
     if urllib.request.urlopen is not _ORIG_URLOPEN:
         if context is not None:
             return urllib.request.urlopen(request, timeout=timeout, context=context)

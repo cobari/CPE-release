@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from cpe.cancellation import Checkpoint, pause
-from cpe.http import open_url
+from cpe.http import UnsafeRedirectError, open_url
 
 API_URL = "http://db.itkc.or.kr/openapi/search"
 
@@ -189,7 +189,7 @@ class ITKCClient:
                 total, docs = parse_response(content)
             except InterruptedError:
                 raise
-            except ET.ParseError as error:
+            except (ET.ParseError, UnsafeRedirectError) as error:
                 self._log({"event": "error", "params": params, "error": str(error)})
                 raise ApiError(f"API call failed ({params!r}): {error}") from None
             except (OSError, http.client.HTTPException) as error:

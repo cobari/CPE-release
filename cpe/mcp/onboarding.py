@@ -198,7 +198,7 @@ def _host(value: Path | str, flag: str) -> Path:
     from cpe.mcp.policy import PolicyError, host_path
 
     try:
-        return host_path(value)
+        return host_path(value, allow_unc=True)
     except PolicyError as error:
         raise CheckFailed(f"{flag}: {error.code}: {value}") from None
 

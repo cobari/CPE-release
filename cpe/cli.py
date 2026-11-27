@@ -12,22 +12,38 @@ OUTPUT_HELP = "output prefix; writes PREFIX.csv, PREFIX.jsonl and PREFIX.run.jso
 DEFAULT_PATTERNS = Path("patterns") / "mvp.toml"
 
 
+def _is_tty(stream: Any) -> bool:
+    isatty = getattr(stream, "isatty", None)
+    if not callable(isatty):
+        return False
+    try:
+        return bool(isatty())
+    except OSError:
+        return False
+
+
 def _emit(text: str, *, error: bool = False) -> None:
-    """Write a line to stdout or stderr without crashing on legacy code pages."""
+    """Write lines with consistent UTF-8 when redirected under legacy code pages."""
     stream = sys.stderr if error else sys.stdout
+    buffer = getattr(stream, "buffer", None)
+    encoding = (getattr(stream, "encoding", None) or "").lower().replace("_", "-")
+    if buffer is not None and not _is_tty(stream) and encoding not in ("utf-8", "utf8"):
+        stream.flush()
+        buffer.write((text + "\n").encode("utf-8", errors="replace"))
+        buffer.flush()
+        return
     try:
         stream.write(text + "\n")
         stream.flush()
     except UnicodeEncodeError:
         stream.flush()
-        buffer = getattr(stream, "buffer", None)
         if buffer is not None:
             buffer.write((text + "\n").encode("utf-8", errors="replace"))
             buffer.flush()
         else:
-            encoding = getattr(stream, "encoding", None) or "utf-8"
+            fallback = getattr(stream, "encoding", None) or "utf-8"
             stream.write(
-                (text + "\n").encode(encoding, errors="replace").decode(encoding)
+                (text + "\n").encode(fallback, errors="replace").decode(fallback)
             )
             stream.flush()
 
