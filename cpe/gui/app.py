@@ -2405,6 +2405,8 @@ class Api:
                 if code not in LOCAL_SOURCES:
                     continue
                 folder = self._local_paths.get(code, "")
+                if folder:
+                    folder = str(Path(folder).absolute())
                 binding: dict[str, Any] = {
                     "folder": folder,
                     "sha256": review.library_fingerprint(self._local_libraries[code]),
@@ -2530,25 +2532,30 @@ class Api:
         cur_folder = folders.get(code, "")
         cur_lib = loaded.get(code)
         if saved_folder:
+            saved_path = Path(saved_folder)
+            if not saved_path.is_absolute():
+                return {"error": "review_unavailable"}
             if self._saved_folder_conflicts(
                 code, saved_folder, folders, saved_libraries
             ):
                 return {"error": "local_duplicate", "path": saved_folder}
-            if not Path(saved_folder).is_dir():
+            if not saved_path.is_dir():
                 return {"error": "review_unavailable"}
             previous = (
                 cur_lib
                 if cur_folder
                 and (
                     cur_folder == saved_folder
-                    or _same_folder(Path(cur_folder), Path(saved_folder))
+                    or _same_folder(Path(cur_folder), saved_path)
                 )
                 else None
             )
             return _load_folder(saved_folder, settings, previous=previous), saved_folder
         if saved_files:
             paths = dict.fromkeys(Path(item) for item in saved_files)
-            if not paths or any(not path.exists() for path in paths):
+            if not paths or any(
+                not path.is_absolute() or not path.exists() for path in paths
+            ):
                 return {"error": "review_unavailable"}
             previous = cur_lib if not cur_folder else None
             return Library.load_incremental(paths, settings, previous=previous), ""
@@ -2588,14 +2595,20 @@ class Api:
                 previous is not None and bool(previous.texts)
             )
             if saved_folder:
-                matches_current = bool(cur_folder) and (
-                    cur_folder == saved_folder
-                    or _same_folder(Path(cur_folder), Path(saved_folder))
+                saved_path = Path(saved_folder)
+                matches_current = (
+                    saved_path.is_absolute()
+                    and bool(cur_folder)
+                    and (
+                        cur_folder == saved_folder
+                        or _same_folder(Path(cur_folder), saved_path)
+                    )
                 )
             elif saved_files is not None:
                 matches_current = (
                     not cur_folder
                     and previous is not None
+                    and all(Path(item).is_absolute() for item in saved_files)
                     and self._same_file_list(
                         [text.local.path for text in previous.texts], saved_files
                     )
@@ -2690,13 +2703,19 @@ class Api:
                     different_input = True
                     changed.append(code)
                     if saved_folder:
-                        saved_ok = Path(
-                            saved_folder
-                        ).is_dir() and not self._saved_folder_conflicts(
-                            code, saved_folder, folders, saved_libraries
+                        saved_path = Path(saved_folder)
+                        saved_ok = (
+                            saved_path.is_absolute()
+                            and saved_path.is_dir()
+                            and not self._saved_folder_conflicts(
+                                code, saved_folder, folders, saved_libraries
+                            )
                         )
                     elif saved_files:
-                        saved_ok = all(Path(item).exists() for item in saved_files)
+                        saved_ok = all(
+                            Path(item).is_absolute() and Path(item).exists()
+                            for item in saved_files
+                        )
                     else:
                         saved_ok = False
                     if not saved_ok:
@@ -3363,6 +3382,7 @@ def start_library(
     failing: the window can still open another folder.
     """
     if paths:
+        paths = [path.absolute() for path in paths]
         folder = ""
         if len(paths) == 1:
             try:
