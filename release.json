@@ -2,7 +2,7 @@
   "version": "3.3",
   "tag": "v3.3",
   "source_repository": "https://github.com/cobari/CPE",
-  "source_commit": "446714993b3da244b14411fa7a54094273b15a1d",
+  "source_commit": "5cbe4f705430bf504ef47ec6a73986cb6c466ac6",
   "interface_languages": [
     "ko",
     "ja",
@@ -109,7 +109,7 @@
     "cpe/local/portal.py": "153044ef8c5c7891baea34b619ec235b1267dc18bae4ddfb7d05e49d5af43132",
     "cpe/local/releases.py": "8aa9d93711a84c296c2e1e4a96ae296387c1e53784df063d640222a3b7c58298",
     "cpe/local/rise.py": "461f07b1c801ee3be5264ab3061a6a7fe5d8f8df84d069db81bf43ab5de9c9ed",
-    "cpe/local/search.py": "e1f8adfd25adae98a2e389db6a95f2d6f967d969c4184267e51ff87a3b9a7193",
+    "cpe/local/search.py": "a683051da09969fba1fb5b77e5b4017a2799509b719f264e265311908f4ca9aa",
     "cpe/local/titled_releases.py": "d7ce85813d5d7dabe6cf22bf8395c95c5841fc73235c7b70d75a7806f62bc0b2",
     "cpe/local/txt.py": "50cd31f8f58ea941124e7aa2fb500876f66878b4ec7d1b5541ebc830f3ae92e7",
     "cpe/match/__init__.py": "608ee706c387f55f9902e143117ed62c2eec697459985336a8428744b6b05630",
@@ -170,7 +170,7 @@
     "docs/variant-comparison-workflow.md": "216fa0a240869874f055fef957275436218926939c76de6f61bf6200c42aff8c"
   },
   "native_launch_tested": true,
-  "native_test_scope": "Rebuilt cpe-gui.exe (standalone cpe.gui.__main__ entrypoint; excluding cpe.mcp.{runner,onboarding,build_info,disclosure} while keeping cpe.mcp.evidence) and cpe-mcp.exe from clean commit 446714993b3da244b14411fa7a54094273b15a1d; verified cpe-gui.exe --help (exit 0) and live desktop WebView2 launch on a temporary local .txt input (1 texts loaded; visible 'Classic Pattern Explorer' window observed), plus local search matching, clean cpe-mcp.exe --version/--doctor (exit 0), scripts/check.py --require-node --require-mcp (Ruff check/format 265 files, mypy 125 files, pytest 3,471 passed / 4 skipped, 9 MCP stdio protocol passed, 246 Node GUI tests passed), and check_site_bundle across 24 URLs.",
+  "native_test_scope": "Rebuilt cpe-gui.exe (standalone cpe.gui.__main__ entrypoint; excluding cpe.mcp.{runner,onboarding,build_info,disclosure} while keeping cpe.mcp.evidence) and cpe-mcp.exe from clean commit 5cbe4f705430bf504ef47ec6a73986cb6c466ac6; verified cpe-gui.exe --help (exit 0) and live desktop WebView2 launch on a temporary local .txt input (1 texts loaded; visible 'Classic Pattern Explorer' window observed), plus local search matching, clean cpe-mcp.exe --version/--doctor (exit 0), scripts/check.py --require-node --require-mcp (Ruff check/format 265 files, mypy 125 files, pytest 3,472 passed / 4 skipped, 9 MCP stdio protocol passed, 246 Node GUI tests passed), and check_site_bundle across 24 URLs.",
   "development_config_snapshot": {
     "pyproject.toml": "1152834517b74eaf11514016819310eec04dead268eb59c13ab40982d992e48a",
     "uv.lock": "b196bae157223c10d41e621b7a1c118588e563aa38857c6b3db2c85efa82d0c0"
@@ -215,19 +215,19 @@
     "data_policy": "docs/mcp-data-policy.md",
     "client_scope": "Official Python SDK subprocess tests; not Claude application certification."
   },
-  "binary_source_commit": "446714993b3da244b14411fa7a54094273b15a1d",
+  "binary_source_commit": "5cbe4f705430bf504ef47ec6a73986cb6c466ac6",
   "release_url": "https://github.com/cobari/CPE-release/releases/tag/v3.3",
   "released_on": null,
   "executables": {
     "cpe-gui.exe": {
-      "sha256": "e702e1906858d85dffd68b4ff4cbde3f6240c3d76e365a00cb4390e716295e8b",
-      "bytes": 18678977,
-      "source_commit": "446714993b3da244b14411fa7a54094273b15a1d"
+      "sha256": "f87ab1ac929ea942e23e6f678cb8e7e38fd33c75e6f22632e0616afb49382288",
+      "bytes": 18677226,
+      "source_commit": "5cbe4f705430bf504ef47ec6a73986cb6c466ac6"
     },
     "cpe-mcp.exe": {
-      "sha256": "7294563d9d8df2b178c382eb45bcbe7888f50de434740bbfbf64d3556a025ac1",
-      "bytes": 36013202,
-      "source_commit": "446714993b3da244b14411fa7a54094273b15a1d"
+      "sha256": "fa5b0abd7a82ecf95792fbf04c72d48af3b0bc38f6fd7349fa8e357709c988f7",
+      "bytes": 36013113,
+      "source_commit": "5cbe4f705430bf504ef47ec6a73986cb6c466ac6"
     }
   }
 }

@@ -230,7 +230,7 @@ def _batch_leaf_into_caches(
     text: NormalizedText,
     segments: Sequence[seg.Segment],
     allowed_fns: Sequence[Callable[[int, int], bool] | None],
-    caches: Sequence[dict[Leaf, list[tuple[int, int]]]],
+    caches: dict[int, dict[Leaf, list[tuple[int, int]]]],
     checkpoint: Checkpoint,
 ) -> None:
     bodies = [text.text[segments[i].start : segments[i].end] for i in indices]
@@ -240,7 +240,7 @@ def _batch_leaf_into_caches(
         raise QueryError(str(error)) from None
     for idx, raw in zip(indices, batch, strict=True):
         allowed_fn = allowed_fns[idx]
-        caches[idx][leaf] = (
+        caches.setdefault(idx, {})[leaf] = (
             [span for span in raw if allowed_fn(span[0], span[1])]
             if allowed_fn is not None
             else raw
@@ -277,12 +277,16 @@ def search_text(
         and bool(regex_leaves)
         and regex_worker.spans is regex_worker._ORIG_SPANS
     )
-    allowed_fns = [_segment_allowed(barriers, segment.start) for segment in segments]
-    caches: list[dict[Leaf, list[tuple[int, int]]]] = [{} for _ in segments]
-    outcomes: list[bool | None] = [None] * len(segments)
+    allowed_fns: list[Callable[[int, int], bool] | None] = []
+    caches: dict[int, dict[Leaf, list[tuple[int, int]]]] = {}
+    outcomes: list[bool | None] = []
     if use_batch:
         # Demand-driven waves preserve left-to-right boolean short-circuiting so
         # regexes never run on segments already ruled out by cheaper leaves.
+        allowed_fns = [
+            _segment_allowed(barriers, segment.start) for segment in segments
+        ]
+        outcomes = [None] * len(segments)
         active = list(range(len(segments)))
         while active:
             pending: dict[Regex, list[int]] = {}
@@ -291,13 +295,16 @@ def search_text(
                     checkpoint()
                 segment = segments[seg_index]
                 body = normalized.text[segment.start : segment.end]
+                seg_cache = caches.setdefault(seg_index, {})
                 probed = _probe_next_regex(
-                    tree, body, allowed_fns[seg_index], caches[seg_index]
+                    tree, body, allowed_fns[seg_index], seg_cache
                 )
                 if isinstance(probed, Regex):
                     pending.setdefault(probed, []).append(seg_index)
                 else:
                     outcomes[seg_index] = probed
+                    if not probed:
+                        caches.pop(seg_index, None)
             if not pending:
                 break
             for leaf, indices in pending.items():
@@ -310,7 +317,7 @@ def search_text(
                 missing = [
                     idx
                     for idx, matched in enumerate(outcomes)
-                    if matched and highlight_leaf not in caches[idx]
+                    if matched and highlight_leaf not in caches.get(idx, ())
                 ]
                 if missing:
                     _batch_leaf_into_caches(
@@ -327,9 +334,15 @@ def search_text(
     for seg_index, segment in enumerate(segments):
         if checkpoint:
             checkpoint()
+        if use_batch:
+            if not outcomes[seg_index]:
+                continue
+            allowed_fn = allowed_fns[seg_index]
+            span_cache = caches.pop(seg_index, {})
+        else:
+            allowed_fn = _segment_allowed(barriers, segment.start)
+            span_cache = {}
         body = normalized.text[segment.start : segment.end]
-        allowed_fn = allowed_fns[seg_index]
-        span_cache = caches[seg_index]
 
         def find_spans(
             leaf: Leaf,
@@ -344,10 +357,9 @@ def search_text(
                 _cache[leaf] = cached
             return cached
 
-        if use_batch:
-            if not outcomes[seg_index]:
-                continue
-        elif not evaluate(tree, body, allowed_fn, find_spans=find_spans):
+        if not use_batch and not evaluate(
+            tree, body, allowed_fn, find_spans=find_spans
+        ):
             continue
         found = sorted(
             {
